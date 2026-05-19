@@ -413,9 +413,14 @@ export default function Home() {
 function ProductCard({ product, onAddToCart, addingId, featured }) {
   const catName = product?.category?.name || product?.category || "";
   const isAdding = addingId === product.id;
+  const navigate = useNavigate();
 
   return (
-    <article className={`product-card ${featured ? "featured" : ""}`}>
+    <article
+      className={`product-card ${featured ? "featured" : ""}`}
+      onClick={() => navigate(`/product/${product.id}`)}
+      style={{ cursor: "pointer" }}
+    >
       <div className="product-img-wrap">
         {product.imageUrl ? (
           <img src={product.imageUrl} alt={product.name} loading="lazy" />
@@ -442,7 +447,10 @@ function ProductCard({ product, onAddToCart, addingId, featured }) {
           </div>
           <button
             className="btn btn-primary btn-small add-btn"
-            onClick={() => onAddToCart(product.id)}
+            onClick={e => {
+              e.stopPropagation();
+              onAddToCart(product.id);
+            }}
             disabled={isAdding || product.stock === 0}
           >
             {isAdding ? "…" : "+ Cart"}

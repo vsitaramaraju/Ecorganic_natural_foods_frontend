@@ -91,7 +91,8 @@ export default function Orders() {
                   </span>
                   {order.address && (
                     <span className="order-addr-mini">
-                      📍 {order.address.city}, {order.address.state}
+                      📍{order.address.street}, {order.address.city},{" "}
+                      {order.address.state}
                     </span>
                   )}
                 </div>

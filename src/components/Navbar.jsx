@@ -46,90 +46,114 @@ export default function Navbar() {
           </div>
         </Link>
 
-        {/* Desktop Nav */}
-        <ul className="navbar-links">
-          <li>
-            <Link to="/" className={`nav-link ${isActive("/")}`}>
-              Home
-            </Link>
-          </li>
-          <li>
-            <Link to="/shop" className={`nav-link ${isActive("/shop")}`}>
-              Shop
-            </Link>
-          </li>
-          <li>
-            <Link
-              to="/categories"
-              className={`nav-link ${isActive("/categories")}`}
-            >
-              Categories
-            </Link>
-          </li>
-          {user && !isAdmin && (
-            <>
+        {/* ================= USER / GUEST NAV ================= */}
+
+        {!isAdmin && (
+          <>
+            {/* Desktop Nav */}
+            <ul className="navbar-links">
               <li>
-                <Link to="/cart" className={`nav-link ${isActive("/cart")}`}>
-                  🛒 Cart
+                <Link to="/" className={`nav-link ${isActive("/")}`}>
+                  Home
                 </Link>
               </li>
+
+              <li>
+                <Link to="/shop" className={`nav-link ${isActive("/shop")}`}>
+                  Shop
+                </Link>
+              </li>
+
               <li>
                 <Link
-                  to="/orders"
-                  className={`nav-link ${isActive("/orders")}`}
+                  to="/categories"
+                  className={`nav-link ${isActive("/categories")}`}
                 >
-                  My Orders
+                  Categories
                 </Link>
               </li>
-            </>
-          )}
-          {isAdmin && (
-            <li>
-              <Link to="/admin/overview" className="nav-link admin-badge">
-                ⚙ Dashboard
-              </Link>
-            </li>
-          )}
-        </ul>
-        <div className="navbar-search">
-          <input type="text" placeholder="Search products..." />
-          <FaSearch className="search-icon" />
-        </div>
-        {/* Right actions */}
+            </ul>
+
+            {/* Search */}
+            <div className={`navbar-search ${user ? "search-user-login" : ""}`}>
+              <input type="text" placeholder="Search products..." />
+              <FaSearch className="search-icon" />
+            </div>
+          </>
+        )}
+
+        {/* ================= ADMIN NAV ================= */}
+
+        {isAdmin && (
+          <div className="admin-nav-only">
+            <Link to="/admin/overview" className="nav-link admin-badge">
+              ⚙ Dashboard
+            </Link>
+          </div>
+        )}
+
+        {/* ================= RIGHT SECTION ================= */}
+
         <div className="navbar-right">
+          {/* USER ICON ACTIONS */}
+          {user && !isAdmin && (
+            <div className="user-icons-wrap">
+              <Link to="/wishlist" className="dropdown-item">
+                ❤️
+              </Link>
+
+              <Link to="/cart" className="icon-btn">
+                🛒
+              </Link>
+            </div>
+          )}
+
+          {/* PROFILE */}
           {user ? (
             <div className="profile-wrap">
               <button
                 className="profile-btn"
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
               >
-                <span className="avatar">{user.name?.[0]?.toUpperCase()}</span>
-                <span className="user-name-nav">{user.name.split(" ")[0]}</span>
-                <span className="chevron">{isProfileOpen ? "▲" : "▼"}</span>
+                <img
+                  src={
+                    user.profileImage ||
+                    "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
+                  }
+                  alt="profile"
+                  className="profile-image"
+                />
               </button>
+
               {isProfileOpen && (
                 <div className="dropdown">
                   <div className="dropdown-user">
                     <strong>{user.name}</strong>
                     <small>{user.email}</small>
                   </div>
+
                   <div className="dropdown-divider" />
+
                   <Link to="/profile" className="dropdown-item">
                     👤 My Profile
                   </Link>
+
                   {!isAdmin && (
                     <>
                       <Link to="/orders" className="dropdown-item">
                         📦 My Orders
                       </Link>
+
                       <Link to="/addresses" className="dropdown-item">
                         📍 Addresses
                       </Link>
+
                       <Link to="/wishlist" className="dropdown-item">
                         ❤️ Wishlist
                       </Link>
                     </>
                   )}
+
                   {isAdmin && (
                     <Link
                       to="/admin/overview"
@@ -138,7 +162,9 @@ export default function Navbar() {
                       ⚙ Admin Panel
                     </Link>
                   )}
+
                   <div className="dropdown-divider" />
+
                   <button
                     className="dropdown-item logout"
                     onClick={handleLogout}
@@ -153,6 +179,7 @@ export default function Navbar() {
               <Link to="/login" className="btn btn-secondary btn-small">
                 Login
               </Link>
+
               <Link to="/register" className="btn btn-primary btn-small">
                 Sign Up
               </Link>
@@ -172,41 +199,55 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      {/* ================= MOBILE MENU ================= */}
+
       <div className={`mobile-menu ${isMenuOpen ? "open" : ""}`}>
-        <Link to="/" className="mob-link">
-          🏠 Home
-        </Link>
-        <Link to="/shop" className="mob-link">
-          🛒 Shop
-        </Link>
-        <Link to="/categories" className="mob-link">
-          📂 Categories
-        </Link>
+        {!isAdmin && (
+          <>
+            <Link to="/" className="mob-link">
+              🏠 Home
+            </Link>
+
+            <Link to="/shop" className="mob-link">
+              🛒 Shop
+            </Link>
+
+            <Link to="/categories" className="mob-link">
+              📂 Categories
+            </Link>
+          </>
+        )}
+
         {user && !isAdmin && (
           <>
             <Link to="/cart" className="mob-link">
               🛒 Cart
             </Link>
+
             <Link to="/orders" className="mob-link">
               📦 My Orders
             </Link>
+
             <Link to="/wishlist" className="mob-link">
               ❤️ Wishlist
             </Link>
+
             <Link to="/addresses" className="mob-link">
               📍 Addresses
             </Link>
+
             <Link to="/profile" className="mob-link">
               👤 Profile
             </Link>
           </>
         )}
+
         {isAdmin && (
           <Link to="/admin/overview" className="mob-link">
             ⚙ Dashboard
           </Link>
         )}
+
         {user ? (
           <button className="mob-link logout-mob" onClick={handleLogout}>
             🚪 Sign Out
@@ -216,6 +257,7 @@ export default function Navbar() {
             <Link to="/login" className="mob-link">
               Login
             </Link>
+
             <Link to="/register" className="mob-link">
               Sign Up
             </Link>

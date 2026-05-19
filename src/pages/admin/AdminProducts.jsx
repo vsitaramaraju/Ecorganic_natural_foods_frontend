@@ -5,7 +5,7 @@ import {
   fetchProductsByCategory,
   formatCurrency,
   getCategoryName,
-  saveProduct,
+  saveProduct
 } from "./adminShared";
 
 const DEFAULT_PRODUCT_FORM = {
@@ -14,7 +14,7 @@ const DEFAULT_PRODUCT_FORM = {
   price: "",
   stock: "",
   categoryId: "",
-  imageUrl: "",
+  imageUrl: ""
 };
 
 export default function AdminProducts() {
@@ -44,7 +44,10 @@ export default function AdminProducts() {
       } catch (error) {
         setMessage({
           type: "error",
-          text: error?.response?.data?.message || error?.message || "Failed to load products",
+          text:
+            error?.response?.data?.message ||
+            error?.message ||
+            "Failed to load products"
         });
       } finally {
         setIsLoading(false);
@@ -58,7 +61,7 @@ export default function AdminProducts() {
     setProductForm(DEFAULT_PRODUCT_FORM);
   };
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = async event => {
     event.preventDefault();
 
     const payload = {
@@ -66,36 +69,58 @@ export default function AdminProducts() {
       description: productForm.description.trim(),
       price: Number(productForm.price),
       stock: Number(productForm.stock),
-      categoryId: productForm.categoryId ? Number(productForm.categoryId) : undefined,
-      imageUrl: productForm.imageUrl.trim() || undefined,
+      categoryId: productForm.categoryId
+        ? Number(productForm.categoryId)
+        : undefined,
+      imageUrl: productForm.imageUrl.trim() || undefined
     };
 
-    if (!payload.name || Number.isNaN(payload.price) || Number.isNaN(payload.stock)) {
+    console.log("Payload:", payload);
+
+    if (
+      !payload.name ||
+      Number.isNaN(payload.price) ||
+      Number.isNaN(payload.stock) ||
+      !payload.categoryId
+    ) {
       setMessage({
         type: "error",
-        text: "Product name, valid price and valid stock are required",
+        text: "Product name, category, valid price and stock are required"
       });
+
       return;
     }
 
     try {
       setIsSaving(true);
       setMessage({ type: "", text: "" });
+
       await saveProduct(payload, null);
+
       await loadData(activeCategory);
-      setMessage({ type: "success", text: "Product created" });
+
+      setMessage({
+        type: "success",
+        text: "Product created"
+      });
+
       resetForm();
     } catch (error) {
+      console.log(error);
+
       setMessage({
         type: "error",
-        text: error?.response?.data?.message || error?.message || "Failed to save product",
+        text:
+          error?.response?.data?.message ||
+          error?.message ||
+          "Failed to save product"
       });
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleCategoryFilter = async (categoryId) => {
+  const handleCategoryFilter = async categoryId => {
     try {
       setIsLoading(true);
       setActiveCategory(categoryId);
@@ -104,7 +129,10 @@ export default function AdminProducts() {
     } catch (error) {
       setMessage({
         type: "error",
-        text: error?.response?.data?.message || error?.message || "Failed to filter products",
+        text:
+          error?.response?.data?.message ||
+          error?.message ||
+          "Failed to filter products"
       });
     } finally {
       setIsLoading(false);
@@ -120,7 +148,9 @@ export default function AdminProducts() {
       <section className="card admin-section">
         <h3>Add Product</h3>
         {message.text && (
-          <div className={`alert ${message.type === "error" ? "alert-error" : "alert-success"}`}>
+          <div
+            className={`alert ${message.type === "error" ? "alert-error" : "alert-success"}`}
+          >
             {message.text}
           </div>
         )}
@@ -130,7 +160,9 @@ export default function AdminProducts() {
             <input
               id="product-name"
               value={productForm.name}
-              onChange={(event) => setProductForm((prev) => ({ ...prev, name: event.target.value }))}
+              onChange={event =>
+                setProductForm(prev => ({ ...prev, name: event.target.value }))
+              }
               required
             />
           </div>
@@ -142,7 +174,9 @@ export default function AdminProducts() {
               min="0"
               step="0.01"
               value={productForm.price}
-              onChange={(event) => setProductForm((prev) => ({ ...prev, price: event.target.value }))}
+              onChange={event =>
+                setProductForm(prev => ({ ...prev, price: event.target.value }))
+              }
               required
             />
           </div>
@@ -154,7 +188,9 @@ export default function AdminProducts() {
               min="0"
               step="1"
               value={productForm.stock}
-              onChange={(event) => setProductForm((prev) => ({ ...prev, stock: event.target.value }))}
+              onChange={event =>
+                setProductForm(prev => ({ ...prev, stock: event.target.value }))
+              }
               required
             />
           </div>
@@ -163,10 +199,15 @@ export default function AdminProducts() {
             <select
               id="product-category"
               value={productForm.categoryId}
-              onChange={(event) => setProductForm((prev) => ({ ...prev, categoryId: event.target.value }))}
+              onChange={event =>
+                setProductForm(prev => ({
+                  ...prev,
+                  categoryId: event.target.value
+                }))
+              }
             >
               <option value="">Select Category</option>
-              {categories.map((category) => (
+              {categories.map(category => (
                 <option key={category.id} value={category.id}>
                   {category.name}
                 </option>
@@ -179,7 +220,12 @@ export default function AdminProducts() {
               id="product-description"
               rows={3}
               value={productForm.description}
-              onChange={(event) => setProductForm((prev) => ({ ...prev, description: event.target.value }))}
+              onChange={event =>
+                setProductForm(prev => ({
+                  ...prev,
+                  description: event.target.value
+                }))
+              }
             />
           </div>
           <div className="form-group admin-form-full">
@@ -187,14 +233,28 @@ export default function AdminProducts() {
             <input
               id="product-image"
               value={productForm.imageUrl}
-              onChange={(event) => setProductForm((prev) => ({ ...prev, imageUrl: event.target.value }))}
+              onChange={event =>
+                setProductForm(prev => ({
+                  ...prev,
+                  imageUrl: event.target.value
+                }))
+              }
             />
           </div>
           <div className="admin-form-actions admin-form-full">
-            <button className="btn btn-primary" type="submit" disabled={isSaving}>
+            <button
+              className="btn btn-primary"
+              type="submit"
+              disabled={isSaving}
+            >
               Create Product
             </button>
-            <button className="btn btn-secondary" type="button" onClick={resetForm} disabled={isSaving}>
+            <button
+              className="btn btn-secondary"
+              type="button"
+              onClick={resetForm}
+              disabled={isSaving}
+            >
               Clear
             </button>
           </div>
@@ -212,7 +272,7 @@ export default function AdminProducts() {
           >
             All Categories
           </button>
-          {categories.map((category) => (
+          {categories.map(category => (
             <button
               key={category.id}
               className="btn btn-secondary"
@@ -242,7 +302,7 @@ export default function AdminProducts() {
                   </td>
                 </tr>
               ) : (
-                products.map((product) => (
+                products.map(product => (
                   <tr key={product.id}>
                     <td>{product.name}</td>
                     <td>{getCategoryName(product)}</td>

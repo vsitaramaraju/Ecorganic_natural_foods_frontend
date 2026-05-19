@@ -143,7 +143,12 @@ export default function Shop() {
           {displayed.length > 0 ? (
             <div className="shop-grid">
               {displayed.map(p => (
-                <article key={p.id} className="shop-product-card">
+                <article
+                  key={p.id}
+                  className="shop-product-card"
+                  onClick={() => navigate(`/product/${p.id}`)}
+                  style={{ cursor: "pointer" }}
+                >
                   <div className="spimg-wrap">
                     {p.imageUrl ? (
                       <img src={p.imageUrl} alt={p.name} loading="lazy" />
@@ -163,7 +168,10 @@ export default function Shop() {
                       <span className="sp-price">₹{p.price}</span>
                       <button
                         className="btn btn-primary btn-small"
-                        onClick={() => addToCart(p.id)}
+                        onClick={e => {
+                          e.stopPropagation();
+                          addToCart(p.id);
+                        }}
                         disabled={addingId === p.id || p.stock === 0}
                       >
                         {addingId === p.id

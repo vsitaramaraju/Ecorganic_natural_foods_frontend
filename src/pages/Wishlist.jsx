@@ -6,7 +6,7 @@ export default function Wishlist() {
   if (!isAuthenticated) {
     return (
       <div className="container">
-        <h1>Wishlist</h1>
+        <h1 style={{ color: "black" }}>Wishlist</h1>
         <div className="alert alert-info">
           Please log in to view your wishlist.
         </div>

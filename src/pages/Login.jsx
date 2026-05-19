@@ -31,7 +31,8 @@ export function Login() {
     try {
       const res = await API.post("/auth/login", form);
       login(res.data.user, res.data.token);
-      navigate("/");
+      if (res.data.user.role === "ADMIN") navigate("/admin/overview");
+      else navigate("/");
     } catch (err) {
       setGenError(err?.response?.data?.message || "Login failed");
     } finally {

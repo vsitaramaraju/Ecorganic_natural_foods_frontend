@@ -26,14 +26,19 @@
   border-color: var(--color-primary-light);
 }
 .sort-select {
-  padding: 11px 16px;
+  padding: 11px 40px 11px 16px;
   border: 2px solid var(--color-border);
   border-radius: var(--radius-full);
   font-family: var(--font-body);
   font-size: 0.9rem;
   outline: none;
   cursor: pointer;
-  background: #fff;
+  background-color: #3b3b3b;
+
+  /* Remove default arrow */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
 }
 
 .shop-body {

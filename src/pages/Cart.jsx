@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import "./Cart.css";
+import { useCart } from "../context/CartContext";
 
 export default function Cart() {
   const [cart, setCart] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { refreshCart } = useCart();
 
   const fetchCart = async () => {
     try {
@@ -28,6 +30,7 @@ export default function Cart() {
     if (qty < 1) return;
     try {
       await API.put("/cart", { itemId: id, quantity: qty });
+      refreshCart();
       fetchCart();
     } catch {
       setError("Failed to update quantity");
@@ -37,6 +40,7 @@ export default function Cart() {
   const removeItem = async id => {
     try {
       await API.delete("/cart", { data: { itemId: id } });
+      refreshCart();
       fetchCart();
     } catch {
       setError("Failed to remove item");

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import { AuthContext } from "../context/AuthContext";
 import "./ProductDetails.css";
+import { useCart } from "../context/CartContext";
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -17,6 +18,7 @@ export default function ProductDetail() {
   const [adding, setAdding] = useState(false);
   const [toast, setToast] = useState("");
   const [selectedImage, setSelectedImage] = useState(0);
+  const { incrementCart } = useCart();
 
   useEffect(() => {
     const load = async () => {
@@ -64,6 +66,7 @@ export default function ProductDetail() {
     setAdding(true);
     try {
       await API.post("/cart", { productId: product.id, quantity });
+      incrementCart(quantity);
       showToast(
         `${quantity > 1 ? quantity + "× " : ""}${product.name} added to cart! 🛒`
       );

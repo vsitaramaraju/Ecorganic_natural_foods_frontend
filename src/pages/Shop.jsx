@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import { AuthContext } from "../context/AuthContext";
 import "./Shop.css";
+import { useCart } from "../context/CartContext";
 
 export default function Shop() {
   const [searchParams] = useSearchParams();
@@ -19,6 +20,7 @@ export default function Shop() {
   const [toast, setToast] = useState("");
   const { isAuthenticated } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { incrementCart } = useCart();
 
   useEffect(() => {
     const load = async () => {
@@ -51,6 +53,7 @@ export default function Shop() {
     setAddingId(productId);
     try {
       await API.post("/cart", { productId, quantity: 1 });
+      incrementCart(1);
       showToast("Added to cart! 🛒");
     } catch (e) {
       showToast(e?.response?.data?.message || "Error");

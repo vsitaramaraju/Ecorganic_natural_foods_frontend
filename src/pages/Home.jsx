@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import { AuthContext } from "../context/AuthContext";
 import "./Home.css";
+import { useCart } from "../context/CartContext";
 
 const ORGANIC_CATEGORY_ICONS = {
   vegetables: "🥦",
@@ -62,6 +63,7 @@ export default function Home() {
   const [toast, setToast] = useState("");
   const { isAuthenticated } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { incrementCart } = useCart();
 
   useEffect(() => {
     const load = async () => {
@@ -103,6 +105,7 @@ export default function Home() {
     setAddingId(productId);
     try {
       await API.post("/cart", { productId, quantity: 1 });
+      incrementCart(1); // ← ADD THIS LINE
       showToast("Added to cart! 🛒");
     } catch (e) {
       showToast(e?.response?.data?.message || "Please login to add to cart");

@@ -3,6 +3,7 @@ import { useState, useContext, useEffect } from "react";
 import { AuthContext } from "../context/AuthContext";
 import "./Navbar.css";
 import { FaSearch } from "react-icons/fa";
+import { useCart } from "../context/CartContext";
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -11,6 +12,7 @@ export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout, isAdmin } = useContext(AuthContext);
+  const { cartCount } = useCart();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -102,8 +104,13 @@ export default function Navbar() {
                 ❤️
               </Link>
 
-              <Link to="/cart" className="icon-btn">
+              <Link to="/cart" className="icon-btn cart-icon-wrap">
                 🛒
+                {cartCount > 0 && (
+                  <span className="cart-badge">
+                    {cartCount > 99 ? "99+" : cartCount}
+                  </span>
+                )}
               </Link>
             </div>
           )}

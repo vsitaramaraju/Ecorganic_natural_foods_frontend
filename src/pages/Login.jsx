@@ -96,6 +96,11 @@ export function Login() {
                 <span className="form-error-message">{errors.password}</span>
               )}
             </div>
+            <div className="forgot-password-wrap">
+              <Link to="/forgot-password" className="forgot-password-link">
+                Forgot Password?
+              </Link>
+            </div>
             <button
               type="submit"
               className="btn btn-primary btn-full"

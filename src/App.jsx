@@ -18,10 +18,20 @@ import AdminProducts from "./pages/admin/AdminProducts";
 import AdminCategories from "./pages/admin/AdminCategories";
 import Footer from "./components/Footer";
 import ProductDetail from "./pages/ProductDetail";
+import ForgotPassword from "./pages/ForgotPassword";
+import ContactUs from "./pages/ContactUs";
+import AboutUs from "./pages/AboutUs";
+import FAQ from "./pages/FAQ";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import ShippingPolicy from "./pages/ShippingPolicy";
+import Coupons from "./pages/Coupons";
+import NotFound from "./pages/NotFound";
+import ScrollToTop from "./ScrollToTop";
 
 function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Navbar />
       <div className="page-content">
         <Routes>
@@ -37,6 +47,14 @@ function App() {
           <Route path="/addresses" element={<Addresses />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/contact-us" element={<ContactUs />} />
+          <Route path="/about-us" element={<AboutUs />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/shipping-policy" element={<ShippingPolicy />} />
+          <Route path="/coupons" element={<Coupons />} />
+          <Route path="/not-found" element={<NotFound />} />
+          <Route path="/faq" element={<FAQ />} />
           <Route path="/admin" element={<Admin />}>
             <Route index element={<Navigate to="overview" replace />} />
             <Route path="overview" element={<AdminOverview />} />

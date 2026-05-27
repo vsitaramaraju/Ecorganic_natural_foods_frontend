@@ -103,6 +103,26 @@
   text-decoration: underline;
 }
 
+.forgot-password-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -4px;
+  margin-bottom: 16px;
+}
+
+.forgot-password-link {
+  font-size: 0.9rem;
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: 0.2s ease;
+}
+
+.forgot-password-link:hover {
+  text-decoration: underline;
+  opacity: 0.8;
+}
+
 @media (max-width: 768px) {
   .auth-page {
     grid-template-columns: 1fr;

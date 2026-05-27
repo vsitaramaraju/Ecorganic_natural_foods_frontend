@@ -164,9 +164,23 @@ export default function Shop() {
                       <span className="tag">{p.category.name}</span>
                     )}
                     <h3>{p.name}</h3>
-                    <p className="sp-desc">
-                      {p.description || "Premium organic product."}
-                    </p>
+                    <div className="sp-description-wrap">
+                      <p className="sp-desc">
+                        {p.description || "Premium organic product."}
+                      </p>
+
+                      {p.description && p.description.length > 80 && (
+                        <button
+                          className="show-more-btn"
+                          onClick={e => {
+                            e.stopPropagation();
+                            navigate(`/product/${p.id}`);
+                          }}
+                        >
+                          Show More
+                        </button>
+                      )}
+                    </div>
                     <div className="sp-foot">
                       <span className="sp-price">₹{p.price}</span>
                       <button

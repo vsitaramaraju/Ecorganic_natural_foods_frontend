@@ -16,7 +16,7 @@ export default function Wishlist() {
 
   return (
     <div className="container">
-      <h1>My Wishlist</h1>
+      <h1 style={{ color: "black" }}>My Wishlist</h1>
       <p>Your wishlist is empty</p>
     </div>
   );

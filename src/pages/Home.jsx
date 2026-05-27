@@ -125,6 +125,9 @@ export default function Home() {
       setActiveCategory(String(cat.id));
       const res = await API.get(`/products/category/${cat.id}`);
       setProducts(Array.isArray(res?.data) ? res.data : []);
+      document
+        .getElementById("products-section")
+        .scrollIntoView({ behavior: "smooth" });
     } catch {
       setProducts([]);
     } finally {
@@ -256,6 +259,9 @@ export default function Home() {
               onClick={() => {
                 setActiveCategory("all");
                 setProducts(allProducts);
+                document
+                  .getElementById("products-section")
+                  .scrollIntoView({ behavior: "smooth" });
               }}
             >
               Show All
@@ -438,6 +444,18 @@ function ProductCard({ product, onAddToCart, addingId, featured }) {
         <p className="product-desc">
           {product.description || "Premium organic product, naturally sourced."}
         </p>
+
+        {product.description && product.description.length > 80 && (
+          <button
+            className="show-more-btn"
+            onClick={e => {
+              e.stopPropagation();
+              navigate(`/product/${product.id}`);
+            }}
+          >
+            Show More
+          </button>
+        )}
         <div className="product-foot">
           <div>
             <span className="product-price">₹{product.price}</span>

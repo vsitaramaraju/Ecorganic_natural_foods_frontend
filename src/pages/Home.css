@@ -277,10 +277,32 @@
   color: var(--color-text);
 }
 .product-desc {
-  font-size: 0.82rem;
-  color: var(--color-text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* Number of lines */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
   line-height: 1.5;
-  flex: 1;
+  min-height: 48px;
+  font-size: 12px;
+  color: lightslategray;
+}
+
+.show-more-btn {
+  margin-top: 6px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #2f855a;
+  font-size: 0.85rem;
+  font-weight: 300;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.show-more-btn:hover {
+  text-decoration: underline;
+  opacity: 0.8;
 }
 .product-foot {
   display: flex;

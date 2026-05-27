@@ -150,10 +150,39 @@
   font-size: 0.95rem;
   font-weight: 600;
 }
+.sp-description-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .sp-desc {
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* Fixed lines */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.5;
+  min-height: 44px;
+  font-size: 12px;
+  color: lightslategray;
+}
+
+.show-more-btn {
+  width: fit-content;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #2f855a;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.show-more-btn:hover {
+  opacity: 0.8;
+  text-decoration: underline;
 }
 .sp-foot {
   display: flex;

@@ -15,6 +15,16 @@ export default function AdminPanel() {
     );
   }
 
+  const NAV = [
+    { to: "/admin/dashboard", label: "🏠 Dashboard" },
+    { to: "/admin/overview", label: "📈 Sales Overview" },
+    { to: "/admin/sales", label: "💳 Online Sales" },
+    { to: "/admin/orders", label: "🛒 Orders" },
+    { to: "/admin/products", label: "📦 Products" },
+    { to: "/admin/categories", label: "🗂 Categories" },
+    { to: "/admin/reports", label: "📋 Reports" }
+  ];
+
   return (
     <div className="container admin-page">
       <div className="admin-page-header">
@@ -28,38 +38,17 @@ export default function AdminPanel() {
 
       <div className="admin-layout">
         <aside className="admin-sidebar" aria-label="Admin Navigation">
-          <NavLink
-            to="/admin/overview"
-            className={({ isActive }) =>
-              `admin-nav-link ${isActive ? "active" : ""}`
-            }
-          >
-            Sales Overview
-          </NavLink>
-          <NavLink
-            to="/admin/orders"
-            className={({ isActive }) =>
-              `admin-nav-link ${isActive ? "active" : ""}`
-            }
-          >
-            Orders
-          </NavLink>
-          <NavLink
-            to="/admin/products"
-            className={({ isActive }) =>
-              `admin-nav-link ${isActive ? "active" : ""}`
-            }
-          >
-            Products
-          </NavLink>
-          <NavLink
-            to="/admin/categories"
-            className={({ isActive }) =>
-              `admin-nav-link ${isActive ? "active" : ""}`
-            }
-          >
-            Categories
-          </NavLink>
+          {NAV.map(({ to, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                `admin-nav-link ${isActive ? "active" : ""}`
+              }
+            >
+              {label}
+            </NavLink>
+          ))}
         </aside>
 
         <div className="admin-content admin-screen">

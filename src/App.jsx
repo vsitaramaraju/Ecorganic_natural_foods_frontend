@@ -12,10 +12,13 @@ import Addresses from "./pages/Addresses";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Admin from "./pages/Admin";
+import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminOverview from "./pages/admin/AdminOverview";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AdminCategories from "./pages/admin/AdminCategories";
+import AdminSales from "./pages/admin/AdminSales";
+import AdminReports from "./pages/admin/AdminReports";
 import Footer from "./components/Footer";
 import ProductDetail from "./pages/ProductDetail";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -56,11 +59,14 @@ function App() {
           <Route path="/not-found" element={<NotFound />} />
           <Route path="/faq" element={<FAQ />} />
           <Route path="/admin" element={<Admin />}>
-            <Route index element={<Navigate to="overview" replace />} />
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="overview" element={<AdminOverview />} />
+            <Route path="sales" element={<AdminSales />} />
             <Route path="orders" element={<AdminOrders />} />
             <Route path="products" element={<AdminProducts />} />
             <Route path="categories" element={<AdminCategories />} />
+            <Route path="reports" element={<AdminReports />} />
           </Route>
         </Routes>
       </div>

@@ -1,16 +1,21 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import API from "../api/axios";
+import { AuthContext } from "../context/AuthContext";
+import { wishlistAPI } from "../api/wishlistAPI";
 import "./SearchResults.css";
 
 export default function SearchResultsPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { isAuthenticated } = useContext(AuthContext);
   
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [sortBy, setSortBy] = useState("default");
+  const [wishlistItems, setWishlistItems] = useState(new Set());
+  const [wishlistLoading, setWishlistLoading] = useState(new Set());
 
   const query = searchParams.get("query") || "";
   const categoryId = searchParams.get("categoryId");
@@ -49,6 +54,60 @@ export default function SearchResultsPage() {
 
     fetchResults();
   }, [query, categoryId, minPrice, maxPrice, inStock]);
+
+  // Check wishlist items
+  useEffect(() => {
+    const checkWishlistItems = async () => {
+      if (!isAuthenticated) {
+        setWishlistItems(new Set());
+        return;
+      }
+
+      try {
+        const response = await wishlistAPI.getWishlist();
+        const items = Array.isArray(response?.data)
+          ? response.data
+          : response?.data?.data || [];
+        const wishlistIds = new Set(items.map(item => item.productId));
+        setWishlistItems(wishlistIds);
+      } catch (error) {
+        console.error("Failed to load wishlist:", error);
+      }
+    };
+
+    checkWishlistItems();
+  }, [isAuthenticated]);
+
+  const handleWishlist = async (e, productId) => {
+    e.stopPropagation();
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+
+    setWishlistLoading(prev => new Set([...prev, productId]));
+    try {
+      if (wishlistItems.has(productId)) {
+        await wishlistAPI.removeFromWishlist(productId);
+        setWishlistItems(prev => {
+          const updated = new Set(prev);
+          updated.delete(productId);
+          return updated;
+        });
+      } else {
+        await wishlistAPI.addToWishlist(productId);
+        setWishlistItems(prev => new Set([...prev, productId]));
+      }
+    } catch (error) {
+      console.error("Wishlist error:", error);
+    } finally {
+      setWishlistLoading(prev => {
+        const updated = new Set(prev);
+        updated.delete(productId);
+        return updated;
+      });
+    }
+  }
 
   // Apply sorting
   let displayed = [...results];
@@ -130,6 +189,15 @@ export default function SearchResultsPage() {
                   ) : (
                     <div className="search-img-placeholder">🌿</div>
                   )}
+                  {/* Wishlist Button */}
+                  <button
+                    className={`wishlist-btn-search ${wishlistItems.has(product.id) ? "active" : ""}`}
+                    onClick={e => handleWishlist(e, product.id)}
+                    disabled={wishlistLoading.has(product.id)}
+                    title={wishlistItems.has(product.id) ? "Remove from wishlist" : "Add to wishlist"}
+                  >
+                    {wishlistLoading.has(product.id) ? "…" : wishlistItems.has(product.id) ? "❤️" : "🤍"}
+                  </button>
                 </div>
                 <div className="search-card-body">
                   {product.category?.name && (

@@ -2,6 +2,7 @@ import { useEffect, useState, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import { AuthContext } from "../context/AuthContext";
+import { wishlistAPI } from "../api/wishlistAPI";
 import "./ProductDetails.css";
 import { useCart } from "../context/CartContext";
 
@@ -18,6 +19,8 @@ export default function ProductDetail() {
   const [adding, setAdding] = useState(false);
   const [toast, setToast] = useState("");
   const [selectedImage, setSelectedImage] = useState(0);
+  const [isInWishlist, setIsInWishlist] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
   const { incrementCart } = useCart();
 
   useEffect(() => {
@@ -52,6 +55,25 @@ export default function ProductDetail() {
     };
     load();
   }, [id]);
+
+  // Check if product is in wishlist
+  useEffect(() => {
+    if (!isAuthenticated || !product?.id) {
+      setIsInWishlist(false);
+      return;
+    }
+
+    const checkWishlist = async () => {
+      try {
+        const response = await wishlistAPI.checkInWishlist(product.id);
+        setIsInWishlist(response?.data?.isInWishlist || false);
+      } catch (error) {
+        setIsInWishlist(false);
+      }
+    };
+
+    checkWishlist();
+  }, [product?.id, isAuthenticated]);
 
   const showToast = msg => {
     setToast(msg);
@@ -89,6 +111,30 @@ export default function ProductDetail() {
     } catch (e) {
       showToast(e?.response?.data?.message || "Failed to proceed.");
       setAdding(false);
+    }
+  };
+
+  const handleWishlist = async () => {
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+
+    setWishlistLoading(true);
+    try {
+      if (isInWishlist) {
+        await wishlistAPI.removeFromWishlist(product.id);
+        setIsInWishlist(false);
+        showToast("Removed from wishlist ✓");
+      } else {
+        await wishlistAPI.addToWishlist(product.id);
+        setIsInWishlist(true);
+        showToast("Added to wishlist ❤️");
+      }
+    } catch (error) {
+      showToast(error?.response?.data?.message || "Error updating wishlist");
+    } finally {
+      setWishlistLoading(false);
     }
   };
 
@@ -262,6 +308,14 @@ export default function ProductDetail() {
                     disabled={adding}
                   >
                     Buy Now →
+                  </button>
+                  <button
+                    className={`btn btn-icon pd-wishlist-btn ${isInWishlist ? "active" : ""}`}
+                    onClick={handleWishlist}
+                    disabled={wishlistLoading}
+                    title={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
+                  >
+                    {wishlistLoading ? "…" : isInWishlist ? "❤️" : "🤍"}
                   </button>
                 </div>
               </div>

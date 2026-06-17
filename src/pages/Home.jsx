@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import { AuthContext } from "../context/AuthContext";
+import { wishlistAPI } from "../api/wishlistAPI";
 import "./Home.css";
 import { useCart } from "../context/CartContext";
 
@@ -420,9 +421,53 @@ export default function Home() {
 }
 
 function ProductCard({ product, onAddToCart, addingId, featured }) {
+  const { isAuthenticated } = useContext(AuthContext);
   const catName = product?.category?.name || product?.category || "";
   const isAdding = addingId === product.id;
   const navigate = useNavigate();
+  const [isInWishlist, setIsInWishlist] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+
+  const handleWishlist = async e => {
+    e.stopPropagation();
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+
+    setWishlistLoading(true);
+    try {
+      if (isInWishlist) {
+        await wishlistAPI.removeFromWishlist(product.id);
+        setIsInWishlist(false);
+      } else {
+        await wishlistAPI.addToWishlist(product.id);
+        setIsInWishlist(true);
+      }
+    } catch (error) {
+      console.error("Wishlist error:", error);
+    } finally {
+      setWishlistLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setIsInWishlist(false);
+      return;
+    }
+
+    const checkWishlist = async () => {
+      try {
+        const response = await wishlistAPI.checkInWishlist(product.id);
+        setIsInWishlist(response?.data?.isInWishlist || false);
+      } catch (error) {
+        setIsInWishlist(false);
+      }
+    };
+
+    checkWishlist();
+  }, [product.id, isAuthenticated]);
 
   return (
     <article
@@ -437,6 +482,16 @@ function ProductCard({ product, onAddToCart, addingId, featured }) {
           <div className="product-img-placeholder">🌿</div>
         )}
         {featured && <span className="featured-ribbon">⭐ Top Pick</span>}
+        
+        {/* Wishlist Button */}
+        <button
+          className={`wishlist-btn ${isInWishlist ? "active" : ""}`}
+          onClick={handleWishlist}
+          disabled={wishlistLoading}
+          title={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
+        >
+          {wishlistLoading ? "…" : isInWishlist ? "❤️" : "🤍"}
+        </button>
       </div>
       <div className="product-body">
         {catName && <span className="tag">{catName}</span>}

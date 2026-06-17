@@ -264,6 +264,42 @@
   border-radius: var(--radius-full);
 }
 
+/* Wishlist Button */
+.wishlist-btn {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid var(--color-border);
+  font-size: 1.3rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(4px);
+}
+
+.wishlist-btn:hover:not(:disabled) {
+  background: #fff;
+  border-color: var(--color-primary);
+  transform: scale(1.08);
+  box-shadow: var(--shadow-md);
+}
+
+.wishlist-btn.active {
+  border-color: var(--color-error);
+}
+
+.wishlist-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .product-body {
   padding: var(--space-md);
   flex: 1;

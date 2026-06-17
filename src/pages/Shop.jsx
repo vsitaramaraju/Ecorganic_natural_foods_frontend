@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import { AuthContext } from "../context/AuthContext";
+import { wishlistAPI } from "../api/wishlistAPI";
 import "./Shop.css";
 import { useCart } from "../context/CartContext";
 
@@ -18,6 +19,8 @@ export default function Shop() {
   );
   const [addingId, setAddingId] = useState(null);
   const [toast, setToast] = useState("");
+  const [wishlistItems, setWishlistItems] = useState(new Set());
+  const [wishlistLoading, setWishlistLoading] = useState(new Set());
   const { isAuthenticated } = useContext(AuthContext);
   const navigate = useNavigate();
   const { incrementCart } = useCart();
@@ -61,6 +64,59 @@ export default function Shop() {
       setAddingId(null);
     }
   };
+
+  const handleWishlist = async (e, productId) => {
+    e.stopPropagation();
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+
+    setWishlistLoading(prev => new Set([...prev, productId]));
+    try {
+      if (wishlistItems.has(productId)) {
+        await wishlistAPI.removeFromWishlist(productId);
+        setWishlistItems(prev => {
+          const updated = new Set(prev);
+          updated.delete(productId);
+          return updated;
+        });
+      } else {
+        await wishlistAPI.addToWishlist(productId);
+        setWishlistItems(prev => new Set([...prev, productId]));
+      }
+    } catch (error) {
+      showToast(error?.response?.data?.message || "Error updating wishlist");
+    } finally {
+      setWishlistLoading(prev => {
+        const updated = new Set(prev);
+        updated.delete(productId);
+        return updated;
+      });
+    }
+  };
+
+  useEffect(() => {
+    const checkWishlistItems = async () => {
+      if (!isAuthenticated) {
+        setWishlistItems(new Set());
+        return;
+      }
+
+      try {
+        const response = await wishlistAPI.getWishlist();
+        const items = Array.isArray(response?.data)
+          ? response.data
+          : response?.data?.data || [];
+        const wishlistIds = new Set(items.map(item => item.productId));
+        setWishlistItems(wishlistIds);
+      } catch (error) {
+        console.error("Failed to load wishlist:", error);
+      }
+    };
+
+    checkWishlistItems();
+  }, [isAuthenticated]);
 
   // Filter & sort
   let displayed = [...products];
@@ -158,6 +214,15 @@ export default function Shop() {
                     ) : (
                       <div className="spimg-placeholder">🌿</div>
                     )}
+                    {/* Wishlist Button */}
+                    <button
+                      className={`wishlist-btn-shop ${wishlistItems.has(p.id) ? "active" : ""}`}
+                      onClick={e => handleWishlist(e, p.id)}
+                      disabled={wishlistLoading.has(p.id)}
+                      title={wishlistItems.has(p.id) ? "Remove from wishlist" : "Add to wishlist"}
+                    >
+                      {wishlistLoading.has(p.id) ? "…" : wishlistItems.has(p.id) ? "❤️" : "🤍"}
+                    </button>
                   </div>
                   <div className="sp-body">
                     {p.category?.name && (

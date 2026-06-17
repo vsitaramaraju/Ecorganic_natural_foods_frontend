@@ -354,7 +354,7 @@ function RelatedCard({ product, navigate }) {
   return (
     <article
       className="shop-product-card"
-      onClick={() => navigate(`/product/${product.id}`)}
+      onClick={() => navigate(`/products/${product.id}`)}
       style={{ cursor: "pointer" }}
     >
       <div className="spimg-wrap">
@@ -376,7 +376,7 @@ function RelatedCard({ product, navigate }) {
             className="btn btn-primary btn-small"
             onClick={e => {
               e.stopPropagation();
-              navigate(`/product/${product.id}`);
+              navigate(`/products/${product.id}`);
             }}
           >
             View

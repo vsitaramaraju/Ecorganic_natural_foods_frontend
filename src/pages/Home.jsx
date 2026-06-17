@@ -427,7 +427,7 @@ function ProductCard({ product, onAddToCart, addingId, featured }) {
   return (
     <article
       className={`product-card ${featured ? "featured" : ""}`}
-      onClick={() => navigate(`/product/${product.id}`)}
+      onClick={() => navigate(`/products/${product.id}`)}
       style={{ cursor: "pointer" }}
     >
       <div className="product-img-wrap">

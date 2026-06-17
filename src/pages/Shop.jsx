@@ -149,7 +149,7 @@ export default function Shop() {
                 <article
                   key={p.id}
                   className="shop-product-card"
-                  onClick={() => navigate(`/product/${p.id}`)}
+                  onClick={() => navigate(`/products/${p.id}`)}
                   style={{ cursor: "pointer" }}
                 >
                   <div className="spimg-wrap">
@@ -174,7 +174,7 @@ export default function Shop() {
                           className="show-more-btn"
                           onClick={e => {
                             e.stopPropagation();
-                            navigate(`/product/${p.id}`);
+                          navigate(`/products/${p.id}`);
                           }}
                         >
                           Show More

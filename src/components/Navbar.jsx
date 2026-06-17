@@ -1,14 +1,21 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useState, useContext, useEffect } from "react";
+import { useState, useContext, useEffect, useRef } from "react";
 import { AuthContext } from "../context/AuthContext";
 import "./Navbar.css";
 import { FaSearch } from "react-icons/fa";
 import { useCart } from "../context/CartContext";
+import SearchResultsPopup from "./SearchResultsPopup";
+import API from "../api/axios";
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [showSearchPopup, setShowSearchPopup] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchTimeoutRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout, isAdmin } = useContext(AuthContext);
@@ -32,6 +39,52 @@ export default function Navbar() {
   const handleLogout = () => {
     logout();
     navigate("/login");
+  };
+
+  const handleSearchChange = async e => {
+    const query = e.target.value;
+    setSearchQuery(query);
+
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (!query.trim()) {
+      setSearchResults([]);
+      setShowSearchPopup(false);
+      return;
+    }
+
+    // Debounce search API call
+    setIsSearching(true);
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({ query });
+        const response = await API.get(`/products/search?${params.toString()}`);
+        const results = Array.isArray(response?.data) ? response.data : (response?.data?.products || []);
+        setSearchResults(results);
+        setShowSearchPopup(results.length > 0 || query.trim() !== "");
+      } catch (error) {
+        console.error("Search error:", error);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+  };
+
+  const handleSearchSubmit = e => {
+    if (e.key === "Enter" && searchQuery.trim()) {
+      const params = new URLSearchParams({ query: searchQuery });
+      navigate(`/search?${params.toString()}`);
+      setShowSearchPopup(false);
+      setSearchQuery("");
+    }
+  };
+
+  const handleCloseSearch = () => {
+    setShowSearchPopup(false);
   };
 
   const isActive = path => (location.pathname === path ? "active" : "");
@@ -78,9 +131,29 @@ export default function Navbar() {
 
             {/* Search */}
             <div className={`navbar-search ${user ? "search-user-login" : ""}`}>
-              <input type="text" placeholder="Search products..." />
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={handleSearchChange}
+                onKeyPress={handleSearchSubmit}
+                onFocus={() =>
+                  searchQuery.trim() &&
+                  searchResults.length > 0 &&
+                  setShowSearchPopup(true)
+                }
+              />
               <FaSearch className="search-icon" />
             </div>
+
+            {/* Search Popup */}
+            <SearchResultsPopup
+              results={searchResults}
+              isOpen={showSearchPopup}
+              isLoading={isSearching}
+              searchQuery={searchQuery}
+              onClose={handleCloseSearch}
+            />
           </>
         )}
 

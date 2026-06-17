@@ -21,6 +21,7 @@ import AdminSales from "./pages/admin/AdminSales";
 import AdminReports from "./pages/admin/AdminReports";
 import Footer from "./components/Footer";
 import ProductDetail from "./pages/ProductDetail";
+import SearchResults from "./pages/SearchResults";
 import ForgotPassword from "./pages/ForgotPassword";
 import ContactUs from "./pages/ContactUs";
 import AboutUs from "./pages/AboutUs";
@@ -42,6 +43,7 @@ function App() {
           <Route path="/shop" element={<Shop />} />
           <Route path="/categories" element={<Categories />} />
           <Route path="/products/:id" element={<ProductDetail />} />
+          <Route path="/search" element={<SearchResults />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/orders" element={<Orders />} />

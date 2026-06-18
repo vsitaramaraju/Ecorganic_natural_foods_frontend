@@ -65,6 +65,7 @@ export default function Home() {
   const { isAuthenticated } = useContext(AuthContext);
   const navigate = useNavigate();
   const { incrementCart } = useCart();
+  const [recentProducts, setRecentProducts] = useState([]);
 
   useEffect(() => {
     const load = async () => {
@@ -91,6 +92,12 @@ export default function Home() {
       }
     };
     load();
+  }, []);
+
+  useEffect(() => {
+    const data = JSON.parse(localStorage.getItem("recentProducts")) || [];
+
+    setRecentProducts(data);
   }, []);
 
   const showToast = msg => {
@@ -404,18 +411,48 @@ export default function Home() {
       )}
 
       {/* CTA Banner */}
-      <section className="cta-banner">
-        <div className="cta-content">
-          <h2>Ready to eat healthier?</h2>
-          <p>Join 10,000+ families who switched to organic with EchOrganics</p>
-          <button
-            className="btn btn-accent"
-            onClick={() => navigate("/register")}
-          >
-            Create Free Account →
-          </button>
-        </div>
-      </section>
+      {isAuthenticated ? (
+        recentProducts.length > 0 && (
+          <section className="recently-viewed-section">
+            <div className="container">
+              <div className="section-header">
+                <div>
+                  <h2 className="section-title">Recently Viewed Products</h2>
+                  <p className="section-subtitle">
+                    Continue where you left off
+                  </p>
+                </div>
+              </div>
+
+              <div className="product-grid">
+                {recentProducts.map(product => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onAddToCart={addToCart}
+                    addingId={addingId}
+                  />
+                ))}
+              </div>
+            </div>
+          </section>
+        )
+      ) : (
+        <section className="cta-banner">
+          <div className="cta-content">
+            <h2>Ready to eat healthier?</h2>
+            <p>
+              Join 10,000+ families who switched to organic with EchOrganics
+            </p>
+            <button
+              className="btn btn-accent"
+              onClick={() => navigate("/register")}
+            >
+              Create Free Account →
+            </button>
+          </div>
+        </section>
+      )}
     </div>
   );
 }
@@ -427,6 +464,12 @@ function ProductCard({ product, onAddToCart, addingId, featured }) {
   const navigate = useNavigate();
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
+  const [toast, setToast] = useState("");
+
+  const showToast = msg => {
+    setToast(msg);
+    setTimeout(() => setToast(""), 2500);
+  };
 
   const handleWishlist = async e => {
     e.stopPropagation();
@@ -440,9 +483,11 @@ function ProductCard({ product, onAddToCart, addingId, featured }) {
       if (isInWishlist) {
         await wishlistAPI.removeFromWishlist(product.id);
         setIsInWishlist(false);
+        showToast("Removed from wishlist ✓");
       } else {
         await wishlistAPI.addToWishlist(product.id);
         setIsInWishlist(true);
+        showToast("Added to wishlist ❤️");
       }
     } catch (error) {
       console.error("Wishlist error:", error);
@@ -470,69 +515,108 @@ function ProductCard({ product, onAddToCart, addingId, featured }) {
   }, [product.id, isAuthenticated]);
 
   return (
-    <article
-      className={`product-card ${featured ? "featured" : ""}`}
-      onClick={() => navigate(`/products/${product.id}`)}
-      style={{ cursor: "pointer" }}
-    >
-      <div className="product-img-wrap">
-        {product.imageUrl ? (
-          <img src={product.imageUrl} alt={product.name} loading="lazy" />
-        ) : (
-          <div className="product-img-placeholder">🌿</div>
-        )}
-        {featured && <span className="featured-ribbon">⭐ Top Pick</span>}
-        
-        {/* Wishlist Button */}
-        <button
-          className={`wishlist-btn ${isInWishlist ? "active" : ""}`}
-          onClick={handleWishlist}
-          disabled={wishlistLoading}
-          title={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
-        >
-          {wishlistLoading ? "…" : isInWishlist ? "❤️" : "🤍"}
-        </button>
-      </div>
-      <div className="product-body">
-        {catName && <span className="tag">{catName}</span>}
-        <h3 className="product-name">{product.name}</h3>
-        <p className="product-desc">
-          {product.description || "Premium organic product, naturally sourced."}
-        </p>
+    <>
+      <style>{`
+        .star-rating { position: relative; display: inline-block; line-height: 1; letter-spacing: 2px; user-select: none; }
+        .star-rating-bg { color: #dcdcdc; white-space: nowrap; }
+        .star-rating-fg { position: absolute; top: 0; left: 0; overflow: hidden; white-space: nowrap; color: #f5a623; pointer-events: none; }
+        .star-rating.interactive { cursor: pointer; }
+        .star-rating-pick { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; }
+        .star-rating-pick span { flex: 1; }
 
-        {product.description && product.description.length > 80 && (
+        .pd-rating-row { display: inline-flex; align-items: center; gap: 8px; background: none; border: none; padding: 4px 0; margin: 4px 0 8px; cursor: pointer; font: inherit; }
+        .pd-rating-value { font-weight: 600; color: var(--color-text); }
+        .pd-rating-count { color: var(--color-text-muted); font-size: 13px; }
+
+        .pd-reviews { margin-top: var(--space-xl); padding-top: var(--space-xl); border-top: 1px solid var(--color-border, #e7e5df); }
+        .pd-reviews-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: var(--space-md); }
+        .pd-reviews-summary { display: flex; align-items: center; gap: 10px; }
+        .pd-reviews-avg { font-size: 26px; font-weight: 700; }
+        .pd-reviews-count { color: var(--color-text-muted); font-size: 14px; }
+
+        .pd-review-form { padding: var(--space-md); margin-bottom: var(--space-lg, 24px); }
+        .pd-review-form h3 { margin: 0 0 10px; font-size: 16px; }
+        .pd-review-textarea { width: 100%; margin-top: 12px; padding: 10px 12px; border: 1px solid var(--color-border, #ddd); border-radius: var(--radius-md, 8px); font: inherit; resize: vertical; }
+        .pd-review-error { color: #c0392b; font-size: 13px; margin-top: 8px; }
+        .pd-review-form .btn { margin-top: 12px; }
+        .pd-review-login-prompt { color: var(--color-text-muted); font-size: 14px; margin: 0; }
+        .pd-review-login-prompt button { background: none; border: none; color: var(--color-primary, #2e7d32); text-decoration: underline; cursor: pointer; padding: 0; font: inherit; }
+
+        .pd-reviews-list { display: flex; flex-direction: column; gap: 4px; }
+        .pd-review-item { padding: 14px 0; border-bottom: 1px solid var(--color-border, #eee); }
+        .pd-review-item-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+        .pd-review-author { font-weight: 600; }
+        .pd-review-date { color: var(--color-text-muted); font-size: 13px; margin-left: auto; }
+        .pd-review-comment { color: var(--color-text); line-height: 1.5; margin: 0; }
+        .pd-no-reviews, .pd-reviews-loading { color: var(--color-text-muted); padding: 8px 0; }
+      `}</style>
+      {toast && <div className="toast">{toast}</div>}
+
+      <article
+        className={`product-card ${featured ? "featured" : ""}`}
+        onClick={() => navigate(`/products/${product.id}`)}
+        style={{ cursor: "pointer" }}
+      >
+        <div className="product-img-wrap">
+          {product.imageUrl ? (
+            <img src={product.imageUrl} alt={product.name} loading="lazy" />
+          ) : (
+            <div className="product-img-placeholder">🌿</div>
+          )}
+          {featured && <span className="featured-ribbon">⭐ Top Pick</span>}
+
+          {/* Wishlist Button */}
           <button
-            className="show-more-btn"
-            onClick={e => {
-              e.stopPropagation();
-              navigate(`/product/${product.id}`);
-            }}
+            className={`wishlist-btn ${isInWishlist ? "active" : ""}`}
+            onClick={handleWishlist}
+            disabled={wishlistLoading}
+            title={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
           >
-            Show More
-          </button>
-        )}
-        <div className="product-foot">
-          <div>
-            <span className="product-price">₹{product.price}</span>
-            {product.stock < 10 && product.stock > 0 && (
-              <span className="low-stock">Only {product.stock} left!</span>
-            )}
-            {product.stock === 0 && (
-              <span className="out-of-stock">Out of stock</span>
-            )}
-          </div>
-          <button
-            className="btn btn-primary btn-small add-btn"
-            onClick={e => {
-              e.stopPropagation();
-              onAddToCart(product.id);
-            }}
-            disabled={isAdding || product.stock === 0}
-          >
-            {isAdding ? "…" : "+ Cart"}
+            {wishlistLoading ? "…" : isInWishlist ? "❤️" : "🤍"}
           </button>
         </div>
-      </div>
-    </article>
+        <div className="product-body">
+          {catName && <span className="tag">{catName}</span>}
+          <h3 className="product-name">{product.name}</h3>
+          <p className="product-desc">
+            {product.description ||
+              "Premium organic product, naturally sourced."}
+          </p>
+
+          {product.description && product.description.length > 80 && (
+            <button
+              className="show-more-btn"
+              onClick={e => {
+                e.stopPropagation();
+                navigate(`/product/${product.id}`);
+              }}
+            >
+              Show More
+            </button>
+          )}
+          <div className="product-foot">
+            <div>
+              <span className="product-price">₹{product.price}</span>
+              {product.stock < 10 && product.stock > 0 && (
+                <span className="low-stock">Only {product.stock} left!</span>
+              )}
+              {product.stock === 0 && (
+                <span className="out-of-stock">Out of stock</span>
+              )}
+            </div>
+            <button
+              className="btn btn-primary btn-small add-btn"
+              onClick={e => {
+                e.stopPropagation();
+                onAddToCart(product.id);
+              }}
+              disabled={isAdding || product.stock === 0}
+            >
+              {isAdding ? "…" : "+ Cart"}
+            </button>
+          </div>
+        </div>
+      </article>
+    </>
   );
 }

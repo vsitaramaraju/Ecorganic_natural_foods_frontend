@@ -62,7 +62,9 @@ export default function Navbar() {
       try {
         const params = new URLSearchParams({ query });
         const response = await API.get(`/products/search?${params.toString()}`);
-        const results = Array.isArray(response?.data) ? response.data : (response?.data?.products || []);
+        const results = Array.isArray(response?.data)
+          ? response.data
+          : response?.data?.products || [];
         setSearchResults(results);
         setShowSearchPopup(results.length > 0 || query.trim() !== "");
       } catch (error) {
@@ -300,8 +302,17 @@ export default function Navbar() {
 
         {user && !isAdmin && (
           <>
-            <Link to="/cart" className="mob-link">
-              🛒 Cart
+            <Link
+              to="/cart"
+              className="mob-link"
+              style={{ display: "flex", justifyContent: "space-between" }}
+            >
+              🛒 Cart{" "}
+              {cartCount > 0 && (
+                <span className="cart-badge-mob">
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
             </Link>
 
             <Link to="/orders" className="mob-link">

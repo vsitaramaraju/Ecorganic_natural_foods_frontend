@@ -36,19 +36,26 @@ export default function Addresses() {
     );
   }
 
-  if (isLoading) return <div><p>Loading addresses...</p></div>;
+  if (isLoading)
+    return (
+      <div>
+        <p>Loading addresses...</p>
+      </div>
+    );
   if (error) return <div className="alert alert-error">{error}</div>;
 
   return (
     <div className="container">
-      <h1>My Addresses</h1>
+      <h1 style={{ color: "black" }}>My Addresses</h1>
       {addresses && addresses.length > 0 ? (
         <div className="grid">
-          {addresses.map((address) => (
+          {addresses.map(address => (
             <div key={address.id} className="card">
               <h3>{address.name}</h3>
               <p>{address.street}</p>
-              <p>{address.city}, {address.state} {address.pincode}</p>
+              <p>
+                {address.city}, {address.state} {address.pincode}
+              </p>
               <p>{address.country}</p>
               <p>Phone: {address.phone}</p>
             </div>

@@ -388,6 +388,16 @@
   color: var(--color-primary);
 }
 
+.cart-badge-mob {
+  display: flex;
+  justify-content: center;
+  background: #d64521;
+  color: #fff;
+  border-radius: var(--radius-full);
+  width: 23px;
+  height: 23px;
+}
+
 .logout-mob {
   color: var(--color-error);
 }

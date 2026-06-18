@@ -145,11 +145,11 @@
 .wishlist-btn-shop {
   position: absolute;
   top: 8px;
-  left: 8px;
+  right: 8px;
   width: 38px;
   height: 38px;
   border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.95);
+  background: transparent;
   border: 2px solid var(--color-border);
   font-size: 1.1rem;
   cursor: pointer;
@@ -162,7 +162,7 @@
 }
 
 .wishlist-btn-shop:hover:not(:disabled) {
-  background: #fff;
+  background: transparent;
   border-color: var(--color-primary);
   transform: scale(1.08);
   box-shadow: var(--shadow-md);
@@ -224,6 +224,7 @@
 .sp-foot {
   display: flex;
   justify-content: space-between;
+  gap: 30px;
   align-items: center;
   margin-top: auto;
   padding-top: var(--space-sm);

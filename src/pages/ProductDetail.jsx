@@ -5,6 +5,20 @@ import { AuthContext } from "../context/AuthContext";
 import { wishlistAPI } from "../api/wishlistAPI";
 import "./ProductDetails.css";
 import { useCart } from "../context/CartContext";
+import { RecentlyViewed } from "../utils/RecentlyViewed";
+
+function formatReviewDate(d) {
+  if (!d) return "";
+  try {
+    return new Date(d).toLocaleDateString("en-IN", {
+      year: "numeric",
+      month: "short",
+      day: "numeric"
+    });
+  } catch {
+    return "";
+  }
+}
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -22,6 +36,15 @@ export default function ProductDetail() {
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const { incrementCart } = useCart();
+
+  // Ratings & reviews
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewStats, setReviewStats] = useState({ average: 0, count: 0 });
+  const [ratingInput, setRatingInput] = useState(0);
+  const [commentInput, setCommentInput] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewError, setReviewError] = useState("");
 
   useEffect(() => {
     const load = async () => {
@@ -56,6 +79,12 @@ export default function ProductDetail() {
     load();
   }, [id]);
 
+  useEffect(() => {
+    if (product) {
+      RecentlyViewed(product);
+    }
+  }, [product]);
+
   // Check if product is in wishlist
   useEffect(() => {
     if (!isAuthenticated || !product?.id) {
@@ -74,6 +103,43 @@ export default function ProductDetail() {
 
     checkWishlist();
   }, [product?.id, isAuthenticated]);
+
+  // Load ratings & reviews for this product
+  useEffect(() => {
+    if (!product?.id) return;
+    loadReviews(product.id);
+  }, [product?.id]);
+
+  const loadReviews = async productId => {
+    setReviewsLoading(true);
+    try {
+      const res = await API.get(`/products/${productId}/reviews`);
+      const data = res?.data;
+      const list = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.reviews)
+          ? data.reviews
+          : [];
+      setReviews(list);
+
+      const apiAvg = data?.average ?? data?.averageRating;
+      const apiCount = data?.count ?? data?.totalReviews;
+      if (typeof apiAvg === "number" && typeof apiCount === "number") {
+        setReviewStats({ average: apiAvg, count: apiCount });
+      } else if (list.length > 0) {
+        const sum = list.reduce((acc, r) => acc + (Number(r.rating) || 0), 0);
+        setReviewStats({ average: sum / list.length, count: list.length });
+      } else {
+        setReviewStats({ average: 0, count: 0 });
+      }
+    } catch (e) {
+      // non-critical — fail silently like related products
+      setReviews([]);
+      setReviewStats({ average: 0, count: 0 });
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
 
   const showToast = msg => {
     setToast(msg);
@@ -138,6 +204,39 @@ export default function ProductDetail() {
     }
   };
 
+  const handleSubmitReview = async () => {
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+    if (!ratingInput) {
+      setReviewError("Please select a star rating.");
+      return;
+    }
+    setReviewError("");
+    setSubmittingReview(true);
+    try {
+      await API.post(`/products/${product.id}/reviews`, {
+        rating: ratingInput,
+        comment: commentInput.trim()
+      });
+      setRatingInput(0);
+      setCommentInput("");
+      showToast("Thanks for your review! ⭐");
+      loadReviews(product.id);
+    } catch (e) {
+      setReviewError(e?.response?.data?.message || "Failed to submit review.");
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const scrollToReviews = () => {
+    document
+      .getElementById("reviews")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   const images = product?.images?.length
     ? product.images
     : product?.imageUrl
@@ -174,6 +273,40 @@ export default function ProductDetail() {
 
   return (
     <div className="pd-page page-content">
+      <style>{`
+        .star-rating { position: relative; display: inline-block; line-height: 1; letter-spacing: 2px; user-select: none; }
+        .star-rating-bg { color: #dcdcdc; white-space: nowrap; }
+        .star-rating-fg { position: absolute; top: 0; left: 0; overflow: hidden; white-space: nowrap; color: #f5a623; pointer-events: none; }
+        .star-rating.interactive { cursor: pointer; }
+        .star-rating-pick { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; }
+        .star-rating-pick span { flex: 1; }
+
+        .pd-rating-row { display: inline-flex; align-items: center; gap: 8px; background: none; border: none; padding: 4px 0; margin: 4px 0 8px; cursor: pointer; font: inherit; }
+        .pd-rating-value { font-weight: 600; color: var(--color-text); }
+        .pd-rating-count { color: var(--color-text-muted); font-size: 13px; }
+
+        .pd-reviews { margin-top: var(--space-xl); padding-top: var(--space-xl); border-top: 1px solid var(--color-border, #e7e5df); }
+        .pd-reviews-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: var(--space-md); }
+        .pd-reviews-summary { display: flex; align-items: center; gap: 10px; }
+        .pd-reviews-avg { font-size: 26px; font-weight: 700; }
+        .pd-reviews-count { color: var(--color-text-muted); font-size: 14px; }
+
+        .pd-review-form { padding: var(--space-md); margin-bottom: var(--space-lg, 24px); }
+        .pd-review-form h3 { margin: 0 0 10px; font-size: 16px; }
+        .pd-review-textarea { width: 100%; margin-top: 12px; padding: 10px 12px; border: 1px solid var(--color-border, #ddd); border-radius: var(--radius-md, 8px); font: inherit; resize: vertical; }
+        .pd-review-error { color: #c0392b; font-size: 13px; margin-top: 8px; }
+        .pd-review-form .btn { margin-top: 12px; }
+        .pd-review-login-prompt { color: var(--color-text-muted); font-size: 14px; margin: 0; }
+        .pd-review-login-prompt button { background: none; border: none; color: var(--color-primary, #2e7d32); text-decoration: underline; cursor: pointer; padding: 0; font: inherit; }
+
+        .pd-reviews-list { display: flex; flex-direction: column; gap: 4px; }
+        .pd-review-item { padding: 14px 0; border-bottom: 1px solid var(--color-border, #eee); }
+        .pd-review-item-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+        .pd-review-author { font-weight: 600; }
+        .pd-review-date { color: var(--color-text-muted); font-size: 13px; margin-left: auto; }
+        .pd-review-comment { color: var(--color-text); line-height: 1.5; margin: 0; }
+        .pd-no-reviews, .pd-reviews-loading { color: var(--color-text-muted); padding: 8px 0; }
+      `}</style>
       {toast && <div className="toast">{toast}</div>}
 
       {/* Breadcrumb */}
@@ -200,9 +333,30 @@ export default function ProductDetail() {
         <div className="pd-layout">
           {/* ── Image Gallery ── */}
           <div className="pd-gallery">
-            <div className="pd-main-image">
+            <div
+              className="pd-main-image"
+              style={{
+                width: "100%",
+                maxWidth: 440,
+                aspectRatio: "1 / 1",
+                margin: "0 auto",
+                overflow: "hidden",
+                borderRadius: "var(--radius-lg, 12px)",
+                background: "var(--color-surface-muted, #f6f6f4)",
+                position: "relative"
+              }}
+            >
               {images.length > 0 ? (
-                <img src={images[selectedImage]} alt={product.name} />
+                <img
+                  src={images[selectedImage]}
+                  alt={product.name}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                    display: "block"
+                  }}
+                />
               ) : (
                 <div className="pd-img-placeholder">🌿</div>
               )}
@@ -211,14 +365,39 @@ export default function ProductDetail() {
               )}
             </div>
             {images.length > 1 && (
-              <div className="pd-thumbnails">
+              <div
+                className="pd-thumbnails"
+                style={{
+                  maxWidth: 440,
+                  margin: "0 auto",
+                  display: "flex",
+                  gap: 8
+                }}
+              >
                 {images.map((src, i) => (
                   <button
                     key={i}
                     className={`pd-thumb ${selectedImage === i ? "active" : ""}`}
                     onClick={() => setSelectedImage(i)}
+                    style={{
+                      width: 64,
+                      height: 64,
+                      padding: 0,
+                      overflow: "hidden",
+                      borderRadius: "var(--radius-md, 8px)",
+                      flexShrink: 0
+                    }}
                   >
-                    <img src={src} alt={`${product.name} ${i + 1}`} />
+                    <img
+                      src={src}
+                      alt={`${product.name} ${i + 1}`}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        display: "block"
+                      }}
+                    />
                   </button>
                 ))}
               </div>
@@ -229,6 +408,30 @@ export default function ProductDetail() {
           <div className="pd-info">
             {catName && <span className="tag">{catName}</span>}
             <h1 className="pd-title">{product.name}</h1>
+
+            {/* Rating Summary */}
+            <button
+              className="pd-rating-row"
+              onClick={scrollToReviews}
+              type="button"
+            >
+              <StarRating rating={reviewStats.average} size={16} />
+              {reviewStats.count > 0 ? (
+                <>
+                  <span className="pd-rating-value">
+                    {reviewStats.average.toFixed(1)}
+                  </span>
+                  <span className="pd-rating-count">
+                    ({reviewStats.count}{" "}
+                    {reviewStats.count === 1 ? "review" : "reviews"})
+                  </span>
+                </>
+              ) : (
+                <span className="pd-rating-count">
+                  No reviews yet — be the first!
+                </span>
+              )}
+            </button>
 
             {/* Stock Status */}
             <div className="pd-stock-row">
@@ -313,7 +516,9 @@ export default function ProductDetail() {
                     className={`btn btn-icon pd-wishlist-btn ${isInWishlist ? "active" : ""}`}
                     onClick={handleWishlist}
                     disabled={wishlistLoading}
-                    title={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
+                    title={
+                      isInWishlist ? "Remove from wishlist" : "Add to wishlist"
+                    }
                   >
                     {wishlistLoading ? "…" : isInWishlist ? "❤️" : "🤍"}
                   </button>
@@ -384,6 +589,92 @@ export default function ProductDetail() {
           </div>
         </div>
 
+        {/* Ratings & Reviews */}
+        <section className="pd-reviews" id="reviews">
+          <div className="pd-reviews-header">
+            <h2 className="section-title">Ratings &amp; Reviews</h2>
+            <div className="pd-reviews-summary">
+              <span className="pd-reviews-avg">
+                {reviewStats.average.toFixed(1)}
+              </span>
+              <StarRating rating={reviewStats.average} size={20} />
+              <span className="pd-reviews-count">
+                Based on {reviewStats.count}{" "}
+                {reviewStats.count === 1 ? "review" : "reviews"}
+              </span>
+            </div>
+          </div>
+
+          <div className="pd-review-form card">
+            <h3>Write a Review</h3>
+            {!isAuthenticated ? (
+              <p className="pd-review-login-prompt">
+                Please{" "}
+                <button type="button" onClick={() => navigate("/login")}>
+                  log in
+                </button>{" "}
+                to write a review.
+              </p>
+            ) : (
+              <>
+                <StarRating
+                  rating={ratingInput}
+                  size={26}
+                  interactive
+                  onRate={star => {
+                    setRatingInput(star);
+                    setReviewError("");
+                  }}
+                />
+                <textarea
+                  className="pd-review-textarea"
+                  rows={3}
+                  placeholder="Share your thoughts about this product…"
+                  value={commentInput}
+                  onChange={e => setCommentInput(e.target.value)}
+                />
+                {reviewError && (
+                  <p className="pd-review-error">{reviewError}</p>
+                )}
+                <button
+                  className="btn btn-primary"
+                  onClick={handleSubmitReview}
+                  disabled={submittingReview}
+                >
+                  {submittingReview ? "Submitting…" : "Submit Review"}
+                </button>
+              </>
+            )}
+          </div>
+
+          <div className="pd-reviews-list">
+            {reviewsLoading ? (
+              <p className="pd-reviews-loading">Loading reviews…</p>
+            ) : reviews.length === 0 ? (
+              <p className="pd-no-reviews">
+                No reviews yet. Be the first to review this product!
+              </p>
+            ) : (
+              reviews.map(r => (
+                <div key={r.id} className="pd-review-item">
+                  <div className="pd-review-item-head">
+                    <span className="pd-review-author">
+                      {r.userName || r.user?.name || "Anonymous"}
+                    </span>
+                    <StarRating rating={r.rating} size={13} />
+                    <span className="pd-review-date">
+                      {formatReviewDate(r.createdAt)}
+                    </span>
+                  </div>
+                  {r.comment && (
+                    <p className="pd-review-comment">{r.comment}</p>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
         {/* Related Products */}
         {relatedProducts.length > 0 && (
           <section className="pd-related">
@@ -438,5 +729,43 @@ function RelatedCard({ product, navigate }) {
         </div>
       </div>
     </article>
+  );
+}
+
+function StarRating({ rating = 0, size = 16, interactive = false, onRate }) {
+  const [hover, setHover] = useState(0);
+  const display = interactive ? hover || rating : rating;
+  const pct = (Math.max(0, Math.min(5, display)) / 5) * 100;
+
+  return (
+    <span
+      className={`star-rating ${interactive ? "interactive" : ""}`}
+      style={{ fontSize: size }}
+      onMouseLeave={() => interactive && setHover(0)}
+    >
+      <span className="star-rating-bg" aria-hidden="true">
+        ★★★★★
+      </span>
+      <span
+        className="star-rating-fg"
+        aria-hidden="true"
+        style={{ width: `${pct}%` }}
+      >
+        ★★★★★
+      </span>
+      {interactive && (
+        <span className="star-rating-pick">
+          {[1, 2, 3, 4, 5].map(s => (
+            <span
+              key={s}
+              role="button"
+              aria-label={`Rate ${s} star${s > 1 ? "s" : ""}`}
+              onMouseEnter={() => setHover(s)}
+              onClick={() => onRate && onRate(s)}
+            />
+          ))}
+        </span>
+      )}
+    </span>
   );
 }

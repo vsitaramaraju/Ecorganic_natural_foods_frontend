@@ -255,7 +255,7 @@
 .featured-ribbon {
   position: absolute;
   top: 10px;
-  right: 10px;
+  left: 10px;
   background: var(--color-primary);
   color: #fff;
   font-size: 0.7rem;
@@ -268,11 +268,11 @@
 .wishlist-btn {
   position: absolute;
   top: 10px;
-  left: 10px;
+  right: 10px;
   width: 42px;
   height: 42px;
   border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.95);
+  background: transparent;
   border: 2px solid var(--color-border);
   font-size: 1.3rem;
   cursor: pointer;
@@ -285,7 +285,7 @@
 }
 
 .wishlist-btn:hover:not(:disabled) {
-  background: #fff;
+  background: transparent;
   border-color: var(--color-primary);
   transform: scale(1.08);
   box-shadow: var(--shadow-md);
@@ -344,6 +344,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 30px;
   margin-top: auto;
   padding-top: var(--space-sm);
 }

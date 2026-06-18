@@ -81,9 +81,11 @@ export default function Shop() {
           updated.delete(productId);
           return updated;
         });
+        showToast("Removed from wishlist ✓");
       } else {
         await wishlistAPI.addToWishlist(productId);
         setWishlistItems(prev => new Set([...prev, productId]));
+        showToast("Added to wishlist ❤️");
       }
     } catch (error) {
       showToast(error?.response?.data?.message || "Error updating wishlist");
@@ -219,9 +221,17 @@ export default function Shop() {
                       className={`wishlist-btn-shop ${wishlistItems.has(p.id) ? "active" : ""}`}
                       onClick={e => handleWishlist(e, p.id)}
                       disabled={wishlistLoading.has(p.id)}
-                      title={wishlistItems.has(p.id) ? "Remove from wishlist" : "Add to wishlist"}
+                      title={
+                        wishlistItems.has(p.id)
+                          ? "Remove from wishlist"
+                          : "Add to wishlist"
+                      }
                     >
-                      {wishlistLoading.has(p.id) ? "…" : wishlistItems.has(p.id) ? "❤️" : "🤍"}
+                      {wishlistLoading.has(p.id)
+                        ? "…"
+                        : wishlistItems.has(p.id)
+                          ? "❤️"
+                          : "🤍"}
                     </button>
                   </div>
                   <div className="sp-body">
@@ -239,7 +249,7 @@ export default function Shop() {
                           className="show-more-btn"
                           onClick={e => {
                             e.stopPropagation();
-                          navigate(`/products/${p.id}`);
+                            navigate(`/products/${p.id}`);
                           }}
                         >
                           Show More

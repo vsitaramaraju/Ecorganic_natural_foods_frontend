@@ -20,10 +20,44 @@ function formatReviewDate(d) {
   }
 }
 
+function getReviewList(payload) {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (Array.isArray(payload?.reviews)) {
+    return payload.reviews;
+  }
+
+  return [];
+}
+
+function getReviewStats(payload, list) {
+  const summary = payload?.reviewSummary;
+  const average =
+    summary?.averageRating ??
+    payload?.averageRating ??
+    payload?.average ??
+    0;
+  const count =
+    summary?.totalReviews ?? payload?.totalReviews ?? payload?.count ?? 0;
+
+  if (typeof average === "number" && typeof count === "number") {
+    return { average, count };
+  }
+
+  if (!list.length) {
+    return { average: 0, count: 0 };
+  }
+
+  const total = list.reduce((sum, review) => sum + (Number(review.rating) || 0), 0);
+  return { average: total / list.length, count: list.length };
+}
+
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useContext(AuthContext);
+  const { isAuthenticated, user } = useContext(AuthContext);
 
   const [product, setProduct] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
@@ -46,6 +80,11 @@ export default function ProductDetail() {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewError, setReviewError] = useState("");
 
+  const currentUserReview =
+    isAuthenticated && user?.id
+      ? reviews.find(review => String(review.userId) === String(user.id)) || null
+      : null;
+
   useEffect(() => {
     const load = async () => {
       setIsLoading(true);
@@ -54,6 +93,9 @@ export default function ProductDetail() {
         const res = await API.get(`/products/${id}`);
         const prod = res?.data;
         setProduct(prod);
+        const initialReviews = getReviewList(prod);
+        setReviews(initialReviews);
+        setReviewStats(getReviewStats(prod, initialReviews));
         setSelectedImage(0);
         setQuantity(1);
 
@@ -110,28 +152,25 @@ export default function ProductDetail() {
     loadReviews(product.id);
   }, [product?.id]);
 
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setRatingInput(0);
+      setCommentInput("");
+      return;
+    }
+
+    setRatingInput(currentUserReview?.rating || 0);
+    setCommentInput(currentUserReview?.comment || "");
+  }, [currentUserReview, isAuthenticated]);
+
   const loadReviews = async productId => {
     setReviewsLoading(true);
     try {
       const res = await API.get(`/products/${productId}/reviews`);
       const data = res?.data;
-      const list = Array.isArray(data)
-        ? data
-        : Array.isArray(data?.reviews)
-          ? data.reviews
-          : [];
+      const list = getReviewList(data);
       setReviews(list);
-
-      const apiAvg = data?.average ?? data?.averageRating;
-      const apiCount = data?.count ?? data?.totalReviews;
-      if (typeof apiAvg === "number" && typeof apiCount === "number") {
-        setReviewStats({ average: apiAvg, count: apiCount });
-      } else if (list.length > 0) {
-        const sum = list.reduce((acc, r) => acc + (Number(r.rating) || 0), 0);
-        setReviewStats({ average: sum / list.length, count: list.length });
-      } else {
-        setReviewStats({ average: 0, count: 0 });
-      }
+      setReviewStats(getReviewStats(data, list));
     } catch (e) {
       // non-critical — fail silently like related products
       setReviews([]);
@@ -216,16 +255,40 @@ export default function ProductDetail() {
     setReviewError("");
     setSubmittingReview(true);
     try {
-      await API.post(`/products/${product.id}/reviews`, {
+      const payload = {
         rating: ratingInput,
         comment: commentInput.trim()
-      });
-      setRatingInput(0);
-      setCommentInput("");
-      showToast("Thanks for your review! ⭐");
-      loadReviews(product.id);
+      };
+      if (currentUserReview) {
+        await API.put(`/products/${product.id}/reviews`, payload);
+        showToast("Review updated successfully. ⭐");
+      } else {
+        await API.post(`/products/${product.id}/reviews`, payload);
+        showToast("Thanks for your review! ⭐");
+      }
+      await loadReviews(product.id);
     } catch (e) {
       setReviewError(e?.response?.data?.message || "Failed to submit review.");
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const handleDeleteReview = async () => {
+    if (!currentUserReview) {
+      return;
+    }
+
+    setReviewError("");
+    setSubmittingReview(true);
+    try {
+      await API.delete(`/products/${product.id}/reviews`);
+      setRatingInput(0);
+      setCommentInput("");
+      showToast("Review deleted successfully.");
+      await loadReviews(product.id);
+    } catch (e) {
+      setReviewError(e?.response?.data?.message || "Failed to delete review.");
     } finally {
       setSubmittingReview(false);
     }
@@ -293,9 +356,10 @@ export default function ProductDetail() {
 
         .pd-review-form { padding: var(--space-md); margin-bottom: var(--space-lg, 24px); }
         .pd-review-form h3 { margin: 0 0 10px; font-size: 16px; }
+        .pd-review-form-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
         .pd-review-textarea { width: 100%; margin-top: 12px; padding: 10px 12px; border: 1px solid var(--color-border, #ddd); border-radius: var(--radius-md, 8px); font: inherit; resize: vertical; }
         .pd-review-error { color: #c0392b; font-size: 13px; margin-top: 8px; }
-        .pd-review-form .btn { margin-top: 12px; }
+        .pd-review-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
         .pd-review-login-prompt { color: var(--color-text-muted); font-size: 14px; margin: 0; }
         .pd-review-login-prompt button { background: none; border: none; color: var(--color-primary, #2e7d32); text-decoration: underline; cursor: pointer; padding: 0; font: inherit; }
 
@@ -606,7 +670,12 @@ export default function ProductDetail() {
           </div>
 
           <div className="pd-review-form card">
-            <h3>Write a Review</h3>
+            <div className="pd-review-form-head">
+              <h3>{currentUserReview ? "Update Your Review" : "Write a Review"}</h3>
+              {currentUserReview && (
+                <span className="pd-rating-count">You can edit or delete your review.</span>
+              )}
+            </div>
             {!isAuthenticated ? (
               <p className="pd-review-login-prompt">
                 Please{" "}
@@ -636,13 +705,30 @@ export default function ProductDetail() {
                 {reviewError && (
                   <p className="pd-review-error">{reviewError}</p>
                 )}
-                <button
-                  className="btn btn-primary"
-                  onClick={handleSubmitReview}
-                  disabled={submittingReview}
-                >
-                  {submittingReview ? "Submitting…" : "Submit Review"}
-                </button>
+                <div className="pd-review-actions">
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleSubmitReview}
+                    disabled={submittingReview}
+                  >
+                    {submittingReview
+                      ? currentUserReview
+                        ? "Updating…"
+                        : "Submitting…"
+                      : currentUserReview
+                        ? "Update Review"
+                        : "Submit Review"}
+                  </button>
+                  {currentUserReview && (
+                    <button
+                      className="btn btn-secondary"
+                      onClick={handleDeleteReview}
+                      disabled={submittingReview}
+                    >
+                      Delete Review
+                    </button>
+                  )}
+                </div>
               </>
             )}
           </div>

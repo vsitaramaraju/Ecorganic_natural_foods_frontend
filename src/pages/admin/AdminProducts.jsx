@@ -9,7 +9,6 @@ import {
   saveProduct,
   deleteProduct
 } from "./adminShared";
-import API from "../../api/axios";
 
 const EMPTY_FORM = {
   name: "",
@@ -109,18 +108,15 @@ export default function AdminProducts() {
     try {
       setIsSaving(true);
       setMessage({ type: "", text: "" });
-      if (editingId) {
-        // Try PUT, fallback to PATCH
-        try {
-          await API.put(`/admin/products/${editingId}`, payload);
-        } catch {
-          await API.patch(`/admin/products/${editingId}`, payload);
-        }
-        setMessage({ type: "success", text: "Product updated successfully." });
-      } else {
-        await saveProduct(payload, null);
-        setMessage({ type: "success", text: "Product created successfully." });
-      }
+      const response = await saveProduct(payload, editingId);
+      setMessage({
+        type: "success",
+        text:
+          response?.message ||
+          (editingId
+            ? "Product updated successfully."
+            : "Product created successfully.")
+      });
       await loadData(activeCategory);
       resetForm();
     } catch (e) {
@@ -138,13 +134,12 @@ export default function AdminProducts() {
     try {
       setIsSaving(true);
       setMessage({ type: "", text: "" });
-      try {
-        await API.delete(`/admin/products/${productId}`);
-      } catch {
-        await deleteProduct(productId);
-      }
+      const response = await deleteProduct(productId);
       await loadData(activeCategory);
-      setMessage({ type: "success", text: "Product deleted." });
+      setMessage({
+        type: "success",
+        text: response?.message || "Product deleted successfully."
+      });
     } catch (e) {
       setMessage({
         type: "error",

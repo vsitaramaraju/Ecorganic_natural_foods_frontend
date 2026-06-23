@@ -112,14 +112,17 @@ export const updateOrderStatus = async (orderId, status) => {
 
 export const saveProduct = async (payload, editingProductId) => {
   if (editingProductId) {
-    throw new Error("Product update API is not available in current backend");
+    const res = await API.put(`/admin/products/${editingProductId}`, payload);
+    return res?.data;
   }
 
-  await API.post("/products", payload);
+  const res = await API.post("/products", payload);
+  return res?.data;
 };
 
 export const deleteProduct = async (productId) => {
-  throw new Error(`Product delete API is not available in current backend for product ${productId}`);
+  const res = await API.delete(`/admin/products/${productId}`);
+  return res?.data;
 };
 
 export const saveCategory = async (payload, editingCategoryId) => {

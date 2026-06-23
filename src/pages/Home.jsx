@@ -588,7 +588,7 @@ function ProductCard({ product, onAddToCart, addingId, featured }) {
               className="show-more-btn"
               onClick={e => {
                 e.stopPropagation();
-                navigate(`/product/${product.id}`);
+                navigate(`/products/${product.id}`);
               }}
             >
               Show More

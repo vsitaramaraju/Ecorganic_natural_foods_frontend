@@ -35,10 +35,7 @@ function getReviewList(payload) {
 function getReviewStats(payload, list) {
   const summary = payload?.reviewSummary;
   const average =
-    summary?.averageRating ??
-    payload?.averageRating ??
-    payload?.average ??
-    0;
+    summary?.averageRating ?? payload?.averageRating ?? payload?.average ?? 0;
   const count =
     summary?.totalReviews ?? payload?.totalReviews ?? payload?.count ?? 0;
 
@@ -50,7 +47,10 @@ function getReviewStats(payload, list) {
     return { average: 0, count: 0 };
   }
 
-  const total = list.reduce((sum, review) => sum + (Number(review.rating) || 0), 0);
+  const total = list.reduce(
+    (sum, review) => sum + (Number(review.rating) || 0),
+    0
+  );
   return { average: total / list.length, count: list.length };
 }
 
@@ -82,7 +82,8 @@ export default function ProductDetail() {
 
   const currentUserReview =
     isAuthenticated && user?.id
-      ? reviews.find(review => String(review.userId) === String(user.id)) || null
+      ? reviews.find(review => String(review.userId) === String(user.id)) ||
+        null
       : null;
 
   useEffect(() => {
@@ -335,7 +336,7 @@ export default function ProductDetail() {
   }
 
   return (
-    <div className="pd-page page-content">
+    <div className="pd-page">
       <style>{`
         .star-rating { position: relative; display: inline-block; line-height: 1; letter-spacing: 2px; user-select: none; }
         .star-rating-bg { color: #dcdcdc; white-space: nowrap; }
@@ -671,9 +672,13 @@ export default function ProductDetail() {
 
           <div className="pd-review-form card">
             <div className="pd-review-form-head">
-              <h3>{currentUserReview ? "Update Your Review" : "Write a Review"}</h3>
+              <h3>
+                {currentUserReview ? "Update Your Review" : "Write a Review"}
+              </h3>
               {currentUserReview && (
-                <span className="pd-rating-count">You can edit or delete your review.</span>
+                <span className="pd-rating-count">
+                  You can edit or delete your review.
+                </span>
               )}
             </div>
             {!isAuthenticated ? (
@@ -744,6 +749,14 @@ export default function ProductDetail() {
               reviews.map(r => (
                 <div key={r.id} className="pd-review-item">
                   <div className="pd-review-item-head">
+                    <img
+                      src={
+                        r.user?.profileImage ||
+                        "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
+                      }
+                      alt="profile"
+                      className="profile-image"
+                    />
                     <span className="pd-review-author">
                       {r.userName || r.user?.name || "Anonymous"}
                     </span>
@@ -753,7 +766,12 @@ export default function ProductDetail() {
                     </span>
                   </div>
                   {r.comment && (
-                    <p className="pd-review-comment">{r.comment}</p>
+                    <p
+                      className="pd-review-comment"
+                      style={{ textAlign: "justify" }}
+                    >
+                      {r.comment}
+                    </p>
                   )}
                 </div>
               ))

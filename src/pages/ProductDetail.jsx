@@ -418,7 +418,7 @@ export default function ProductDetail() {
                   style={{
                     width: "100%",
                     height: "100%",
-                    objectFit: "contain",
+                    objectFit: "cover",
                     display: "block"
                   }}
                 />
@@ -513,7 +513,22 @@ export default function ProductDetail() {
 
             {/* Price */}
             <div className="pd-price-row">
-              <span className="pd-price">₹{product.price}</span>
+              <span className="pd-price">
+                ₹{product.price}
+                {product.priceUnit && product.priceUnit !== "fixed" && (
+                  <span
+                    style={{
+                      fontSize: "16px",
+                      fontWeight: "500",
+                      color: "#6b7280",
+                      marginLeft: "4px"
+                    }}
+                  >
+                    /{" "}
+                    {product.priceUnit.replace("per_", "").replace("kg", "KG")}
+                  </span>
+                )}
+              </span>
               {product.originalPrice &&
                 product.originalPrice > product.price && (
                   <>
@@ -820,7 +835,21 @@ function RelatedCard({ product, navigate }) {
           {product.description || "Premium organic product, naturally sourced."}
         </p>
         <div className="sp-foot">
-          <span className="sp-price">₹{product.price}</span>
+          <span className="sp-price">
+            ₹{product.price}
+            {product.priceUnit && product.priceUnit !== "fixed" && (
+              <span
+                style={{
+                  fontSize: "12px",
+                  fontWeight: "500",
+                  color: "#6b7280",
+                  marginLeft: "3px"
+                }}
+              >
+                /{product.priceUnit.replace("per_", "").replace("kg", "KG")}
+              </span>
+            )}
+          </span>
           <button
             className="btn btn-primary btn-small"
             onClick={e => {

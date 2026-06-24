@@ -596,7 +596,21 @@ function ProductCard({ product, onAddToCart, addingId, featured }) {
           )}
           <div className="product-foot">
             <div>
-              <span className="product-price">₹{product.price}</span>
+              <span className="product-price">
+                ₹{product.price}
+                {product.priceUnit && product.priceUnit !== "fixed" && (
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      fontWeight: "500",
+                      color: "#6b7280",
+                      marginLeft: "3px"
+                    }}
+                  >
+                    /{product.priceUnit.replace("per_", "").replace("kg", "KG")}
+                  </span>
+                )}
+              </span>
               {product.stock < 10 && product.stock > 0 && (
                 <span className="low-stock">Only {product.stock} left!</span>
               )}

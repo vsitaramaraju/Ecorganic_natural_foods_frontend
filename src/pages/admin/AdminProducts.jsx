@@ -14,10 +14,19 @@ const EMPTY_FORM = {
   name: "",
   description: "",
   price: "",
+  priceUnit: "fixed",
   stock: "",
   categoryId: "",
   imageUrl: ""
 };
+
+const PRICE_UNIT_OPTIONS = [
+  { value: "fixed", label: "Fixed Price (single item)" },
+  { value: "per_kg", label: "Per KG" },
+  { value: "per_500g", label: "Per 500g" },
+  { value: "per_250g", label: "Per 250g" },
+  { value: "per_100g", label: "Per 100g" }
+];
 
 export default function AdminProducts() {
   const [products, setProducts] = useState([]);
@@ -72,6 +81,7 @@ export default function AdminProducts() {
       name: product.name || "",
       description: product.description || "",
       price: String(product.price || ""),
+      priceUnit: product.priceUnit || "fixed",
       stock: String(product.stock || ""),
       categoryId: getProductCategoryId(product),
       imageUrl: product.imageUrl || ""
@@ -87,6 +97,7 @@ export default function AdminProducts() {
       name: productForm.name.trim(),
       description: productForm.description.trim(),
       price: Number(productForm.price),
+      priceUnit: productForm.priceUnit || "fixed",
       stock: Number(productForm.stock),
       categoryId: productForm.categoryId
         ? Number(productForm.categoryId)
@@ -232,7 +243,7 @@ export default function AdminProducts() {
               </select>
             </div>
             <div className="form-group">
-              <label htmlFor="p-price">Price *</label>
+              <label htmlFor="p-price">Price (₹) *</label>
               <input
                 id="p-price"
                 type="number"
@@ -244,6 +255,34 @@ export default function AdminProducts() {
                 }
                 required
               />
+            </div>
+            <div className="form-group">
+              <label htmlFor="p-price-unit">Price Unit *</label>
+              <select
+                id="p-price-unit"
+                value={productForm.priceUnit}
+                onChange={e =>
+                  setProductForm(p => ({ ...p, priceUnit: e.target.value }))
+                }
+              >
+                {PRICE_UNIT_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <small
+                style={{
+                  color: "#6b7280",
+                  fontSize: "12px",
+                  marginTop: "4px",
+                  display: "block"
+                }}
+              >
+                {productForm.priceUnit === "fixed"
+                  ? "Price is for a single item (e.g. a bottle, box)"
+                  : `Price per ${productForm.priceUnit.replace("per_", "").replace("kg", "KG").replace("g", "g")}`}
+              </small>
             </div>
             <div className="form-group">
               <label htmlFor="p-stock">Stock *</label>
@@ -445,6 +484,21 @@ export default function AdminProducts() {
                       <td>{getCategoryName(product)}</td>
                       <td>
                         <strong>{formatCurrency(product.price)}</strong>
+                        {product.priceUnit && product.priceUnit !== "fixed" && (
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              color: "#6b7280",
+                              display: "block",
+                              marginTop: "2px"
+                            }}
+                          >
+                            /{" "}
+                            {product.priceUnit
+                              .replace("per_", "")
+                              .replace("kg", "KG")}
+                          </span>
+                        )}
                       </td>
                       <td>
                         <span

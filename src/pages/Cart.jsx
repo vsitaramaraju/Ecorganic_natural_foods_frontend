@@ -123,7 +123,13 @@ export default function Cart() {
                   </button>
                 </div>
                 <div className="cart-item-price">
-                  <div className="price-per">₹{item.product.price} each</div>
+                  <div className="price-per">
+                    ₹{item.product.price}
+                    {item.product.priceUnit &&
+                    item.product.priceUnit !== "fixed"
+                      ? ` / ${item.product.priceUnit.replace("per_", "").replace("kg", "KG")}`
+                      : " each"}
+                  </div>
                   <div className="price-total">
                     ₹{item.product.price * item.quantity}
                   </div>

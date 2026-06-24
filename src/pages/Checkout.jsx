@@ -161,7 +161,18 @@ export default function Checkout() {
                   </div>
                   <div className="co-item-price">
                     <div>
-                      ₹{item.product.price} × {item.quantity}
+                      ₹{item.product.price}
+                      {item.product.priceUnit &&
+                        item.product.priceUnit !== "fixed" && (
+                          <span style={{ fontSize: "11px", color: "#6b7280" }}>
+                            /
+                            {item.product.priceUnit
+                              .replace("per_", "")
+                              .replace("kg", "KG")}
+                          </span>
+                        )}
+                      {" × "}
+                      {item.quantity}
                     </div>
                     <strong>₹{item.product.price * item.quantity}</strong>
                   </div>

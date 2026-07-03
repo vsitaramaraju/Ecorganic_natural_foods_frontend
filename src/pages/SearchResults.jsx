@@ -9,7 +9,7 @@ export default function SearchResultsPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { isAuthenticated } = useContext(AuthContext);
-  
+
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -42,7 +42,9 @@ export default function SearchResultsPage() {
         if (inStock) params.append("inStock", inStock);
 
         const response = await API.get(`/products/search?${params.toString()}`);
-        const products = Array.isArray(response?.data) ? response.data : (response?.data?.products || []);
+        const products = Array.isArray(response?.data)
+          ? response.data
+          : response?.data?.products || [];
         setResults(products);
       } catch (e) {
         setError(e?.response?.data?.message || "Failed to search products.");
@@ -107,7 +109,7 @@ export default function SearchResultsPage() {
         return updated;
       });
     }
-  }
+  };
 
   // Apply sorting
   let displayed = [...results];
@@ -194,9 +196,17 @@ export default function SearchResultsPage() {
                     className={`wishlist-btn-search ${wishlistItems.has(product.id) ? "active" : ""}`}
                     onClick={e => handleWishlist(e, product.id)}
                     disabled={wishlistLoading.has(product.id)}
-                    title={wishlistItems.has(product.id) ? "Remove from wishlist" : "Add to wishlist"}
+                    title={
+                      wishlistItems.has(product.id)
+                        ? "Remove from wishlist"
+                        : "Add to wishlist"
+                    }
                   >
-                    {wishlistLoading.has(product.id) ? "…" : wishlistItems.has(product.id) ? "❤️" : "🤍"}
+                    {wishlistLoading.has(product.id)
+                      ? "…"
+                      : wishlistItems.has(product.id)
+                        ? "❤️"
+                        : "🤍"}
                   </button>
                 </div>
                 <div className="search-card-body">

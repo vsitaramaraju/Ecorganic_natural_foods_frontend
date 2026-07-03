@@ -1,5 +1,5 @@
 import { useState, useContext } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Navigate, Link } from "react-router-dom";
 import API from "../api/axios";
 import { AuthContext } from "../context/AuthContext";
 import "./Auth.css";
@@ -14,8 +14,13 @@ export default function Register() {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [genError, setGenError] = useState("");
-  const { login } = useContext(AuthContext);
+  const { login, isAuthenticated } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  // Redirect already-authenticated users
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
 
   const validate = () => {
     const e = {};

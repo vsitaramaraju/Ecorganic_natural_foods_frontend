@@ -167,7 +167,18 @@ export default function Orders() {
                   <div className="order-items">
                     {order.items.map((item, idx) => (
                       <div key={idx} className="order-item">
-                        <span className="order-item-icon">🌿</span>
+                        <span className="order-item-icon">
+                          {item.product?.imageUrl ? (
+                            <img
+                              src={item.product.imageUrl}
+                              alt={item.product.name}
+                              style={{ width: "100px" }}
+                              loading="lazy"
+                            />
+                          ) : (
+                            <span>🌿</span>
+                          )}
+                        </span>
                         <span className="order-item-name">
                           {item.productName || item.product?.name || "Product"}
                         </span>

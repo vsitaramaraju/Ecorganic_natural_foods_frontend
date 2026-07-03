@@ -23,7 +23,9 @@ export default function SearchResultsPopup({
   };
 
   // Handle API response structure: { count, products: [...] }
-  const displayResults = Array.isArray(results) ? results : (results?.products || []);
+  const displayResults = Array.isArray(results)
+    ? results
+    : results?.products || [];
 
   if (!isOpen) return null;
 

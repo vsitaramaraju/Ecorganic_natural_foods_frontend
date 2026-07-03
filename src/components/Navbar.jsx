@@ -95,7 +95,7 @@ export default function Navbar() {
     <nav className={`navbar ${scrolled ? "scrolled" : ""}`}>
       <div className="navbar-inner">
         {/* Logo */}
-        <Link to="/" className="navbar-logo">
+        <Link to={isAdmin ? "/admin/overview" : "/"} className="navbar-logo">
           <span className="logo-leaf">🌿</span>
           <div className="logo-text-wrap">
             <span className="logo-brand">EchOrganics</span>

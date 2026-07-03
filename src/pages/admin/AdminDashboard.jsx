@@ -7,14 +7,14 @@ import {
   formatCurrency,
   formatDate,
   getOrderAmount,
-  getOrderItemsCount,
+  getOrderItemsCount
 } from "./adminShared";
 
 const STAT_ICONS = {
   revenue: "₹",
   orders: "🛒",
   items: "📦",
-  avg: "📊",
+  avg: "📊"
 };
 
 export default function AdminDashboard() {
@@ -27,12 +27,18 @@ export default function AdminDashboard() {
   useEffect(() => {
     (async () => {
       try {
-        const [o, p, c] = await Promise.all([fetchOrders(), fetchProducts(), fetchCategories()]);
+        const [o, p, c] = await Promise.all([
+          fetchOrders(),
+          fetchProducts(),
+          fetchCategories()
+        ]);
         setOrders(o);
         setProducts(p);
         setCategories(c);
       } catch (e) {
-        setError(e?.response?.data?.message || e?.message || "Failed to load dashboard");
+        setError(
+          e?.response?.data?.message || e?.message || "Failed to load dashboard"
+        );
       } finally {
         setIsLoading(false);
       }
@@ -48,7 +54,13 @@ export default function AdminDashboard() {
   }, [orders]);
 
   const statusBreakdown = useMemo(() => {
-    const map = { PENDING: 0, CONFIRMED: 0, SHIPPED: 0, DELIVERED: 0, CANCELLED: 0 };
+    const map = {
+      PENDING: 0,
+      CONFIRMED: 0,
+      SHIPPED: 0,
+      DELIVERED: 0,
+      CANCELLED: 0
+    };
     orders.forEach(o => {
       const s = String(o?.status || "PENDING").toUpperCase();
       if (map[s] !== undefined) map[s]++;
@@ -56,14 +68,25 @@ export default function AdminDashboard() {
     return map;
   }, [orders]);
 
-  const recentOrders = useMemo(() =>
-    [...orders].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)).slice(0, 5),
+  const recentOrders = useMemo(
+    () =>
+      [...orders]
+        .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+        .slice(0, 5),
     [orders]
   );
 
-  const lowStock = useMemo(() => products.filter(p => Number(p.stock ?? 0) < 10), [products]);
+  const lowStock = useMemo(
+    () => products.filter(p => Number(p.stock ?? 0) < 10),
+    [products]
+  );
 
-  if (isLoading) return <div className="dash-loading"><div className="dash-spinner" /></div>;
+  if (isLoading)
+    return (
+      <div className="dash-loading">
+        <div className="dash-spinner" />
+      </div>
+    );
 
   return (
     <div className="dash-root">
@@ -75,7 +98,9 @@ export default function AdminDashboard() {
           <div className="dash-kpi-icon">₹</div>
           <div className="dash-kpi-body">
             <div className="dash-kpi-label">Total Revenue</div>
-            <div className="dash-kpi-value">{formatCurrency(stats.totalRevenue)}</div>
+            <div className="dash-kpi-value">
+              {formatCurrency(stats.totalRevenue)}
+            </div>
           </div>
         </div>
         <div className="dash-kpi-card dash-kpi-orders">
@@ -96,7 +121,9 @@ export default function AdminDashboard() {
           <div className="dash-kpi-icon">📊</div>
           <div className="dash-kpi-body">
             <div className="dash-kpi-label">Avg. Order Value</div>
-            <div className="dash-kpi-value">{formatCurrency(stats.avgOrder)}</div>
+            <div className="dash-kpi-value">
+              {formatCurrency(stats.avgOrder)}
+            </div>
           </div>
         </div>
       </div>
@@ -108,12 +135,22 @@ export default function AdminDashboard() {
           <div className="dash-status-list">
             {ORDER_STATUSES.map(s => {
               const count = statusBreakdown[s] || 0;
-              const pct = stats.totalOrders ? Math.round((count / stats.totalOrders) * 100) : 0;
+              const pct = stats.totalOrders
+                ? Math.round((count / stats.totalOrders) * 100)
+                : 0;
               return (
                 <div className="dash-status-row" key={s}>
-                  <span className={`admin-status-pill status-${s.toLowerCase()}`}>{s}</span>
+                  <span
+                    className={`admin-status-pill status-${s.toLowerCase()}`}
+                  >
+                    {s}
+                  </span>
                   <div className="dash-bar-wrap">
-                    <div className="dash-bar" style={{ width: `${pct}%` }} data-status={s.toLowerCase()} />
+                    <div
+                      className="dash-bar"
+                      style={{ width: `${pct}%` }}
+                      data-status={s.toLowerCase()}
+                    />
                   </div>
                   <strong>{count}</strong>
                 </div>
@@ -139,7 +176,9 @@ export default function AdminDashboard() {
               <div className="dash-inv-lbl">Low Stock</div>
             </div>
             <div className="dash-inv-stat">
-              <div className="dash-inv-num">{products.filter(p => Number(p.stock ?? 0) === 0).length}</div>
+              <div className="dash-inv-num">
+                {products.filter(p => Number(p.stock ?? 0) === 0).length}
+              </div>
               <div className="dash-inv-lbl">Out of Stock</div>
             </div>
           </div>
@@ -173,20 +212,28 @@ export default function AdminDashboard() {
             </thead>
             <tbody>
               {recentOrders.length === 0 ? (
-                <tr><td colSpan={5} className="admin-empty-row">No orders yet.</td></tr>
-              ) : recentOrders.map(o => (
-                <tr key={o.id}>
-                  <td>#{o.id}</td>
-                  <td>{formatDate(o.createdAt || o.orderDate)}</td>
-                  <td>{o.user?.name || o.customerName || "-"}</td>
-                  <td>{formatCurrency(getOrderAmount(o))}</td>
-                  <td>
-                    <span className={`admin-status-pill status-${String(o.status || "").toLowerCase()}`}>
-                      {o.status || "PENDING"}
-                    </span>
+                <tr>
+                  <td colSpan={5} className="admin-empty-row">
+                    No orders yet.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                recentOrders.map(o => (
+                  <tr key={o.id}>
+                    <td>#{o.id}</td>
+                    <td>{formatDate(o.createdAt || o.orderDate)}</td>
+                    <td>{o.user?.name || o.customerName || "-"}</td>
+                    <td>{formatCurrency(getOrderAmount(o))}</td>
+                    <td>
+                      <span
+                        className={`admin-status-pill status-${String(o.status || "").toLowerCase()}`}
+                      >
+                        {o.status || "PENDING"}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

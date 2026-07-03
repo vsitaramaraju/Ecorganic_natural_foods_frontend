@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../utils/useAuth";
 import "./Profile.css";
 import API from "../api/axios";
@@ -14,6 +14,17 @@ export default function Profile() {
   });
   const [profileMsg, setProfileMsg] = useState({ text: "", type: "" });
   const [profileLoading, setProfileLoading] = useState(false);
+
+  // Keep form in sync if user object changes (e.g. after successful save)
+  useEffect(() => {
+    if (user) {
+      setProfileForm({
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || ""
+      });
+    }
+  }, [user]);
 
   /* ── Change Password State ── */
   const [passwordForm, setPasswordForm] = useState({
@@ -49,23 +60,13 @@ export default function Profile() {
     setProfileLoading(true);
     setProfileMsg({ text: "", type: "" });
     try {
-      // const res = await fetch("http://localhost:5000/api/auth/profile", {
-      //   method: "PUT",
-      //   headers: {
-      //     "Content-Type": "application/json",
-      //     Authorization: `Bearer ${token}`
-      //   },
-      //   body: JSON.stringify(profileForm)
-      // });
       const res = await API.put("/auth/profile", profileForm);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to update profile");
-      const updatedUser = { ...user, ...profileForm };
+      const updatedUser = { ...user, ...(res.data?.user || profileForm) };
       login(updatedUser, token);
       setProfileMsg({ text: "Profile updated successfully!", type: "success" });
     } catch (err) {
       setProfileMsg({
-        text: err.message || "Failed to update profile.",
+        text: err?.response?.data?.message || "Failed to update profile.",
         type: "error"
       });
     } finally {
@@ -93,22 +94,10 @@ export default function Profile() {
     }
     setPasswordLoading(true);
     try {
-      const res = await fetch(
-        "http://localhost:5000/api/auth/change-password",
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            currentPassword: passwordForm.currentPassword,
-            newPassword: passwordForm.newPassword
-          })
-        }
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to change password");
+      await API.put("/auth/change-password", {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword
+      });
       setPasswordMsg({
         text: "Password changed successfully!",
         type: "success"
@@ -120,7 +109,7 @@ export default function Profile() {
       });
     } catch (err) {
       setPasswordMsg({
-        text: err.message || "Failed to change password.",
+        text: err?.response?.data?.message || "Failed to change password.",
         type: "error"
       });
     } finally {
@@ -141,7 +130,6 @@ export default function Profile() {
 
   return (
     <div className="container profile-page">
-      {/* ── Page Header ── */}
       <div className="profile-header">
         <div className="profile-avatar">{initials}</div>
         <div>
@@ -151,13 +139,12 @@ export default function Profile() {
       </div>
 
       <div className="profile-grid">
-        {/* ── Edit Profile Card ── */}
+        {/* Edit Profile */}
         <section className="card profile-card">
           <div className="profile-card-header">
             <span className="profile-card-icon">👤</span>
             <h2>Edit Profile</h2>
           </div>
-
           <form onSubmit={handleProfileSubmit} className="profile-form">
             <div className="form-group">
               <label htmlFor="name">Full Name</label>
@@ -172,7 +159,6 @@ export default function Profile() {
                 placeholder="Your full name"
               />
             </div>
-
             <div className="form-group">
               <label htmlFor="email">Email Address</label>
               <input
@@ -186,7 +172,6 @@ export default function Profile() {
                 placeholder="you@example.com"
               />
             </div>
-
             <div className="form-group">
               <label htmlFor="phone">
                 Phone Number <span className="optional-label">(optional)</span>
@@ -201,7 +186,6 @@ export default function Profile() {
                 placeholder="+91 00000 00000"
               />
             </div>
-
             {profileMsg.text && (
               <div
                 className={`alert alert-${profileMsg.type === "success" ? "success" : "error"}`}
@@ -209,7 +193,6 @@ export default function Profile() {
                 {profileMsg.text}
               </div>
             )}
-
             <button
               type="submit"
               className="btn btn-primary profile-submit-btn"
@@ -220,86 +203,56 @@ export default function Profile() {
           </form>
         </section>
 
-        {/* ── Change Password Card ── */}
+        {/* Change Password */}
         <section className="card profile-card">
           <div className="profile-card-header">
             <span className="profile-card-icon">🔒</span>
             <h2>Change Password</h2>
           </div>
-
           <form onSubmit={handlePasswordSubmit} className="profile-form">
-            <div className="form-group">
-              <label htmlFor="currentPassword">Current Password</label>
-              <div className="password-input-wrap">
-                <input
-                  id="currentPassword"
-                  name="currentPassword"
-                  type={showPasswords.current ? "text" : "password"}
-                  className="form-control"
-                  value={passwordForm.currentPassword}
-                  onChange={handlePasswordChange}
-                  required
-                  placeholder="Enter current password"
-                />
-                <button
-                  type="button"
-                  className="password-toggle"
-                  onClick={() => toggleShow("current")}
-                  aria-label="Toggle password visibility"
-                >
-                  {showPasswords.current ? "🙈" : "👁"}
-                </button>
+            {[
+              {
+                id: "currentPassword",
+                label: "Current Password",
+                key: "current"
+              },
+              { id: "newPassword", label: "New Password", key: "new" },
+              {
+                id: "confirmPassword",
+                label: "Confirm New Password",
+                key: "confirm"
+              }
+            ].map(({ id, label, key }) => (
+              <div className="form-group" key={id}>
+                <label htmlFor={id}>{label}</label>
+                <div className="password-input-wrap">
+                  <input
+                    id={id}
+                    name={id}
+                    type={showPasswords[key] ? "text" : "password"}
+                    className="form-control"
+                    value={passwordForm[id]}
+                    onChange={handlePasswordChange}
+                    required
+                    placeholder={
+                      id === "currentPassword"
+                        ? "Enter current password"
+                        : id === "newPassword"
+                          ? "Min. 6 characters"
+                          : "Re-enter new password"
+                    }
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    onClick={() => toggleShow(key)}
+                    aria-label="Toggle visibility"
+                  >
+                    {showPasswords[key] ? "🙈" : "👁"}
+                  </button>
+                </div>
               </div>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="newPassword">New Password</label>
-              <div className="password-input-wrap">
-                <input
-                  id="newPassword"
-                  name="newPassword"
-                  type={showPasswords.new ? "text" : "password"}
-                  className="form-control"
-                  value={passwordForm.newPassword}
-                  onChange={handlePasswordChange}
-                  required
-                  placeholder="Min. 6 characters"
-                />
-                <button
-                  type="button"
-                  className="password-toggle"
-                  onClick={() => toggleShow("new")}
-                  aria-label="Toggle password visibility"
-                >
-                  {showPasswords.new ? "🙈" : "👁"}
-                </button>
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="confirmPassword">Confirm New Password</label>
-              <div className="password-input-wrap">
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showPasswords.confirm ? "text" : "password"}
-                  className="form-control"
-                  value={passwordForm.confirmPassword}
-                  onChange={handlePasswordChange}
-                  required
-                  placeholder="Re-enter new password"
-                />
-                <button
-                  type="button"
-                  className="password-toggle"
-                  onClick={() => toggleShow("confirm")}
-                  aria-label="Toggle password visibility"
-                >
-                  {showPasswords.confirm ? "🙈" : "👁"}
-                </button>
-              </div>
-            </div>
-
+            ))}
             {passwordMsg.text && (
               <div
                 className={`alert alert-${passwordMsg.type === "success" ? "success" : "error"}`}
@@ -307,7 +260,6 @@ export default function Profile() {
                 {passwordMsg.text}
               </div>
             )}
-
             <button
               type="submit"
               className="btn btn-primary profile-submit-btn"

@@ -22,6 +22,7 @@ export default function AdminPanel() {
     { to: "/admin/orders", label: "🛒 Orders" },
     { to: "/admin/products", label: "📦 Products" },
     { to: "/admin/categories", label: "🗂 Categories" },
+    { to: "/admin/users", label: "👥 Users" },
     { to: "/admin/reports", label: "📋 Reports" }
   ];
 
@@ -32,7 +33,9 @@ export default function AdminPanel() {
           <h1 style={{ color: "black" }}>
             Welcome, {user?.name || "Admin"} 👋
           </h1>
-          <p>Manage sales, orders, products, and categories from here.</p>
+          <p>
+            Manage sales, orders, products, categories, and users from here.
+          </p>
         </div>
       </div>
 

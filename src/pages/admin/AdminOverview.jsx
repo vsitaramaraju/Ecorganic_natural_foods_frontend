@@ -6,7 +6,7 @@ import {
   fetchProducts,
   formatCurrency,
   getOrderAmount,
-  getOrderItemsCount,
+  getOrderItemsCount
 } from "./adminShared";
 
 export default function AdminOverview() {
@@ -23,13 +23,17 @@ export default function AdminOverview() {
         const [orderData, productData, categoryData] = await Promise.all([
           fetchOrders(),
           fetchProducts(),
-          fetchCategories(),
+          fetchCategories()
         ]);
         setOrders(orderData);
         setProducts(productData);
         setCategories(categoryData);
       } catch (loadError) {
-        setError(loadError?.response?.data?.message || loadError?.message || "Failed to load overview");
+        setError(
+          loadError?.response?.data?.message ||
+            loadError?.message ||
+            "Failed to load overview"
+        );
       } finally {
         setIsLoading(false);
       }
@@ -44,10 +48,10 @@ export default function AdminOverview() {
       CONFIRMED: 0,
       SHIPPED: 0,
       DELIVERED: 0,
-      CANCELLED: 0,
+      CANCELLED: 0
     };
 
-    orders.forEach((order) => {
+    orders.forEach(order => {
       const status = String(order?.status || "PENDING").toUpperCase();
       if (result[status] !== undefined) {
         result[status] += 1;
@@ -59,15 +63,21 @@ export default function AdminOverview() {
 
   const salesSummary = useMemo(() => {
     const totalOrders = orders.length;
-    const totalRevenue = orders.reduce((sum, order) => sum + getOrderAmount(order), 0);
-    const itemsSold = orders.reduce((sum, order) => sum + getOrderItemsCount(order), 0);
+    const totalRevenue = orders.reduce(
+      (sum, order) => sum + getOrderAmount(order),
+      0
+    );
+    const itemsSold = orders.reduce(
+      (sum, order) => sum + getOrderItemsCount(order),
+      0
+    );
     const avgOrderValue = totalOrders ? totalRevenue / totalOrders : 0;
 
     return {
       totalOrders,
       totalRevenue,
       itemsSold,
-      avgOrderValue,
+      avgOrderValue
     };
   }, [orders]);
 
@@ -86,7 +96,9 @@ export default function AdminOverview() {
         </article>
         <article className="card admin-summary-card">
           <h3>Total Revenue</h3>
-          <p className="admin-summary-value">{formatCurrency(salesSummary.totalRevenue)}</p>
+          <p className="admin-summary-value">
+            {formatCurrency(salesSummary.totalRevenue)}
+          </p>
         </article>
         <article className="card admin-summary-card">
           <h3>Items Sold</h3>
@@ -94,7 +106,9 @@ export default function AdminOverview() {
         </article>
         <article className="card admin-summary-card">
           <h3>Average Order</h3>
-          <p className="admin-summary-value">{formatCurrency(salesSummary.avgOrderValue)}</p>
+          <p className="admin-summary-value">
+            {formatCurrency(salesSummary.avgOrderValue)}
+          </p>
         </article>
       </div>
 
@@ -102,7 +116,7 @@ export default function AdminOverview() {
         <section className="card admin-section">
           <h3>Order Status Breakdown</h3>
           <ul className="admin-status-list">
-            {ORDER_STATUSES.map((status) => (
+            {ORDER_STATUSES.map(status => (
               <li key={status}>
                 <span>{status}</span>
                 <strong>{statusBreakdown[status] || 0}</strong>
@@ -123,7 +137,12 @@ export default function AdminOverview() {
           </div>
           <div className="admin-kpi-row">
             <p>Low Stock (below 10)</p>
-            <strong>{products.filter((product) => Number(product.stock ?? 0) < 10).length}</strong>
+            <strong>
+              {
+                products.filter(product => Number(product.stock ?? 0) < 10)
+                  .length
+              }
+            </strong>
           </div>
         </section>
       </div>

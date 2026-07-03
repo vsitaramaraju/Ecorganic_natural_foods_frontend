@@ -8,7 +8,7 @@ import "./Wishlist.css";
 export default function Wishlist() {
   const { isAuthenticated } = useContext(AuthContext);
   const navigate = useNavigate();
-  
+
   const [wishlistItems, setWishlistItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -23,7 +23,9 @@ export default function Wishlist() {
       setError("");
       try {
         const response = await wishlistAPI.getWishlist();
-        const items = Array.isArray(response?.data) ? response.data : (response?.data?.data || []);
+        const items = Array.isArray(response?.data)
+          ? response.data
+          : response?.data?.data || [];
         setWishlistItems(items);
       } catch (e) {
         setError(e?.response?.data?.message || "Failed to load wishlist");
@@ -55,7 +57,9 @@ export default function Wishlist() {
   };
 
   const handleClearWishlist = async () => {
-    if (window.confirm("Are you sure you want to clear your entire wishlist?")) {
+    if (
+      window.confirm("Are you sure you want to clear your entire wishlist?")
+    ) {
       try {
         await wishlistAPI.clearWishlist();
         setWishlistItems([]);
@@ -83,7 +87,14 @@ export default function Wishlist() {
             <h1 className="section-title">❤️ My Wishlist</h1>
           </div>
           <div className="alert alert-info">
-            Please <a href="/login" style={{ color: "var(--color-primary)", fontWeight: "600" }}>log in</a> to view your wishlist.
+            Please{" "}
+            <a
+              href="/login"
+              style={{ color: "var(--color-primary)", fontWeight: "600" }}
+            >
+              log in
+            </a>{" "}
+            to view your wishlist.
           </div>
         </div>
       </div>
@@ -114,11 +125,15 @@ export default function Wishlist() {
             <div>
               <h1 className="section-title">❤️ My Wishlist</h1>
               <p className="section-subtitle">
-                {wishlistItems.length} item{wishlistItems.length !== 1 ? "s" : ""} saved
+                {wishlistItems.length} item
+                {wishlistItems.length !== 1 ? "s" : ""} saved
               </p>
             </div>
             {wishlistItems.length > 0 && (
-              <button className="btn btn-secondary" onClick={handleClearWishlist}>
+              <button
+                className="btn btn-secondary"
+                onClick={handleClearWishlist}
+              >
                 Clear Wishlist
               </button>
             )}
@@ -160,11 +175,13 @@ export default function Wishlist() {
                   {item.product?.category?.name && (
                     <span className="tag">{item.product.category.name}</span>
                   )}
-                  
+
                   <h3>{item.product?.name}</h3>
-                  
+
                   {item.product?.description && (
-                    <p className="wishlist-card-desc">{item.product.description}</p>
+                    <p className="wishlist-card-desc">
+                      {item.product.description}
+                    </p>
                   )}
 
                   {/* Footer */}
@@ -172,7 +189,7 @@ export default function Wishlist() {
                     <span className="wishlist-card-price">
                       ₹{item.product?.price}
                     </span>
-                    
+
                     {item.product?.stock === 0 ? (
                       <span className="badge badge-danger">Out of Stock</span>
                     ) : item.product?.stock < 10 ? (
@@ -190,7 +207,7 @@ export default function Wishlist() {
                     >
                       View Details
                     </button>
-                    
+
                     <button
                       className={`btn btn-secondary btn-small ${item.product?.stock === 0 ? "disabled" : ""}`}
                       onClick={() => handleAddToCart(item.product?.id)}
@@ -217,4 +234,3 @@ export default function Wishlist() {
     </div>
   );
 }
-

@@ -83,11 +83,18 @@ export const orderAPI = {
     })
 };
 
+export const updateProfile = data =>
+  apiCall("/users/profile", {
+    method: "PUT",
+    body: JSON.stringify(data)
+  });
+
 export default {
   authAPI,
   productAPI,
   categoryAPI,
   cartAPI,
   addressAPI,
-  orderAPI
+  orderAPI,
+  updateProfile
 };

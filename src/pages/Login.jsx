@@ -1,5 +1,5 @@
 import { useState, useContext } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Navigate, useNavigate, useLocation, Link } from "react-router-dom";
 import API from "../api/axios";
 import { AuthContext } from "../context/AuthContext";
 import "./Auth.css";
@@ -9,8 +9,17 @@ export function Login() {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [genError, setGenError] = useState("");
-  const { login } = useContext(AuthContext);
+  const { login, isAuthenticated, user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Redirect already-authenticated users based on their role
+  if (isAuthenticated) {
+    const from = location.state?.from?.pathname;
+    if (user?.role === "ADMIN")
+      return <Navigate to="/admin/overview" replace />;
+    return <Navigate to={from || "/"} replace />;
+  }
 
   const validate = () => {
     const e = {};
@@ -32,7 +41,11 @@ export function Login() {
       const res = await API.post("/auth/login", form);
       login(res.data.user, res.data.token);
       if (res.data.user.role === "ADMIN") navigate("/admin/overview");
-      else navigate("/");
+      else {
+        // Go back to the page the user was trying to reach, or home
+        const from = location.state?.from?.pathname || "/";
+        navigate(from);
+      }
     } catch (err) {
       setGenError(err?.response?.data?.message || "Login failed");
     } finally {

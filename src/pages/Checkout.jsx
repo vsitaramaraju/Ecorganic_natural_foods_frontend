@@ -4,10 +4,38 @@ import API from "../api/axios";
 import { AuthContext } from "../context/AuthContext";
 import "./Checkout.css";
 
+const PAYMENT_METHODS = [
+  {
+    id: "COD",
+    label: "💵 Cash on Delivery",
+    desc: "Pay when your order arrives"
+  },
+  {
+    id: "UPI",
+    label: "📱 UPI / GPay / PhonePe",
+    desc: "Pay instantly via UPI"
+  },
+  {
+    id: "CARD",
+    label: "💳 Credit / Debit Card",
+    desc: "Visa, Mastercard, RuPay"
+  },
+  {
+    id: "NETBANKING",
+    label: "🏦 Net Banking",
+    desc: "All major banks supported"
+  }
+];
+
 export default function Checkout() {
   const [cart, setCart] = useState([]);
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState("COD");
+  const [couponCode, setCouponCode] = useState("");
+  const [couponApplied, setCouponApplied] = useState(null); // { code, discount }
+  const [couponError, setCouponError] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
   const [isLoadingCart, setIsLoadingCart] = useState(true);
   const [isLoadingAddr, setIsLoadingAddr] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -49,8 +77,47 @@ export default function Checkout() {
     if (!isLoadingCart && cart.length === 0) navigate("/cart");
   }, [isLoadingCart, cart, navigate]);
 
-  const total = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
+  const subtotal = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
+  const deliveryFee = subtotal >= 499 ? 0 : 49;
+  const discountAmount = couponApplied
+    ? Math.round(subtotal * (couponApplied.discount / 100))
+    : 0;
+  const total = subtotal + deliveryFee - discountAmount;
 
+  /* ── Coupon ── */
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setCouponLoading(true);
+    setCouponError("");
+    setCouponApplied(null);
+    try {
+      const res = await API.post("/coupons/validate", {
+        code: couponCode.trim()
+      });
+      const data = res.data;
+      // Backend should return { valid: true, discount: 10 } (discount = % off)
+      if (data?.valid || data?.discount) {
+        setCouponApplied({
+          code: couponCode.trim(),
+          discount: data.discount || 0
+        });
+      } else {
+        setCouponError(data?.message || "Invalid coupon code");
+      }
+    } catch (err) {
+      setCouponError(err?.response?.data?.message || "Invalid coupon code");
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setCouponApplied(null);
+    setCouponCode("");
+    setCouponError("");
+  };
+
+  /* ── Address validation ── */
   const validate = () => {
     const e = {};
     if (!newAddress.name.trim()) e.name = "Required";
@@ -89,14 +156,20 @@ export default function Checkout() {
     }
   };
 
+  /* ── Place order ── */
   const placeOrder = async () => {
     if (!selectedAddressId) {
       setError("Please select a delivery address");
       return;
     }
     setIsProcessing(true);
+    setError("");
     try {
-      await API.post("/orders", { addressId: selectedAddressId });
+      await API.post("/orders", {
+        addressId: selectedAddressId,
+        paymentMethod,
+        couponCode: couponApplied?.code || undefined
+      });
       navigate("/orders");
     } catch (err) {
       setError(err?.response?.data?.message || "Failed to place order");
@@ -138,7 +211,7 @@ export default function Checkout() {
         {/* Left – Order Review */}
         <div className="checkout-left">
           <div className="card">
-            <h2>📦 Order Review</h2>
+            <h2 style={{ color: "black" }}>📦 Order Review</h2>
             <div className="co-items">
               {cart.map(item => (
                 <div key={item.id} className="co-item">
@@ -179,31 +252,83 @@ export default function Checkout() {
                 </div>
               ))}
             </div>
+
+            {/* Coupon Section */}
+            <div className="co-coupon">
+              <h3 style={{ color: "black", marginBottom: "10px" }}>
+                🏷️ Coupon Code
+              </h3>
+              {couponApplied ? (
+                <div className="coupon-applied">
+                  <span>
+                    ✅ <strong>{couponApplied.code}</strong> —{" "}
+                    {couponApplied.discount}% off applied!
+                  </span>
+                  <button
+                    className="btn btn-secondary btn-small"
+                    onClick={handleRemoveCoupon}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="coupon-input-row">
+                  <input
+                    type="text"
+                    placeholder="Enter coupon code"
+                    value={couponCode}
+                    onChange={e => {
+                      setCouponCode(e.target.value.toUpperCase());
+                      setCouponError("");
+                    }}
+                    disabled={couponLoading}
+                  />
+                  <button
+                    className="btn btn-secondary"
+                    onClick={handleApplyCoupon}
+                    disabled={couponLoading || !couponCode.trim()}
+                  >
+                    {couponLoading ? "Checking…" : "Apply"}
+                  </button>
+                </div>
+              )}
+              {couponError && (
+                <p className="form-error-message">{couponError}</p>
+              )}
+            </div>
+
+            {/* Order Summary */}
             <div className="co-summary">
               <div className="summary-row">
                 <span>Subtotal</span>
-                <span>₹{total}</span>
+                <span>₹{subtotal}</span>
               </div>
               <div className="summary-row">
                 <span>Delivery</span>
-                <span className={total >= 499 ? "free-label" : ""}>
-                  {total >= 499 ? "FREE" : "₹49"}
+                <span className={deliveryFee === 0 ? "free-label" : ""}>
+                  {deliveryFee === 0 ? "FREE" : `₹${deliveryFee}`}
                 </span>
               </div>
+              {couponApplied && (
+                <div className="summary-row" style={{ color: "#16a34a" }}>
+                  <span>Coupon Discount ({couponApplied.discount}%)</span>
+                  <span>−₹{discountAmount}</span>
+                </div>
+              )}
               <div className="summary-divider" />
               <div className="summary-row total-row">
                 <span>Total Amount</span>
-                <span>₹{total >= 499 ? total : total + 49}</span>
+                <span>₹{total}</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right – Address */}
+        {/* Right – Address + Payment */}
         <div className="checkout-right">
+          {/* Address */}
           <div className="card addr-card">
-            <h2>📍 Delivery Address</h2>
-
+            <h2 style={{ color: "black" }}>📍 Delivery Address</h2>
             {addresses.length > 0 && (
               <div className="addr-list">
                 {addresses.map(a => (
@@ -232,7 +357,6 @@ export default function Checkout() {
                 ))}
               </div>
             )}
-
             {!showNewAddr ? (
               <button
                 className="btn btn-secondary btn-full"
@@ -275,14 +399,38 @@ export default function Checkout() {
             )}
           </div>
 
+          {/* Payment Method */}
+          <div className="card" style={{ marginTop: "16px" }}>
+            <h2 style={{ color: "black" }}>💳 Payment Method</h2>
+            <div className="payment-methods">
+              {PAYMENT_METHODS.map(pm => (
+                <label
+                  key={pm.id}
+                  className={`payment-option ${paymentMethod === pm.id ? "selected" : ""}`}
+                >
+                  <input
+                    type="radio"
+                    name="payment"
+                    value={pm.id}
+                    checked={paymentMethod === pm.id}
+                    onChange={() => setPaymentMethod(pm.id)}
+                  />
+                  <div className="payment-detail">
+                    <strong>{pm.label}</strong>
+                    <span>{pm.desc}</span>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+
           <button
             className="btn btn-primary btn-full place-order-btn"
             onClick={placeOrder}
             disabled={isProcessing || !selectedAddressId}
+            style={{ marginTop: "16px" }}
           >
-            {isProcessing
-              ? "Placing Order…"
-              : `🌿 Place Order · ₹${total >= 499 ? total : total + 49}`}
+            {isProcessing ? "Placing Order…" : `🌿 Place Order · ₹${total}`}
           </button>
 
           <p className="secure-checkout-note">

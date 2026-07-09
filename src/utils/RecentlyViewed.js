@@ -1,9 +1,20 @@
-export const RecentlyViewed = product => {
-  const existing = JSON.parse(localStorage.getItem("recentProducts")) || [];
+const STORAGE_KEY = "recentProducts";
 
-  const filtered = existing.filter(item => item.id !== product.id);
+export const saveRecentProduct = product => {
+  let recent = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
 
-  const updated = [product, ...filtered].slice(0, 10);
+  // Remove duplicate if already exists
+  recent = recent.filter(item => item.id !== product.id);
 
-  localStorage.setItem("recentProducts", JSON.stringify(updated));
+  // Add latest product to the beginning
+  recent.unshift(product);
+
+  // Keep only last 20 products
+  recent = recent.slice(0, 20);
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(recent));
+};
+
+export const getRecentProducts = () => {
+  return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
 };

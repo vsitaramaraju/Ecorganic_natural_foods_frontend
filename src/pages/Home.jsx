@@ -5,6 +5,7 @@ import { AuthContext } from "../context/AuthContext";
 import { wishlistAPI } from "../api/wishlistAPI";
 import "./Home.css";
 import { useCart } from "../context/CartContext";
+import { saveRecentProduct, getRecentProducts } from "../utils/RecentlyViewed";
 
 const ORGANIC_CATEGORY_ICONS = {
   vegetables: "🥦",
@@ -95,9 +96,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const data = JSON.parse(localStorage.getItem("recentProducts")) || [];
-
-    setRecentProducts(data);
+    setRecentProducts(getRecentProducts());
   }, []);
 
   const showToast = msg => {
@@ -425,7 +424,7 @@ export default function Home() {
               </div>
 
               <div className="product-grid">
-                {recentProducts.map(product => (
+                {recentProducts.slice(0, 8).map(product => (
                   <ProductCard
                     key={product.id}
                     product={product}
@@ -434,6 +433,21 @@ export default function Home() {
                   />
                 ))}
               </div>
+              {recentProducts.length >= 8 && (
+                <div
+                  style={{
+                    textAlign: "center",
+                    marginTop: "30px"
+                  }}
+                >
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => navigate("/shop")}
+                  >
+                    View More Products
+                  </button>
+                </div>
+              )}
             </div>
           </section>
         )
@@ -554,7 +568,10 @@ function ProductCard({ product, onAddToCart, addingId, featured }) {
 
       <article
         className={`product-card ${featured ? "featured" : ""}`}
-        onClick={() => navigate(`/products/${product.id}`)}
+        onClick={() => {
+          saveRecentProduct(product);
+          navigate(`/products/${product.id}`);
+        }}
         style={{ cursor: "pointer" }}
       >
         <div className="product-img-wrap">
@@ -588,6 +605,7 @@ function ProductCard({ product, onAddToCart, addingId, featured }) {
               className="show-more-btn"
               onClick={e => {
                 e.stopPropagation();
+                saveRecentProduct(product);
                 navigate(`/products/${product.id}`);
               }}
             >

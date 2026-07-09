@@ -5,6 +5,7 @@ import { AuthContext } from "../context/AuthContext";
 import { wishlistAPI } from "../api/wishlistAPI";
 import "./Shop.css";
 import { useCart } from "../context/CartContext";
+import { saveRecentProduct } from "../utils/RecentlyViewed";
 
 export default function Shop() {
   const [searchParams] = useSearchParams();
@@ -207,7 +208,10 @@ export default function Shop() {
                 <article
                   key={p.id}
                   className="shop-product-card"
-                  onClick={() => navigate(`/products/${p.id}`)}
+                  onClick={() => {
+                    navigate(`/products/${p.id}`);
+                    saveRecentProduct(p);
+                  }}
                   style={{ cursor: "pointer" }}
                 >
                   <div className="spimg-wrap">
@@ -249,6 +253,7 @@ export default function Shop() {
                           className="show-more-btn"
                           onClick={e => {
                             e.stopPropagation();
+                            saveRecentProduct(p);
                             navigate(`/products/${p.id}`);
                           }}
                         >

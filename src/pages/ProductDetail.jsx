@@ -5,7 +5,7 @@ import { AuthContext } from "../context/AuthContext";
 import { wishlistAPI } from "../api/wishlistAPI";
 import "./ProductDetails.css";
 import { useCart } from "../context/CartContext";
-import { RecentlyViewed } from "../utils/RecentlyViewed";
+import { saveRecentProduct } from "../utils/RecentlyViewed";
 
 function formatReviewDate(d) {
   if (!d) return "";
@@ -124,7 +124,7 @@ export default function ProductDetail() {
 
   useEffect(() => {
     if (product) {
-      RecentlyViewed(product);
+      saveRecentProduct(product);
     }
   }, [product]);
 

@@ -105,6 +105,52 @@
   color: var(--color-text-light);
 }
 
+/* ── Remove overlay button (top-right of image) ── */
+.wishlist-remove-overlay {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--color-error);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: var(--transition);
+  z-index: 2;
+}
+
+.wishlist-remove-overlay:hover:not(:disabled) {
+  background: var(--color-error);
+  color: #fff;
+  transform: scale(1.08);
+}
+
+.wishlist-remove-overlay:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Danger outline (full-width Remove button under actions) ── */
+.btn-danger-outline {
+  background: transparent;
+  color: var(--color-error);
+  border-color: var(--color-error-bg);
+  margin-top: 4px;
+}
+
+.btn-danger-outline:hover:not(:disabled) {
+  background: var(--color-error-bg);
+  border-color: var(--color-error);
+}
+
 /* ── Card Body ── */
 .wishlist-card-body {
   padding: var(--space-lg);

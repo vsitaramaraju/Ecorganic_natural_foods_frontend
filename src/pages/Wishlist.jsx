@@ -168,6 +168,17 @@ export default function Wishlist() {
                   ) : (
                     <div className="wishlist-img-placeholder">🌿</div>
                   )}
+
+                  {/* Always-visible remove button, top-right of the image */}
+                  <button
+                    className="wishlist-remove-overlay"
+                    onClick={() => handleRemoveItem(item)}
+                    disabled={removingId === item.id}
+                    title="Remove from wishlist"
+                    aria-label="Remove from wishlist"
+                  >
+                    {removingId === item.id ? "…" : "✕"}
+                  </button>
                 </div>
 
                 {/* Info */}
@@ -214,15 +225,6 @@ export default function Wishlist() {
                       disabled={item.product?.stock === 0}
                     >
                       🛒 Add to Cart
-                    </button>
-
-                    <button
-                      className="btn btn-icon wishlist-remove"
-                      onClick={() => handleRemoveItem(item)}
-                      disabled={removingId === item.id}
-                      title="Remove from wishlist"
-                    >
-                      {removingId === item.id ? "..." : "✕"}
                     </button>
                   </div>
                 </div>

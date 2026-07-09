@@ -134,7 +134,8 @@ export default function Addresses() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: "24px"
+          marginBottom: "24px",
+          gap: "5rem"
         }}
       >
         <h1 style={{ color: "black" }}>My Addresses</h1>

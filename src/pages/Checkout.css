@@ -260,21 +260,28 @@
 
 .coupon-input-row {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .coupon-input-row input {
   flex: 1;
-  padding: 8px 12px;
+  padding: 10px 12px;
   border: 1.5px solid #e5e7eb;
   border-radius: 8px;
   font-size: 0.9rem;
   letter-spacing: 0.05em;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .coupon-input-row input:focus {
   outline: none;
   border-color: #6ab04c;
+}
+
+.coupon-input-row button {
+  width: 100%;
 }
 
 .coupon-applied {

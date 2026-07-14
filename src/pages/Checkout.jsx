@@ -1,5 +1,5 @@
 import { useEffect, useState, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import API from "../api/axios";
 import { AuthContext } from "../context/AuthContext";
 import "./Checkout.css";
@@ -53,11 +53,21 @@ export default function Checkout() {
   const [addrErrors, setAddrErrors] = useState({});
   const { isAuthenticated } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/login");
       return;
+    }
+    // Get coupon code from Cart navigation state
+    if (location.state?.couponCode) {
+      setCouponCode(location.state.couponCode);
+      setCouponApplied({
+        code: location.state.couponCode,
+        discountPercent: 0,
+        discountAmount: 0
+      });
     }
     API.get("/cart")
       .then(r => setCart(r.data || []))
@@ -79,27 +89,27 @@ export default function Checkout() {
 
   const subtotal = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
   const deliveryFee = subtotal >= 499 ? 0 : 49;
-  const discountAmount = couponApplied
-    ? Math.round(subtotal * (couponApplied.discount / 100))
-    : 0;
+  const discountAmount = couponApplied?.discountAmount || 0;
   const total = subtotal + deliveryFee - discountAmount;
 
-  /* ── Coupon ── */
   const handleApplyCoupon = async () => {
-    if (!couponCode.trim()) return;
+    if (!couponCode.trim()) {
+      setCouponError("Please enter a coupon code");
+      return;
+    }
     setCouponLoading(true);
     setCouponError("");
     setCouponApplied(null);
     try {
       const res = await API.post("/coupons/validate", {
-        code: couponCode.trim()
+        code: couponCode.trim().toUpperCase()
       });
       const data = res.data;
-      // Backend should return { valid: true, discount: 10 } (discount = % off)
-      if (data?.valid || data?.discount) {
+      if (data?.valid) {
         setCouponApplied({
-          code: couponCode.trim(),
-          discount: data.discount || 0
+          code: couponCode.trim().toUpperCase(),
+          discountPercent: data.discountPercent || 0,
+          discountAmount: data.discountAmount || 0
         });
       } else {
         setCouponError(data?.message || "Invalid coupon code");
@@ -261,8 +271,7 @@ export default function Checkout() {
               {couponApplied ? (
                 <div className="coupon-applied">
                   <span>
-                    ✅ <strong>{couponApplied.code}</strong> —{" "}
-                    {couponApplied.discount}% off applied!
+                    ✅ <strong>{couponApplied.code}</strong> — {couponApplied.discountPercent}% off applied!
                   </span>
                   <button
                     className="btn btn-secondary btn-small"
@@ -284,16 +293,18 @@ export default function Checkout() {
                     disabled={couponLoading}
                   />
                   <button
-                    className="btn btn-secondary"
+                    className="btn btn-secondary btn-full"
                     onClick={handleApplyCoupon}
                     disabled={couponLoading || !couponCode.trim()}
                   >
-                    {couponLoading ? "Checking…" : "Apply"}
+                    {couponLoading ? "Checking…" : "Apply Coupon"}
                   </button>
                 </div>
               )}
               {couponError && (
-                <p className="form-error-message">{couponError}</p>
+                <div className="alert alert-error" style={{ marginTop: "12px", marginBottom: 0 }}>
+                  {couponError}
+                </div>
               )}
             </div>
 
@@ -312,7 +323,7 @@ export default function Checkout() {
               {couponApplied && (
                 <div className="summary-row" style={{ color: "#16a34a" }}>
                   <span>Coupon Discount ({couponApplied.discount}%)</span>
-                  <span>−₹{discountAmount}</span>
+                  <span>−₹{discountAmount}</span>Percent
                 </div>
               )}
               <div className="summary-divider" />

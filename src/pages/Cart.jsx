@@ -8,6 +8,11 @@ export default function Cart() {
   const [cart, setCart] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [couponCode, setCouponCode] = useState("");
+  const [couponMessage, setCouponMessage] = useState("");
+  const [couponError, setCouponError] = useState("");
+  const [discount, setDiscount] = useState(null);
+  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   const navigate = useNavigate();
   const { refreshCart } = useCart();
 
@@ -47,13 +52,57 @@ export default function Cart() {
     }
   };
 
+  const validateCoupon = async () => {
+    if (!couponCode.trim()) {
+      setCouponError("Please enter a coupon code");
+      setCouponMessage("");
+      return;
+    }
+
+    setIsValidatingCoupon(true);
+    setCouponError("");
+    setCouponMessage("");
+    
+    try {
+      const res = await API.post("/coupons/validate", { code: couponCode.trim().toUpperCase() });
+      
+      if (res.data.valid) {
+        setDiscount({
+          code: couponCode.trim().toUpperCase(),
+          discountPercent: res.data.discountPercent,
+          discountAmount: res.data.discountAmount,
+          subtotalAmount: res.data.subtotalAmount,
+          totalAmount: res.data.totalAmount
+        });
+        setCouponMessage(`Coupon applied! You saved ₹${res.data.discountAmount}`);
+      } else {
+        setCouponError(res.data.message || "Invalid coupon code");
+        setDiscount(null);
+      }
+    } catch (err) {
+      setCouponError(err?.response?.data?.message || "Invalid coupon code");
+      setDiscount(null);
+    } finally {
+      setIsValidatingCoupon(false);
+    }
+  };
+
+  const removeCoupon = () => {
+    setCouponCode("");
+    setDiscount(null);
+    setCouponMessage("");
+    setCouponError("");
+  };
+
   const subtotal = cart.reduce(
     (sum, item) => sum + item.product.price * item.quantity,
     0
   );
   const freeShipping = subtotal >= 499;
   const shipping = freeShipping ? 0 : 49;
-  const total = subtotal + shipping;
+  const totalBeforeDiscount = subtotal + shipping;
+  const discountAmount = discount ? discount.discountAmount : 0;
+  const total = totalBeforeDiscount - discountAmount;
 
   if (isLoading)
     return (
@@ -167,6 +216,12 @@ export default function Cart() {
                     {freeShipping ? "FREE" : `₹${shipping}`}
                   </span>
                 </div>
+                {discountAmount > 0 && (
+                  <div className="summary-row" style={{ color: "#059669" }}>
+                    <span>Discount ({discount.code})</span>
+                    <span>-₹{discountAmount}</span>
+                  </div>
+                )}
               </div>
               <div className="summary-divider" />
               <div className="summary-row total-row">
@@ -175,18 +230,77 @@ export default function Cart() {
               </div>
               <button
                 className="btn btn-primary btn-full"
-                onClick={() => navigate("/checkout")}
+                onClick={() => navigate("/checkout", { state: { couponCode: discount?.code } })}
                 style={{ marginTop: "var(--space-md)" }}
               >
                 Proceed to Checkout →
               </button>
               <div className="promo-section">
-                <input
-                  type="text"
-                  placeholder="Promo code"
-                  className="promo-input"
-                />
-                <button className="btn btn-secondary btn-small">Apply</button>
+                {discount ? (
+                  <div className="coupon-applied">
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span style={{ fontSize: "14px", color: "#059669", fontWeight: "600" }}>
+                        ✓ {discount.code}
+                      </span>
+                    </div>
+                    <button
+                      className="btn btn-small"
+                      style={{
+                        background: "#fee2e2",
+                        color: "#dc2626",
+                        border: "1px solid #fecaca",
+                        cursor: "pointer"
+                      }}
+                      onClick={removeCoupon}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px"
+                  }}>
+                    <input
+                      type="text"
+                      placeholder="Enter coupon code"
+                      className="promo-input"
+                      value={couponCode}
+                      onChange={e => {
+                        setCouponCode(e.target.value.toUpperCase());
+                        setCouponError("");
+                      }}
+                      disabled={isValidatingCoupon}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        border: "1px solid #d1d5db",
+                        borderRadius: "8px",
+                        fontSize: "14px",
+                        boxSizing: "border-box"
+                      }}
+                    />
+                    <button
+                      className="btn btn-secondary btn-full"
+                      onClick={validateCoupon}
+                      disabled={isValidatingCoupon}
+                      style={{ width: "100%" }}
+                    >
+                      {isValidatingCoupon ? "Validating..." : "Apply Coupon"}
+                    </button>
+                  </div>
+                )}
+                {couponMessage && (
+                  <div className="alert alert-success" style={{ marginTop: "12px", marginBottom: 0 }}>
+                    {couponMessage}
+                  </div>
+                )}
+                {couponError && (
+                  <div className="alert alert-error" style={{ marginTop: "12px", marginBottom: 0 }}>
+                    {couponError}
+                  </div>
+                )}
               </div>
               <div className="secure-note">
                 🔒 Secure checkout · 100% Organic Guarantee

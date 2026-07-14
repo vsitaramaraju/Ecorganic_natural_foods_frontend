@@ -22,6 +22,7 @@ export default function AdminPanel() {
     { to: "/admin/orders", label: "🛒 Orders" },
     { to: "/admin/products", label: "📦 Products" },
     { to: "/admin/categories", label: "🗂 Categories" },
+    { to: "/admin/coupons", label: "🎟 Coupons" },
     { to: "/admin/users", label: "👥 Users" },
     { to: "/admin/reports", label: "📋 Reports" }
   ];

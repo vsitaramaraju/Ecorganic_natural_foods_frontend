@@ -85,6 +85,48 @@
   flex-direction: column;
   gap: 0;
 }
+.google-signin-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--space-md);
+}
+.google-signin-wrap > div {
+  width: 100%;
+}
+.google-signin-wrap iframe {
+  width: 100% !important;
+}
+.google-signin-missing {
+  margin-bottom: var(--space-md);
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: rgba(46, 125, 50, 0.08);
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+.auth-divider {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: var(--space-md) 0;
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.08);
+}
+.auth-divider span {
+  padding: 0 12px;
+  background: var(--color-bg);
+}
 .auth-form .btn {
   margin-top: var(--space-sm);
 }

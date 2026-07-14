@@ -13,6 +13,15 @@ export function Login() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const redirectAfterLogin = (currentUser, currentToken) => {
+    login(currentUser, currentToken);
+    if (currentUser?.role === "ADMIN") navigate("/admin/overview");
+    else {
+      const from = location.state?.from?.pathname || "/";
+      navigate(from);
+    }
+  };
+
   // Redirect already-authenticated users based on their role
   if (isAuthenticated) {
     const from = location.state?.from?.pathname;
@@ -39,19 +48,15 @@ export function Login() {
     setIsLoading(true);
     try {
       const res = await API.post("/auth/login", form);
-      login(res.data.user, res.data.token);
-      if (res.data.user.role === "ADMIN") navigate("/admin/overview");
-      else {
-        // Go back to the page the user was trying to reach, or home
-        const from = location.state?.from?.pathname || "/";
-        navigate(from);
-      }
+      redirectAfterLogin(res.data.user, res.data.token);
     } catch (err) {
       setGenError(err?.response?.data?.message || "Login failed");
     } finally {
       setIsLoading(false);
     }
   };
+
+
 
   return (
     <div className="auth-page">

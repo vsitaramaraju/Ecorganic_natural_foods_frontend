@@ -62,10 +62,12 @@ export default function Cart() {
     setIsValidatingCoupon(true);
     setCouponError("");
     setCouponMessage("");
-    
+
     try {
-      const res = await API.post("/coupons/validate", { code: couponCode.trim().toUpperCase() });
-      
+      const res = await API.post("/coupons/validate", {
+        code: couponCode.trim().toUpperCase()
+      });
+
       if (res.data.valid) {
         setDiscount({
           code: couponCode.trim().toUpperCase(),
@@ -74,7 +76,9 @@ export default function Cart() {
           subtotalAmount: res.data.subtotalAmount,
           totalAmount: res.data.totalAmount
         });
-        setCouponMessage(`Coupon applied! You saved ₹${res.data.discountAmount}`);
+        setCouponMessage(
+          `Coupon applied! You saved ₹${res.data.discountAmount}`
+        );
       } else {
         setCouponError(res.data.message || "Invalid coupon code");
         setDiscount(null);
@@ -230,7 +234,11 @@ export default function Cart() {
               </div>
               <button
                 className="btn btn-primary btn-full"
-                onClick={() => navigate("/checkout", { state: { couponCode: discount?.code } })}
+                onClick={() =>
+                  navigate("/checkout", {
+                    state: { couponCode: discount?.code }
+                  })
+                }
                 style={{ marginTop: "var(--space-md)" }}
               >
                 Proceed to Checkout →
@@ -238,8 +246,20 @@ export default function Cart() {
               <div className="promo-section">
                 {discount ? (
                   <div className="coupon-applied">
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <span style={{ fontSize: "14px", color: "#059669", fontWeight: "600" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px"
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: "14px",
+                          color: "#059669",
+                          fontWeight: "600"
+                        }}
+                      >
                         ✓ {discount.code}
                       </span>
                     </div>
@@ -257,11 +277,13 @@ export default function Cart() {
                     </button>
                   </div>
                 ) : (
-                  <div style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "10px"
-                  }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "10px"
+                    }}
+                  >
                     <input
                       type="text"
                       placeholder="Enter coupon code"
@@ -292,12 +314,18 @@ export default function Cart() {
                   </div>
                 )}
                 {couponMessage && (
-                  <div className="alert alert-success" style={{ marginTop: "12px", marginBottom: 0 }}>
+                  <div
+                    className="alert alert-success"
+                    style={{ marginTop: "12px", marginBottom: 0 }}
+                  >
                     {couponMessage}
                   </div>
                 )}
                 {couponError && (
-                  <div className="alert alert-error" style={{ marginTop: "12px", marginBottom: 0 }}>
+                  <div
+                    className="alert alert-error"
+                    style={{ marginTop: "12px", marginBottom: 0 }}
+                  >
                     {couponError}
                   </div>
                 )}

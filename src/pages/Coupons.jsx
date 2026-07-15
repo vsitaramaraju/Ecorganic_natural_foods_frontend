@@ -1,80 +1,82 @@
 import { useState } from "react";
 import "./Coupons.css";
+import { useEffect } from "react";
+import API from "../api/axios";
 
-const COUPONS = [
-  {
-    code: "WELCOME20",
-    discount: "20% OFF",
-    description: "First order discount for new customers",
-    minOrder: 299,
-    maxDiscount: 100,
-    validity: "31 Dec 2025",
-    type: "percent",
-    category: "New User",
-    emoji: "🎁",
-    color: "green"
-  },
-  {
-    code: "FRESH50",
-    discount: "₹50 OFF",
-    description: "Flat ₹50 off on fresh vegetables orders",
-    minOrder: 499,
-    maxDiscount: 50,
-    validity: "31 Mar 2025",
-    type: "flat",
-    category: "Vegetables",
-    emoji: "🥦",
-    color: "teal"
-  },
-  {
-    code: "ORGANIC15",
-    discount: "15% OFF",
-    description: "15% off on all certified organic products",
-    minOrder: 599,
-    maxDiscount: 150,
-    validity: "28 Feb 2025",
-    type: "percent",
-    category: "Organic",
-    emoji: "🌿",
-    color: "green"
-  },
-  {
-    code: "FREEDEL",
-    discount: "FREE Delivery",
-    description: "Free delivery on any order, any value",
-    minOrder: 0,
-    maxDiscount: null,
-    validity: "15 Jan 2025",
-    type: "delivery",
-    category: "Delivery",
-    emoji: "🚚",
-    color: "blue"
-  },
-  {
-    code: "FRUITS10",
-    discount: "10% OFF",
-    description: "10% off on all seasonal fruits",
-    minOrder: 299,
-    maxDiscount: 80,
-    validity: "28 Feb 2025",
-    type: "percent",
-    category: "Fruits",
-    emoji: "🍎",
-    color: "orange"
-  },
-  {
-    code: "DAIRY25",
-    discount: "₹25 OFF",
-    description: "Flat ₹25 off on dairy & eggs category",
-    minOrder: 200,
-    maxDiscount: 25,
-    validity: "31 Jan 2025",
-    type: "flat",
-    category: "Dairy",
-    emoji: "🥛",
-    color: "yellow"
-  }
-];
+// const COUPONS = [
+//   {
+//     code: "WELCOME20",
+//     discount: "20% OFF",
+//     description: "First order discount for new customers",
+//     minOrder: 299,
+//     maxDiscount: 100,
+//     validity: "31 Dec 2025",
+//     type: "percent",
+//     category: "New User",
+//     emoji: "🎁",
+//     color: "green"
+//   },
+//   {
+//     code: "FRESH50",
+//     discount: "₹50 OFF",
+//     description: "Flat ₹50 off on fresh vegetables orders",
+//     minOrder: 499,
+//     maxDiscount: 50,
+//     validity: "31 Mar 2025",
+//     type: "flat",
+//     category: "Vegetables",
+//     emoji: "🥦",
+//     color: "teal"
+//   },
+//   {
+//     code: "ORGANIC15",
+//     discount: "15% OFF",
+//     description: "15% off on all certified organic products",
+//     minOrder: 599,
+//     maxDiscount: 150,
+//     validity: "28 Feb 2025",
+//     type: "percent",
+//     category: "Organic",
+//     emoji: "🌿",
+//     color: "green"
+//   },
+//   {
+//     code: "FREEDEL",
+//     discount: "FREE Delivery",
+//     description: "Free delivery on any order, any value",
+//     minOrder: 0,
+//     maxDiscount: null,
+//     validity: "15 Jan 2025",
+//     type: "delivery",
+//     category: "Delivery",
+//     emoji: "🚚",
+//     color: "blue"
+//   },
+//   {
+//     code: "FRUITS10",
+//     discount: "10% OFF",
+//     description: "10% off on all seasonal fruits",
+//     minOrder: 299,
+//     maxDiscount: 80,
+//     validity: "28 Feb 2025",
+//     type: "percent",
+//     category: "Fruits",
+//     emoji: "🍎",
+//     color: "orange"
+//   },
+//   {
+//     code: "DAIRY25",
+//     discount: "₹25 OFF",
+//     description: "Flat ₹25 off on dairy & eggs category",
+//     minOrder: 200,
+//     maxDiscount: 25,
+//     validity: "31 Jan 2025",
+//     type: "flat",
+//     category: "Dairy",
+//     emoji: "🥛",
+//     color: "yellow"
+//   }
+// ];
 
 const OFFERS = [
   {
@@ -106,6 +108,24 @@ const OFFERS = [
 export default function Coupons() {
   const [copied, setCopied] = useState(null);
   const [activeTab, setActiveTab] = useState("coupons");
+  const [coupons, setCoupons] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchCoupons();
+  }, []);
+
+  const fetchCoupons = async () => {
+    try {
+      const res = await API.get("/coupons/active");
+
+      setCoupons(res.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCopy = code => {
     navigator.clipboard.writeText(code).catch(() => {});
@@ -147,28 +167,37 @@ export default function Coupons() {
             discount.
           </div>
           <div className="coupons-grid">
-            {COUPONS.map(coupon => (
+            {coupons.map(coupon => (
               <div
                 key={coupon.code}
                 className={`coupon-card coupon-${coupon.color}`}
               >
                 <div className="coupon-left">
-                  <span className="coupon-emoji">{coupon.emoji}</span>
+                  {/* <span className="coupon-emoji">🎁</span>   */}
                   <span className="coupon-category badge badge-primary">
-                    {coupon.category}
+                    {coupon.type}
                   </span>
                 </div>
                 <div className="coupon-body">
-                  <div className="coupon-discount">{coupon.discount}</div>
+                  <div className="coupon-discount">
+                    {coupon.discountPercent}
+                  </div>
                   <p className="coupon-desc">{coupon.description}</p>
                   <div className="coupon-meta">
-                    {coupon.minOrder > 0 && (
-                      <span>Min. order: ₹{coupon.minOrder}</span>
+                    {coupon.minOrderAmount > 0 && (
+                      <span>Min. order: ₹{coupon.minOrderAmount || 0}</span>
                     )}
-                    {coupon.maxDiscount && (
-                      <span>Max. discount: ₹{coupon.maxDiscount}</span>
+                    {coupon.maxDiscountAmount && (
+                      <span>
+                        Max. discount: ₹{coupon.maxDiscountAmount ?? "-"}
+                      </span>
                     )}
-                    <span>Valid till: {coupon.validity}</span>
+                    <span>
+                      Valid till:{" "}
+                      {coupon.endDate
+                        ? new Date(coupon.endDate).toLocaleDateString()
+                        : "No Expiry"}
+                    </span>
                   </div>
                 </div>
                 <div className="coupon-right">

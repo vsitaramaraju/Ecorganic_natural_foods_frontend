@@ -261,18 +261,6 @@ export default function Home() {
                 Explore our range of certified organic products
               </p>
             </div>
-            <button
-              className="btn btn-secondary"
-              onClick={() => {
-                setActiveCategory("all");
-                setProducts(allProducts);
-                document
-                  .getElementById("products-section")
-                  .scrollIntoView({ behavior: "smooth" });
-              }}
-            >
-              Show All
-            </button>
           </div>
           <div className="category-grid">
             {categories.length > 0 ? (
@@ -282,7 +270,7 @@ export default function Home() {
                   className={`category-card ${activeCategory === String(cat.id) ? "active" : ""}`}
                   onClick={() => handleCategorySelect(cat)}
                 >
-                  <img src={cat.image} alt={cat.name} loading="lazy" />
+                  n <img src={cat.image} alt={cat.name} loading="lazy" />
                   <div className="cat-overlay">
                     <span className="cat-icon">{cat.icon}</span>
                     <h3>{cat.name}</h3>
@@ -294,6 +282,18 @@ export default function Home() {
             )}
           </div>
         </div>
+        <button
+          className="btn btn-secondary"
+          onClick={() => {
+            setActiveCategory("all");
+            setProducts(allProducts);
+            document
+              .getElementById("products-section")
+              .scrollIntoView({ behavior: "smooth" });
+          }}
+        >
+          Show All
+        </button>
       </section>
 
       {/* All Products */}
@@ -315,14 +315,16 @@ export default function Home() {
           </div>
           <div className="product-grid">
             {products.length > 0 ? (
-              products.map(p => (
-                <ProductCard
-                  key={p.id}
-                  product={p}
-                  onAddToCart={addToCart}
-                  addingId={addingId}
-                />
-              ))
+              products
+                .slice(0, 8)
+                .map(p => (
+                  <ProductCard
+                    key={p.id}
+                    product={p}
+                    onAddToCart={addToCart}
+                    addingId={addingId}
+                  />
+                ))
             ) : (
               <div className="no-data">
                 {catLoading ? (
@@ -333,6 +335,21 @@ export default function Home() {
               </div>
             )}
           </div>
+          {products.length >= 8 && (
+            <div
+              style={{
+                textAlign: "center",
+                marginTop: "30px"
+              }}
+            >
+              <button
+                className="btn btn-primary"
+                onClick={() => navigate("/shop")}
+              >
+                View More Products
+              </button>
+            </div>
+          )}
         </div>
       </section>
 

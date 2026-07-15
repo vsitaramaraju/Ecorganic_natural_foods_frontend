@@ -190,21 +190,114 @@
   color: var(--color-primary-dark);
 }
 .promo-section {
-  display: flex;
-  gap: var(--space-sm);
-  margin-top: var(--space-md);
+  margin-top: var(--space-lg);
 }
+
+.coupon-box {
+  background: linear-gradient(135deg, #f8fff9, #ffffff);
+  border: 1px solid #d9f2dc;
+  border-radius: 14px;
+  padding: 18px;
+  transition: 0.3s ease;
+}
+
+.coupon-box:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+}
+
+.coupon-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: var(--color-primary-dark);
+}
+
+.coupon-input-group {
+  display: flex;
+  gap: 10px;
+}
+
 .promo-input {
   flex: 1;
-  padding: 8px 12px;
+  height: 46px;
   border: 2px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font-family: var(--font-body);
-  font-size: 0.85rem;
-  outline: none;
+  border-radius: 10px;
+  padding: 0 14px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: 0.3s ease;
 }
+
 .promo-input:focus {
-  border-color: var(--color-primary-light);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.15);
+}
+
+.apply-btn {
+  min-width: 120px;
+  border-radius: 10px;
+}
+
+.coupon-success {
+  margin-top: 12px;
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+}
+
+.coupon-error {
+  margin-top: 12px;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+}
+
+/* Applied Coupon */
+
+.coupon-applied {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+  padding: 14px 16px;
+  border-radius: 12px;
+}
+
+.coupon-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.coupon-name {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.coupon-desc {
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.remove-coupon-btn {
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.remove-coupon-btn:hover {
+  background: #fff;
+  color: #dc2626;
 }
 .secure-note {
   text-align: center;

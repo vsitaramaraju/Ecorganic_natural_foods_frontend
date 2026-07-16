@@ -13,13 +13,22 @@ export default function Cart() {
   const [couponError, setCouponError] = useState("");
   const [discount, setDiscount] = useState(null);
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
+  const [availableCoupons, setAvailableCoupons] = useState([]);
+  const [showCoupons, setShowCoupons] = useState(false);
   const navigate = useNavigate();
   const { refreshCart } = useCart();
 
   const fetchCart = async () => {
     try {
       const res = await API.get("/cart");
-      setCart(res.data || []);
+
+      const data = res.data || [];
+
+      setCart(data);
+
+      if (data.length === 0) {
+        refreshCart();
+      }
     } catch {
       setError("Failed to load cart");
     } finally {
@@ -27,16 +36,32 @@ export default function Cart() {
     }
   };
 
+  const fetchCoupons = async () => {
+    try {
+      const res = await API.get("/coupons/active");
+
+      setAvailableCoupons(res.data || []);
+    } catch {
+      setError("Failed to load coupons");
+    }
+  };
+
   useEffect(() => {
     fetchCart();
+    fetchCoupons();
   }, []);
 
   const updateQty = async (id, qty) => {
     if (qty < 1) return;
+
     try {
-      await API.put("/cart", { itemId: id, quantity: qty });
-      refreshCart();
-      fetchCart();
+      await API.put("/cart", {
+        itemId: id,
+        quantity: qty
+      });
+
+      await fetchCart();
+      await refreshCart();
     } catch {
       setError("Failed to update quantity");
     }
@@ -44,16 +69,21 @@ export default function Cart() {
 
   const removeItem = async id => {
     try {
-      await API.delete("/cart", { data: { itemId: id } });
-      refreshCart();
-      fetchCart();
+      await API.delete("/cart", {
+        data: { itemId: id }
+      });
+
+      await fetchCart();
+      await refreshCart();
     } catch {
       setError("Failed to remove item");
     }
   };
 
-  const validateCoupon = async () => {
-    if (!couponCode.trim()) {
+  const validateCoupon = async (code = couponCode) => {
+    const coupon = code.trim().toUpperCase();
+
+    if (!coupon) {
       setCouponError("Please enter a coupon code");
       setCouponMessage("");
       return;
@@ -65,20 +95,26 @@ export default function Cart() {
 
     try {
       const res = await API.post("/coupons/validate", {
-        code: couponCode.trim().toUpperCase()
+        code: coupon
       });
 
       if (res.data.valid) {
+        setCouponCode(coupon);
+
         setDiscount({
-          code: couponCode.trim().toUpperCase(),
+          code: coupon,
           discountPercent: res.data.discountPercent,
           discountAmount: res.data.discountAmount,
           subtotalAmount: res.data.subtotalAmount,
           totalAmount: res.data.totalAmount
         });
+
         setCouponMessage(
           `Coupon applied! You saved ₹${res.data.discountAmount}`
         );
+
+        // Close available coupons automatically
+        setShowCoupons(false);
       } else {
         setCouponError(res.data.message || "Invalid coupon code");
         setDiscount(null);
@@ -89,6 +125,10 @@ export default function Cart() {
     } finally {
       setIsValidatingCoupon(false);
     }
+  };
+
+  const applyCoupon = async coupon => {
+    await validateCoupon(coupon.code);
   };
 
   const removeCoupon = () => {
@@ -114,7 +154,7 @@ export default function Cart() {
         <div className="spinner" />
       </div>
     );
-
+  console.log(showCoupons);
   return (
     <div className="container cart-wrap">
       <h1 className="section-title">🛒 Shopping Cart</h1>
@@ -208,7 +248,7 @@ export default function Cart() {
           {/* Summary */}
           <div className="cart-summary-col">
             <div className="summary-card card">
-              <h2>Order Summary</h2>
+              <h2 style={{ color: "black" }}>Order Summary</h2>
               <div className="summary-rows">
                 <div className="summary-row">
                   <span>Subtotal ({cart.length} items)</span>
@@ -236,13 +276,60 @@ export default function Cart() {
                 className="btn btn-primary btn-full"
                 onClick={() =>
                   navigate("/checkout", {
-                    state: { couponCode: discount?.code }
+                    state: {
+                      discount
+                    }
                   })
                 }
                 style={{ marginTop: "var(--space-md)" }}
               >
                 Proceed to Checkout →
               </button>
+              <div className="available-coupon-card">
+                <div
+                  className="available-header"
+                  onClick={() =>
+                    setShowCoupons(
+                      availableCoupons.map(c => c.showCoupons).includes(true)
+                        ? false
+                        : !showCoupons
+                    )
+                  }
+                >
+                  <span>🎁 Available Coupons</span>
+
+                  <span>{showCoupons ? "▲" : "▼"}</span>
+                </div>
+
+                {showCoupons && (
+                  <div className="available-list">
+                    {availableCoupons.map(coupon => {
+                      return (
+                        <div key={coupon.code} className="coupon-item">
+                          <div>
+                            <h4>{coupon.code}</h4>
+
+                            {coupon.discountPercent ? (
+                              <p>{coupon.discountPercent}% OFF</p>
+                            ) : (
+                              <p>₹{coupon.maxDiscountAmount} OFF</p>
+                            )}
+
+                            <small>Min Order ₹{coupon.minOrderAmount}</small>
+                          </div>
+
+                          <button
+                            className="btn btn-primary btn-small"
+                            onClick={() => applyCoupon(coupon)}
+                          >
+                            Add
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
               <div className="promo-section">
                 {discount ? (
                   <div className="coupon-applied">
@@ -305,9 +392,8 @@ export default function Cart() {
                     />
                     <button
                       className="btn btn-secondary btn-full"
-                      onClick={validateCoupon}
+                      onClick={() => validateCoupon()}
                       disabled={isValidatingCoupon}
-                      style={{ width: "100%" }}
                     >
                       {isValidatingCoupon ? "Validating..." : "Apply Coupon"}
                     </button>

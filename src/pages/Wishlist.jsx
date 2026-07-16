@@ -4,10 +4,12 @@ import { AuthContext } from "../context/AuthContext";
 import API from "../api/axios";
 import { wishlistAPI } from "../api/wishlistAPI";
 import "./Wishlist.css";
+import { useCart } from "../context/CartContext";
 
 export default function Wishlist() {
   const { isAuthenticated } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { refreshCart } = useCart();
 
   const [wishlistItems, setWishlistItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -72,7 +74,13 @@ export default function Wishlist() {
 
   const handleAddToCart = async productId => {
     try {
-      await API.post("/cart", { productId, quantity: 1 });
+      await API.post("/cart", {
+        productId,
+        quantity: 1
+      });
+
+      await refreshCart();
+
       showToast("Added to cart! 🛒");
     } catch (e) {
       showToast(e?.response?.data?.message || "Failed to add to cart");

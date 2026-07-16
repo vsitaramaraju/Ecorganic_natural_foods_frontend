@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import API from "../api/axios";
 import { AuthContext } from "../context/AuthContext";
 import "./Checkout.css";
+import { useCart } from "../context/CartContext";
 
 const PAYMENT_METHODS = [
   {
@@ -54,6 +55,7 @@ export default function Checkout() {
   const { isAuthenticated } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
+  const { refreshCart } = useCart();
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -61,13 +63,9 @@ export default function Checkout() {
       return;
     }
     // Get coupon code from Cart navigation state
-    if (location.state?.couponCode) {
-      setCouponCode(location.state.couponCode);
-      setCouponApplied({
-        code: location.state.couponCode,
-        discountPercent: 0,
-        discountAmount: 0
-      });
+    if (location.state?.discount) {
+      setCouponCode(location.state.discount.code);
+      setCouponApplied(location.state.discount);
     }
     API.get("/cart")
       .then(r => setCart(r.data || []))
@@ -180,6 +178,10 @@ export default function Checkout() {
         paymentMethod,
         couponCode: couponApplied?.code || undefined
       });
+
+      setCart([]);
+      await refreshCart();
+
       navigate("/orders");
     } catch (err) {
       setError(err?.response?.data?.message || "Failed to place order");
@@ -271,7 +273,8 @@ export default function Checkout() {
               {couponApplied ? (
                 <div className="coupon-applied">
                   <span>
-                    ✅ <strong>{couponApplied.code}</strong> — {couponApplied.discountPercent}% off applied!
+                    ✅ <strong>{couponApplied.code}</strong> —{" "}
+                    {couponApplied.discountPercent}% off applied!
                   </span>
                   <button
                     className="btn btn-secondary btn-small"
@@ -302,7 +305,10 @@ export default function Checkout() {
                 </div>
               )}
               {couponError && (
-                <div className="alert alert-error" style={{ marginTop: "12px", marginBottom: 0 }}>
+                <div
+                  className="alert alert-error"
+                  style={{ marginTop: "12px", marginBottom: 0 }}
+                >
                   {couponError}
                 </div>
               )}
@@ -322,7 +328,9 @@ export default function Checkout() {
               </div>
               {couponApplied && (
                 <div className="summary-row" style={{ color: "#16a34a" }}>
-                  <span>Coupon Discount ({couponApplied.discount}%)</span>
+                  <span>
+                    Coupon Discount ({couponApplied.discountPercent}%)
+                  </span>
                   <span>−₹{discountAmount}</span>Percent
                 </div>
               )}

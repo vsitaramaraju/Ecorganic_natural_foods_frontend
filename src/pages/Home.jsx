@@ -63,7 +63,7 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState("all");
   const [addingId, setAddingId] = useState(null);
   const [toast, setToast] = useState("");
-  const { isAuthenticated } = useContext(AuthContext);
+  const { isAuthenticated, user } = useContext(AuthContext);
   const navigate = useNavigate();
   const { incrementCart } = useCart();
   const [recentProducts, setRecentProducts] = useState([]);
@@ -96,8 +96,12 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    setRecentProducts(getRecentProducts());
-  }, []);
+    if (isAuthenticated && user?.id) {
+      setRecentProducts(getRecentProducts(user.id));
+    } else {
+      setRecentProducts([]);
+    }
+  }, [isAuthenticated, user]);
 
   const showToast = msg => {
     setToast(msg);
@@ -489,7 +493,7 @@ export default function Home() {
 }
 
 function ProductCard({ product, onAddToCart, addingId, featured }) {
-  const { isAuthenticated } = useContext(AuthContext);
+  const { isAuthenticated, user } = useContext(AuthContext);
   const catName = product?.category?.name || product?.category || "";
   const isAdding = addingId === product.id;
   const navigate = useNavigate();
@@ -586,7 +590,10 @@ function ProductCard({ product, onAddToCart, addingId, featured }) {
       <article
         className={`product-card ${featured ? "featured" : ""}`}
         onClick={() => {
-          saveRecentProduct(product);
+          if (isAuthenticated && user?.id) {
+            saveRecentProduct(product, user.id);
+          }
+
           navigate(`/products/${product.id}`);
         }}
         style={{ cursor: "pointer" }}
@@ -622,7 +629,11 @@ function ProductCard({ product, onAddToCart, addingId, featured }) {
               className="show-more-btn"
               onClick={e => {
                 e.stopPropagation();
-                saveRecentProduct(product);
+
+                if (isAuthenticated && user?.id) {
+                  saveRecentProduct(product, user.id);
+                }
+
                 navigate(`/products/${product.id}`);
               }}
             >

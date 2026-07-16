@@ -123,10 +123,10 @@ export default function ProductDetail() {
   }, [id]);
 
   useEffect(() => {
-    if (product) {
-      saveRecentProduct(product);
+    if (product && isAuthenticated && user?.id) {
+      saveRecentProduct(product, user.id);
     }
-  }, [product]);
+  }, [product, isAuthenticated, user]);
 
   // Check if product is in wishlist
   useEffect(() => {
@@ -803,7 +803,13 @@ export default function ProductDetail() {
             </p>
             <div className="pd-related-grid">
               {relatedProducts.map(p => (
-                <RelatedCard key={p.id} product={p} navigate={navigate} />
+                <RelatedCard
+                  key={p.id}
+                  product={p}
+                  navigate={navigate}
+                  user={user}
+                  isAuthenticated={isAuthenticated}
+                />
               ))}
             </div>
           </section>
@@ -813,12 +819,18 @@ export default function ProductDetail() {
   );
 }
 
-function RelatedCard({ product, navigate }) {
+function RelatedCard({ product, navigate, user, isAuthenticated }) {
   const catName = product?.category?.name || product?.category || "";
   return (
     <article
       className="shop-product-card"
-      onClick={() => navigate(`/products/${product.id}`)}
+      onClick={() => {
+        if (isAuthenticated && user?.id) {
+          saveRecentProduct(product, user.id);
+        }
+
+        navigate(`/products/${product.id}`);
+      }}
       style={{ cursor: "pointer" }}
     >
       <div className="spimg-wrap">
@@ -854,6 +866,11 @@ function RelatedCard({ product, navigate }) {
             className="btn btn-primary btn-small"
             onClick={e => {
               e.stopPropagation();
+
+              if (isAuthenticated && user?.id) {
+                saveRecentProduct(product, user.id);
+              }
+
               navigate(`/products/${product.id}`);
             }}
           >

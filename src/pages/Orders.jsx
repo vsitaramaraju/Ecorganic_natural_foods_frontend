@@ -92,7 +92,13 @@ export default function Orders() {
       return;
     }
     API.get("/orders")
-      .then(r => setOrders(r.data || []))
+      .then(r => {
+        const sortedOrders = (r.data || []).sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        );
+
+        setOrders(sortedOrders);
+      })
       .catch(() => setError("Failed to load orders"))
       .finally(() => setIsLoading(false));
   }, [isAuthenticated, navigate]);

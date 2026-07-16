@@ -306,6 +306,76 @@
   margin-top: var(--space-md);
 }
 
+.available-coupon-card {
+  margin-top: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.available-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 14px 16px;
+
+  cursor: pointer;
+
+  background: #f9fafb;
+
+  font-weight: 600;
+}
+
+.available-header:hover {
+  background: #f3f4f6;
+}
+
+.available-list {
+  padding: 10px;
+}
+
+.coupon-item {
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  padding: 14px;
+
+  border: 1px solid #ececec;
+
+  border-radius: 10px;
+
+  margin-bottom: 12px;
+
+  transition: 0.3s;
+}
+
+.coupon-item:hover {
+  border-color: #16a34a;
+
+  background: #f0fdf4;
+}
+
+.coupon-item h4 {
+  margin: 0;
+
+  color: #15803d;
+}
+
+.coupon-item p {
+  margin: 4px 0;
+
+  font-size: 14px;
+}
+
+.coupon-item small {
+  color: #6b7280;
+}
+
 @media (max-width: 768px) {
   .cart-layout {
     grid-template-columns: 1fr;

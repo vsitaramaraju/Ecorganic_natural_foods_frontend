@@ -16,6 +16,7 @@ export default function Register() {
   const [genError, setGenError] = useState("");
   const { login, isAuthenticated } = useContext(AuthContext);
   const navigate = useNavigate();
+  const [toast, setToast] = useState("");
 
   // Redirect already-authenticated users
   if (isAuthenticated) {
@@ -36,6 +37,14 @@ export default function Register() {
     return Object.keys(e).length === 0;
   };
 
+  const showToast = message => {
+    setToast(message);
+
+    setTimeout(() => {
+      setToast("");
+    }, 3000);
+  };
+
   const handleSubmit = async e => {
     e.preventDefault();
     setGenError("");
@@ -47,12 +56,28 @@ export default function Register() {
         email: form.email,
         password: form.password
       });
+
       if (res.data.user && res.data.token) {
+        showToast("🎉 Registration successful! Welcome to EchOrganics.");
+
         login(res.data.user, res.data.token);
-        navigate("/");
-      } else navigate("/login");
+
+        setTimeout(() => {
+          navigate("/");
+        }, 1200);
+      } else {
+        showToast("Account created successfully. Please login.");
+
+        setTimeout(() => {
+          navigate("/login");
+        }, 1200);
+      }
     } catch (err) {
-      setGenError(err?.response?.data?.message || "Registration failed");
+      const message = err?.response?.data?.message || "Registration failed";
+
+      setGenError(message);
+
+      showToast(message);
     } finally {
       setIsLoading(false);
     }
@@ -77,52 +102,55 @@ export default function Register() {
   );
 
   return (
-    <div className="auth-page">
-      <div className="auth-visual">
-        <div className="auth-visual-content">
-          <span className="auth-visual-logo">🌿</span>
-          <h2>Join the EchOrganics family</h2>
-          <p>
-            Thousands of families trust us for their daily organic needs. Start
-            your healthy journey today.
-          </p>
-          <div className="auth-visual-perks">
-            <div>🎁 Welcome discount on first order</div>
-            <div>🌱 Exclusive member deals</div>
-            <div>📦 Track all your orders</div>
-            <div>❤️ Save your favourite products</div>
+    <>
+      {toast && <div className="toast">{toast}</div>}
+      <div className="auth-page">
+        <div className="auth-visual">
+          <div className="auth-visual-content">
+            <span className="auth-visual-logo">🌿</span>
+            <h2>Join the EchOrganics family</h2>
+            <p>
+              Thousands of families trust us for their daily organic needs.
+              Start your healthy journey today.
+            </p>
+            <div className="auth-visual-perks">
+              <div>🎁 Welcome discount on first order</div>
+              <div>🌱 Exclusive member deals</div>
+              <div>📦 Track all your orders</div>
+              <div>❤️ Save your favourite products</div>
+            </div>
+          </div>
+        </div>
+        <div className="auth-form-side">
+          <div className="auth-card">
+            <div className="auth-logo-mobile">🌿 EchOrganics</div>
+            <h1>Create Account</h1>
+            <p className="auth-subhead">Start your organic journey today</p>
+            {genError && <div className="alert alert-error">{genError}</div>}
+            <form onSubmit={handleSubmit} className="auth-form">
+              {f("name", "Full Name", "text", "John Doe")}
+              {f("email", "Email Address", "email", "your@email.com")}
+              {f("password", "Password", "password", "At least 6 characters")}
+              {f(
+                "confirmPassword",
+                "Confirm Password",
+                "password",
+                "Repeat password"
+              )}
+              <button
+                type="submit"
+                className="btn btn-primary btn-full"
+                disabled={isLoading}
+              >
+                {isLoading ? "Creating account…" : "Create Account →"}
+              </button>
+            </form>
+            <p className="auth-switch">
+              Already have an account? <Link to="/login">Sign in</Link>
+            </p>
           </div>
         </div>
       </div>
-      <div className="auth-form-side">
-        <div className="auth-card">
-          <div className="auth-logo-mobile">🌿 EchOrganics</div>
-          <h1>Create Account</h1>
-          <p className="auth-subhead">Start your organic journey today</p>
-          {genError && <div className="alert alert-error">{genError}</div>}
-          <form onSubmit={handleSubmit} className="auth-form">
-            {f("name", "Full Name", "text", "John Doe")}
-            {f("email", "Email Address", "email", "your@email.com")}
-            {f("password", "Password", "password", "At least 6 characters")}
-            {f(
-              "confirmPassword",
-              "Confirm Password",
-              "password",
-              "Repeat password"
-            )}
-            <button
-              type="submit"
-              className="btn btn-primary btn-full"
-              disabled={isLoading}
-            >
-              {isLoading ? "Creating account…" : "Create Account →"}
-            </button>
-          </form>
-          <p className="auth-switch">
-            Already have an account? <Link to="/login">Sign in</Link>
-          </p>
-        </div>
-      </div>
-    </div>
+    </>
   );
 }

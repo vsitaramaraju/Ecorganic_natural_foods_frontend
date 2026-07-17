@@ -14,19 +14,40 @@ const EMPTY_FORM = {
   name: "",
   description: "",
   price: "",
-  priceUnit: "fixed",
+  pricingType: "fixed", // "fixed" | "weight"
+  weightValue: "",
+  weightUnit: "g", // "g" | "kg"
   stock: "",
   categoryId: "",
   imageUrl: ""
 };
 
-const PRICE_UNIT_OPTIONS = [
-  { value: "fixed", label: "Fixed Price (single item)" },
-  { value: "per_kg", label: "Per KG" },
-  { value: "per_500g", label: "Per 500g" },
-  { value: "per_250g", label: "Per 250g" },
-  { value: "per_100g", label: "Per 100g" }
-];
+// Turns { pricingType, weightValue, weightUnit } into the priceUnit string
+// the backend expects, e.g. "fixed" or "per_200g" / "per_1.5kg".
+const buildPriceUnit = form => {
+  if (form.pricingType === "fixed") return "fixed";
+  const value = Number(form.weightValue);
+  if (!value || value <= 0) return null;
+  const clean = Number(value.toFixed(2)).toString();
+  return `per_${clean}${form.weightUnit}`;
+};
+
+// Reverse of buildPriceUnit — used when editing an existing product to
+// prefill the form. Handles the legacy "per_kg" value (no explicit number,
+// treated as 1kg) as well as any custom "per_<value><g|kg>" value.
+const parsePriceUnit = priceUnit => {
+  if (!priceUnit || priceUnit === "fixed") {
+    return { pricingType: "fixed", weightValue: "", weightUnit: "g" };
+  }
+  if (priceUnit === "per_kg") {
+    return { pricingType: "weight", weightValue: "1", weightUnit: "kg" };
+  }
+  const match = /^per_(\d+(?:\.\d+)?)(g|kg)$/.exec(priceUnit);
+  if (!match) {
+    return { pricingType: "fixed", weightValue: "", weightUnit: "g" };
+  }
+  return { pricingType: "weight", weightValue: match[1], weightUnit: match[2] };
+};
 
 export default function AdminProducts() {
   const [products, setProducts] = useState([]);
@@ -77,11 +98,16 @@ export default function AdminProducts() {
   };
 
   const startEdit = product => {
+    const { pricingType, weightValue, weightUnit } = parsePriceUnit(
+      product.priceUnit
+    );
     setProductForm({
       name: product.name || "",
       description: product.description || "",
       price: String(product.price || ""),
-      priceUnit: product.priceUnit || "fixed",
+      pricingType,
+      weightValue,
+      weightUnit,
       stock: String(product.stock || ""),
       categoryId: getProductCategoryId(product),
       imageUrl: product.imageUrl || ""
@@ -93,11 +119,22 @@ export default function AdminProducts() {
 
   const handleSubmit = async e => {
     e.preventDefault();
+
+    const priceUnit = buildPriceUnit(productForm);
+
+    if (productForm.pricingType === "weight" && !priceUnit) {
+      setMessage({
+        type: "error",
+        text: "Please enter a valid weight (e.g. 150, 200, 350) for this product."
+      });
+      return;
+    }
+
     const payload = {
       name: productForm.name.trim(),
       description: productForm.description.trim(),
       price: Number(productForm.price),
-      priceUnit: productForm.priceUnit || "fixed",
+      priceUnit,
       stock: Number(productForm.stock),
       categoryId: productForm.categoryId
         ? Number(productForm.categoryId)
@@ -257,19 +294,16 @@ export default function AdminProducts() {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="p-price-unit">Price Unit *</label>
+              <label htmlFor="p-pricing-type">Pricing Type *</label>
               <select
-                id="p-price-unit"
-                value={productForm.priceUnit}
+                id="p-pricing-type"
+                value={productForm.pricingType}
                 onChange={e =>
-                  setProductForm(p => ({ ...p, priceUnit: e.target.value }))
+                  setProductForm(p => ({ ...p, pricingType: e.target.value }))
                 }
               >
-                {PRICE_UNIT_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
+                <option value="fixed">Fixed Price (single item)</option>
+                <option value="weight">Weight-based (grams / kg)</option>
               </select>
               <small
                 style={{
@@ -279,11 +313,59 @@ export default function AdminProducts() {
                   display: "block"
                 }}
               >
-                {productForm.priceUnit === "fixed"
+                {productForm.pricingType === "fixed"
                   ? "Price is for a single item (e.g. a bottle, box)"
-                  : `Price per ${productForm.priceUnit.replace("per_", "").replace("kg", "KG").replace("g", "g")}`}
+                  : "Set the exact pack size this product is sold in below"}
               </small>
             </div>
+            {productForm.pricingType === "weight" && (
+              <div className="form-group">
+                <label htmlFor="p-weight-value">Pack Size *</label>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <input
+                    id="p-weight-value"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="e.g. 150, 200, 350, 1"
+                    value={productForm.weightValue}
+                    onChange={e =>
+                      setProductForm(p => ({
+                        ...p,
+                        weightValue: e.target.value
+                      }))
+                    }
+                    style={{ flex: 2 }}
+                    required
+                  />
+                  <select
+                    value={productForm.weightUnit}
+                    onChange={e =>
+                      setProductForm(p => ({
+                        ...p,
+                        weightUnit: e.target.value
+                      }))
+                    }
+                    style={{ flex: 1 }}
+                  >
+                    <option value="g">grams (g)</option>
+                    <option value="kg">kilograms (kg)</option>
+                  </select>
+                </div>
+                <small
+                  style={{
+                    color: "#6b7280",
+                    fontSize: "12px",
+                    marginTop: "4px",
+                    display: "block"
+                  }}
+                >
+                  {productForm.weightValue
+                    ? `Price above is per ${productForm.weightValue}${productForm.weightUnit} pack. Stock below = number of these packs.`
+                    : "Enter any real-world pack size — not limited to 100g/250g/500g/1kg."}
+                </small>
+              </div>
+            )}
             <div className="form-group">
               <label htmlFor="p-stock">Stock *</label>
               <input

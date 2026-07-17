@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import API from "../api/axios";
 import { useAuth } from "../utils/useAuth";
+import "./Addresses.css";
 
 const EMPTY_FORM = {
   name: "",
@@ -22,11 +23,23 @@ export default function Addresses() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [formErrors, setFormErrors] = useState({});
+  const [editingId, setEditingId] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // address pending delete
+  const [toast, setToast] = useState(null); // { type: "success" | "error", text }
   const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     if (isAuthenticated) fetchAddresses();
   }, [isAuthenticated]);
+
+  // Auto-dismiss the toast after a few seconds
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 3500);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  const showToast = (type, text) => setToast({ type, text });
 
   const fetchAddresses = async () => {
     try {
@@ -51,6 +64,29 @@ export default function Addresses() {
     return Object.keys(e).length === 0;
   };
 
+  const startEdit = address => {
+    setForm({
+      name: address.name || "",
+      phone: address.phone || "",
+      street: address.street || "",
+      city: address.city || "",
+      state: address.state || "",
+      pincode: address.pincode || "",
+      country: address.country || "India"
+    });
+    setEditingId(address.id);
+    setFormErrors({});
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const cancelForm = () => {
+    setShowForm(false);
+    setForm(EMPTY_FORM);
+    setFormErrors({});
+    setEditingId(null);
+  };
+
   const handleSubmit = async e => {
     e.preventDefault();
     if (!validate()) return;
@@ -58,31 +94,46 @@ export default function Addresses() {
     setError("");
     setSuccessMsg("");
     try {
-      const res = await API.post("/address", form);
-      setAddresses(prev => [...prev, res.data]);
+      if (editingId) {
+        const res = await API.put(`/address/${editingId}`, form);
+        setAddresses(prev =>
+          prev.map(a => (a.id === editingId ? res.data : a))
+        );
+        setSuccessMsg("Address updated successfully!");
+      } else {
+        const res = await API.post("/address", form);
+        setAddresses(prev => [...prev, res.data]);
+        setSuccessMsg("Address added successfully!");
+      }
       setForm(EMPTY_FORM);
       setShowForm(false);
-      setSuccessMsg("Address added successfully!");
+      setEditingId(null);
     } catch (err) {
-      setError(err?.response?.data?.message || "Failed to add address");
+      setError(
+        err?.response?.data?.message ||
+          (editingId ? "Failed to update address" : "Failed to add address")
+      );
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDelete = async id => {
-    if (!window.confirm("Delete this address?")) return;
     setIsDeleting(id);
     setError("");
     setSuccessMsg("");
     try {
       await API.delete(`/address/${id}`);
       setAddresses(prev => prev.filter(a => a.id !== id));
-      setSuccessMsg("Address removed.");
+      showToast("success", "Address removed.");
     } catch (err) {
-      setError(err?.response?.data?.message || "Failed to delete address");
+      showToast(
+        "error",
+        err?.response?.data?.message || "Failed to delete address"
+      );
     } finally {
       setIsDeleting(null);
+      setDeleteConfirm(null);
     }
   };
 
@@ -129,19 +180,23 @@ export default function Addresses() {
       className="container"
       style={{ paddingTop: "32px", paddingBottom: "48px" }}
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "24px",
-          gap: "5rem"
-        }}
-      >
-        <h1 style={{ color: "black" }}>My Addresses</h1>
+      <div className="address-header">
+        <div>
+          <span className="address-badge">📍 Delivery Addresses</span>
+
+          <h1>Manage Your Addresses</h1>
+
+          <p>
+            Save your delivery locations for faster and hassle-free checkout.
+          </p>
+        </div>
+
         {!showForm && (
-          <button className="btn btn-primary" onClick={() => setShowForm(true)}>
-            + Add Address
+          <button
+            className="btn btn-primary add-address-btn"
+            onClick={() => setShowForm(true)}
+          >
+            ➕ Add New Address
           </button>
         )}
       </div>
@@ -159,55 +214,41 @@ export default function Addresses() {
 
       {showForm && (
         <div className="card" style={{ marginBottom: "24px" }}>
-          <h2 style={{ color: "black", marginBottom: "16px" }}>New Address</h2>
+          <div className="form-header">
+            <h2>{editingId ? "✏️ Edit Address" : "➕ Add New Address"}</h2>
+
+            <p>Please provide your delivery details.</p>
+          </div>
           <form onSubmit={handleSubmit}>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "16px"
-              }}
-            >
+            <div className="address-grid">
               {field("name", "Full Name", "text", "John Doe")}
               {field("phone", "Phone", "tel", "+91 98765 43210")}
             </div>
             {field("street", "Street Address", "text", "123 Main Street")}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "16px"
-              }}
-            >
+            <div className="address-grid">
               {field("city", "City", "text", "Vijayawada")}
               {field("state", "State", "text", "Andhra Pradesh")}
             </div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "16px"
-              }}
-            >
+            <div className="address-grid">
               {field("pincode", "Pincode", "text", "520001")}
               {field("country", "Country", "text", "India")}
             </div>
-            <div style={{ display: "flex", gap: "12px", marginTop: "16px" }}>
+            <div className="form-buttons">
               <button
                 type="submit"
                 className="btn btn-primary"
                 disabled={isSaving}
               >
-                {isSaving ? "Saving…" : "Save Address"}
+                {isSaving
+                  ? "Saving…"
+                  : editingId
+                    ? "Update Address"
+                    : "Save Address"}
               </button>
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={() => {
-                  setShowForm(false);
-                  setForm(EMPTY_FORM);
-                  setFormErrors({});
-                }}
+                onClick={cancelForm}
               >
                 Cancel
               </button>
@@ -217,52 +258,179 @@ export default function Addresses() {
       )}
 
       {addresses.length === 0 && !showForm ? (
-        <div
-          className="card"
-          style={{ textAlign: "center", padding: "48px 24px" }}
-        >
-          <div style={{ fontSize: "3rem", marginBottom: "12px" }}>📍</div>
-          <h3 style={{ color: "black" }}>No addresses saved yet</h3>
-          <p style={{ color: "#6b7280", marginBottom: "20px" }}>
-            Add an address to speed up checkout.
+        <div className="address-empty">
+          <div className="empty-icon">📍</div>
+
+          <h2>No Saved Addresses</h2>
+
+          <p>
+            You haven't added any delivery address yet. Add one now to make
+            checkout quicker.
           </p>
+
           <button className="btn btn-primary" onClick={() => setShowForm(true)}>
-            + Add Address
+            + Add Your First Address
           </button>
         </div>
       ) : (
         <div className="grid">
           {addresses.map(address => (
-            <div
-              key={address.id}
-              className="card"
-              style={{ position: "relative" }}
-            >
-              <h3 style={{ color: "black", marginBottom: "8px" }}>
-                {address.name}
-              </h3>
-              <p style={{ color: "#4b5563" }}>{address.street}</p>
-              <p style={{ color: "#4b5563" }}>
-                {address.city}, {address.state} – {address.pincode}
-              </p>
-              <p style={{ color: "#4b5563" }}>{address.country}</p>
-              <p style={{ color: "#6b7280", marginTop: "4px" }}>
-                📞 {address.phone}
-              </p>
-              <button
-                className="btn btn-secondary btn-small"
-                style={{
-                  marginTop: "12px",
-                  color: "#dc2626",
-                  borderColor: "#dc2626"
-                }}
-                onClick={() => handleDelete(address.id)}
-                disabled={isDeleting === address.id}
-              >
-                {isDeleting === address.id ? "Removing…" : "🗑 Remove"}
-              </button>
+            <div key={address.id} className="address-card">
+              <div className="address-card-header">
+                <div className="address-title">
+                  <span className="address-icon">🏠</span>
+
+                  <div>
+                    <h3>{address.name}</h3>
+
+                    <span className="address-tag">Home</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="address-content">
+                <p>{address.street}</p>
+
+                <p>
+                  {address.city}, {address.state}
+                </p>
+
+                <p>{address.pincode}</p>
+
+                <p>{address.country}</p>
+
+                <div className="phone">📞 {address.phone}</div>
+              </div>
+
+              <div className="address-footer">
+                <button className="btn btn-primary">🚚 Deliver Here</button>
+
+                <div className="address-actions">
+                  <button
+                    className="btn btn-secondary btn-small"
+                    onClick={() => startEdit(address)}
+                  >
+                    ✏ Edit
+                  </button>
+
+                  <button
+                    className="btn btn-outline-danger btn-small"
+                    onClick={() => setDeleteConfirm(address)}
+                  >
+                    🗑 Delete
+                  </button>
+                </div>
+              </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      {deleteConfirm && (
+        <div
+          onClick={() => setDeleteConfirm(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0, 0, 0, 0.4)",
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center"
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: "#fff",
+              borderRadius: "16px",
+              padding: "28px 32px",
+              maxWidth: "400px",
+              width: "90%",
+              boxShadow: "0 20px 60px rgba(0, 0, 0, 0.2)"
+            }}
+          >
+            <div className="delete-icon">🗑</div>
+
+            <h2>Delete Address</h2>
+
+            <p>Are you sure you want to remove this delivery address?</p>
+
+            <div className="delete-address-preview">
+              <strong>{deleteConfirm.name}</strong>
+
+              <p>{deleteConfirm.street}</p>
+
+              <p>
+                {deleteConfirm.city}, {deleteConfirm.state}
+              </p>
+            </div>
+            <p style={{ color: "#53586b", marginBottom: "20px" }}>
+              "{deleteConfirm.name}" – {deleteConfirm.street},{" "}
+              {deleteConfirm.city}. This action cannot be undone.
+            </p>
+            <div style={{ display: "flex", gap: "12px" }}>
+              <button
+                className="btn btn-primary"
+                style={{ background: "#dc2626", borderColor: "#dc2626" }}
+                onClick={() => handleDelete(deleteConfirm.id)}
+                disabled={isDeleting === deleteConfirm.id}
+              >
+                {isDeleting === deleteConfirm.id ? "Deleting…" : "Yes, Delete"}
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setDeleteConfirm(null)}
+                disabled={isDeleting === deleteConfirm.id}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast notification */}
+      {toast && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "24px",
+            right: "24px",
+            zIndex: 1100,
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            padding: "14px 18px",
+            borderRadius: "10px",
+            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.18)",
+            background: toast.type === "error" ? "#fef2f2" : "#f0fdf4",
+            border: `1px solid ${toast.type === "error" ? "#fecaca" : "#bbf7d0"}`,
+            color: toast.type === "error" ? "#991b1b" : "#166534",
+            maxWidth: "320px",
+            animation: "toast-in 0.2s ease-out"
+          }}
+        >
+          <span style={{ fontSize: "18px" }}>
+            {toast.type === "error" ? "⚠️" : "✅"}
+          </span>
+          <span style={{ fontSize: "14px" }}>{toast.text}</span>
+          <button
+            onClick={() => setToast(null)}
+            style={{
+              marginLeft: "8px",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "inherit",
+              fontSize: "16px",
+              lineHeight: 1
+            }}
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
         </div>
       )}
     </div>

@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useState, useContext, useEffect, useRef } from "react";
+import React, { useState, useContext, useEffect, useRef } from "react";
 import { AuthContext } from "../context/AuthContext";
 import "./Navbar.css";
 import { FaSearch } from "react-icons/fa";
@@ -7,7 +7,7 @@ import { useCart } from "../context/CartContext";
 import SearchResultsPopup from "./SearchResultsPopup";
 import API from "../api/axios";
 
-export default function Navbar() {
+function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -202,6 +202,9 @@ export default function Navbar() {
                     user.profileImage ||
                     "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
                   }
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="low"
                   alt="profile"
                   className="profile-image"
                 />
@@ -358,3 +361,5 @@ export default function Navbar() {
     </nav>
   );
 }
+
+export default React.memo(Navbar);

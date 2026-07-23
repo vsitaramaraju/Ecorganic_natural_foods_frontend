@@ -415,6 +415,10 @@ export default function ProductDetail() {
                 <img
                   src={images[selectedImage]}
                   alt={product.name}
+                  width="440"
+                  height="440"
+                  fetchpriority="high"
+                  decoding="async"
                   style={{
                     width: "100%",
                     height: "100%",
@@ -456,6 +460,10 @@ export default function ProductDetail() {
                     <img
                       src={src}
                       alt={`${product.name} ${i + 1}`}
+                      width="64"
+                      height="64"
+                      loading="lazy"
+                      decoding="async"
                       style={{
                         width: "100%",
                         height: "100%",
@@ -771,6 +779,10 @@ export default function ProductDetail() {
                       }
                       alt="profile"
                       className="profile-image"
+                      width="40"
+                      height="40"
+                      loading="lazy"
+                      decoding="async"
                     />
                     <span className="pd-review-author">
                       {r.userName || r.user?.name || "Anonymous"}
@@ -835,7 +847,14 @@ function RelatedCard({ product, navigate, user, isAuthenticated }) {
     >
       <div className="spimg-wrap">
         {product.imageUrl ? (
-          <img src={product.imageUrl} alt={product.name} loading="lazy" />
+          <img
+            src={product.imageUrl}
+            alt={product.name}
+            width="300"
+            height="300"
+            loading="lazy"
+            decoding="async"
+          />
         ) : (
           <div className="spimg-placeholder">🌿</div>
         )}

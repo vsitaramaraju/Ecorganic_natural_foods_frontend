@@ -1,4 +1,10 @@
-import { createContext, useState, useCallback, useEffect } from "react";
+import {
+  createContext,
+  useState,
+  useCallback,
+  useEffect,
+  useMemo
+} from "react";
 
 export const AuthContext = createContext();
 
@@ -33,22 +39,22 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("user");
   }, []);
 
-  const isAuthenticated = !!token && !!user;
-  const isAdmin = String(user?.role || "").toUpperCase() === "ADMIN";
+  const isAuthenticated = useMemo(() => Boolean(token && user), [token, user]);
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        token,
-        isLoading,
-        isAuthenticated,
-        isAdmin,
-        login,
-        logout
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const isAdmin = useMemo(() => user?.role === "ADMIN", [user]);
+
+  const value = useMemo(
+    () => ({
+      user,
+      token,
+      isLoading,
+      isAuthenticated,
+      isAdmin,
+      login,
+      logout
+    }),
+    [user, token, isLoading, isAuthenticated, isAdmin, login, logout]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

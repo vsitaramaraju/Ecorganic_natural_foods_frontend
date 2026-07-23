@@ -29,19 +29,14 @@ export function CartProvider({ children }) {
     try {
       const res = await API.get("/cart");
 
-      console.log("Cart API Response:", res.data);
-
       const items = Array.isArray(res?.data)
         ? res.data
         : (res?.data?.items ?? []);
 
       const total = items.reduce((sum, item) => sum + (item.quantity ?? 1), 0);
 
-      console.log("Cart Count:", total);
-
       setCartCount(total);
     } catch (err) {
-      console.log(err);
       setCartCount(0);
     }
   }, [isAuthenticated]);

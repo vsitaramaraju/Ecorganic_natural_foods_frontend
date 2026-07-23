@@ -186,6 +186,10 @@ export default function AdminCategories() {
                         <img
                           src={cat.imageUrl}
                           alt={cat.name}
+                          width="48"
+                          height="48"
+                          loading="lazy"
+                          decoding="async"
                           style={{
                             width: 48,
                             height: 48,

@@ -232,6 +232,10 @@ export default function Checkout() {
                       <img
                         src={item.product.imageUrl}
                         alt={item.product.name}
+                        width="56"
+                        height="56"
+                        loading="lazy"
+                        decoding="async"
                       />
                     ) : (
                       <span>🌿</span>

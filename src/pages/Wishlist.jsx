@@ -172,7 +172,14 @@ export default function Wishlist() {
                 {/* Image */}
                 <div className="wishlist-card-img">
                   {item.product?.imageUrl ? (
-                    <img src={item.product.imageUrl} alt={item.product.name} />
+                    <img
+                      src={item.product.imageUrl}
+                      alt={item.product.name}
+                      width="300"
+                      height="225"
+                      loading="lazy"
+                      decoding="async"
+                    />
                   ) : (
                     <div className="wishlist-img-placeholder">🌿</div>
                   )}

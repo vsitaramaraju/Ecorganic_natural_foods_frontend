@@ -104,6 +104,52 @@
   gap: var(--space-lg);
 }
 
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-xs, 6px);
+  margin-top: var(--space-xl, 32px);
+}
+.page-btn {
+  min-width: 38px;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border, #e0e0e0);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+.page-btn:hover:not(:disabled) {
+  border-color: var(--color-primary, #4caf50);
+  color: var(--color-primary, #4caf50);
+}
+.page-btn.active {
+  background: var(--color-primary, #4caf50);
+  border-color: var(--color-primary, #4caf50);
+  color: #fff;
+  font-weight: 600;
+}
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.page-nav {
+  font-weight: 500;
+}
+.page-ellipsis {
+  padding: 0 4px;
+  color: var(--color-text-muted);
+}
+
 /* Shop Product Card */
 .shop-product-card {
   background: var(--color-surface);

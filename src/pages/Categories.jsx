@@ -64,7 +64,14 @@ export default function Categories() {
               >
                 <div className="cat-page-img">
                   {cat.imageUrl ? (
-                    <img src={cat.imageUrl} alt={cat.name} />
+                    <img
+                      src={cat.imageUrl}
+                      alt={cat.name}
+                      width="300"
+                      height="225"
+                      loading="lazy"
+                      decoding="async"
+                    />
                   ) : (
                     <span className="cat-page-icon">
                       {getCategoryIcon(cat.name)}

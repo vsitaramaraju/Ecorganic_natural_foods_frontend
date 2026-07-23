@@ -7,6 +7,27 @@ import "./Shop.css";
 import { useCart } from "../context/CartContext";
 import { saveRecentProduct } from "../utils/RecentlyViewed";
 
+// Builds a compact list of page numbers with "…" gaps, e.g. [1, "…", 4, 5, 6, "…", 12]
+function getPageNumbers(current, total) {
+  const delta = 1;
+  const range = [];
+  for (
+    let i = Math.max(2, current - delta);
+    i <= Math.min(total - 1, current + delta);
+    i++
+  ) {
+    range.push(i);
+  }
+
+  const pages = [1];
+  if (range[0] > 2) pages.push("…");
+  pages.push(...range);
+  if (range[range.length - 1] < total - 1) pages.push("…");
+  if (total > 1) pages.push(total);
+
+  return pages;
+}
+
 export default function Shop() {
   const [searchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
@@ -22,6 +43,8 @@ export default function Shop() {
   const [toast, setToast] = useState("");
   const [wishlistItems, setWishlistItems] = useState(new Set());
   const [wishlistLoading, setWishlistLoading] = useState(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const PRODUCTS_PER_PAGE = 12;
   const { isAuthenticated } = useContext(AuthContext);
   const navigate = useNavigate();
   const { incrementCart } = useCart();
@@ -135,6 +158,25 @@ export default function Shop() {
   if (sortBy === "price-desc") displayed.sort((a, b) => b.price - a.price);
   if (sortBy === "name") displayed.sort((a, b) => a.name.localeCompare(b.name));
 
+  const totalPages = Math.max(
+    1,
+    Math.ceil(displayed.length / PRODUCTS_PER_PAGE)
+  );
+  const safePage = Math.min(currentPage, totalPages);
+  const paginated = displayed.slice(
+    (safePage - 1) * PRODUCTS_PER_PAGE,
+    safePage * PRODUCTS_PER_PAGE
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeCat, search, sortBy]);
+
+  const goToPage = page => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   if (isLoading)
     return (
       <div className="loading-wrap">
@@ -204,7 +246,7 @@ export default function Shop() {
           <p className="result-count">{displayed.length} products found</p>
           {displayed.length > 0 ? (
             <div className="shop-grid">
-              {displayed.map(p => (
+              {paginated.map(p => (
                 <article
                   key={p.id}
                   className="shop-product-card"
@@ -216,7 +258,14 @@ export default function Shop() {
                 >
                   <div className="spimg-wrap">
                     {p.imageUrl ? (
-                      <img src={p.imageUrl} alt={p.name} loading="lazy" />
+                      <img
+                        src={p.imageUrl}
+                        alt={p.name}
+                        width="300"
+                        height="300"
+                        loading="lazy"
+                        decoding="async"
+                      />
                     ) : (
                       <div className="spimg-placeholder">🌿</div>
                     )}
@@ -288,6 +337,45 @@ export default function Shop() {
               <h2>No products found</h2>
               <p>Try a different category or search term</p>
             </div>
+          )}
+
+          {totalPages > 1 && (
+            <nav className="pagination" aria-label="Product pages">
+              <button
+                className="page-btn page-nav"
+                onClick={() => goToPage(safePage - 1)}
+                disabled={safePage === 1}
+                aria-label="Previous page"
+              >
+                ← Prev
+              </button>
+
+              {getPageNumbers(safePage, totalPages).map((item, i) =>
+                item === "…" ? (
+                  <span key={`ellipsis-${i}`} className="page-ellipsis">
+                    …
+                  </span>
+                ) : (
+                  <button
+                    key={item}
+                    className={`page-btn ${safePage === item ? "active" : ""}`}
+                    onClick={() => goToPage(item)}
+                    aria-current={safePage === item ? "page" : undefined}
+                  >
+                    {item}
+                  </button>
+                )
+              )}
+
+              <button
+                className="page-btn page-nav"
+                onClick={() => goToPage(safePage + 1)}
+                disabled={safePage === totalPages}
+                aria-label="Next page"
+              >
+                Next →
+              </button>
+            </nav>
           )}
         </main>
       </div>

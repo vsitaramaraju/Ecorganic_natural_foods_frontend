@@ -179,7 +179,10 @@ export default function Orders() {
                               src={item.product.imageUrl}
                               alt={item.product.name}
                               style={{ width: "100px" }}
+                              width="100"
+                              height="100"
                               loading="lazy"
+                              decoding="async"
                             />
                           ) : (
                             <span>🌿</span>

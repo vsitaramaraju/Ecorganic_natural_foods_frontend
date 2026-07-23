@@ -73,7 +73,14 @@ export default function SearchResultsPopup({
                     {/* Product Image */}
                     <div className="search-result-img">
                       {product.imageUrl ? (
-                        <img src={product.imageUrl} alt={product.name} />
+                        <img
+                          src={product.imageUrl}
+                          alt={product.name}
+                          width="60"
+                          height="60"
+                          loading="lazy"
+                          decoding="async"
+                        />
                       ) : (
                         <div className="search-result-placeholder">🌿</div>
                       )}

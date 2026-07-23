@@ -154,7 +154,7 @@ export default function Cart() {
         <div className="spinner" />
       </div>
     );
-  console.log(showCoupons);
+
   return (
     <div className="container cart-wrap">
       <h1 className="section-title">🛒 Shopping Cart</h1>
@@ -187,7 +187,14 @@ export default function Cart() {
               <div key={item.id} className="cart-item">
                 <div className="cart-item-img">
                   {item.product.imageUrl ? (
-                    <img src={item.product.imageUrl} alt={item.product.name} />
+                    <img
+                      src={item.product.imageUrl}
+                      alt={item.product.name}
+                      width="72"
+                      height="72"
+                      loading="lazy"
+                      decoding="async"
+                    />
                   ) : (
                     <span>🌿</span>
                   )}

@@ -187,7 +187,14 @@ export default function SearchResultsPage() {
               >
                 <div className="search-card-img">
                   {product.imageUrl ? (
-                    <img src={product.imageUrl} alt={product.name} />
+                    <img
+                      src={product.imageUrl}
+                      alt={product.name}
+                      width="300"
+                      height="225"
+                      loading="lazy"
+                      decoding="async"
+                    />
                   ) : (
                     <div className="search-img-placeholder">🌿</div>
                   )}

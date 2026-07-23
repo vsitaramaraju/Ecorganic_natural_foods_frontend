@@ -1,26 +1,25 @@
-import { useEffect, useMemo, useState, useContext } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  useContext,
+  useRef,
+  useCallback
+} from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import { AuthContext } from "../context/AuthContext";
-import { wishlistAPI } from "../api/wishlistAPI";
 import "./Home.css";
 import { useCart } from "../context/CartContext";
-import { saveRecentProduct, getRecentProducts } from "../utils/RecentlyViewed";
-
-const ORGANIC_CATEGORY_ICONS = {
-  vegetables: "🥦",
-  fruits: "🍎",
-  dairy: "🥛",
-  grains: "🌾",
-  herbs: "🌿",
-  nuts: "🥜",
-  oils: "🫒",
-  pulses: "🫘",
-  spices: "🌶️",
-  honey: "🍯",
-  tea: "🍵",
-  superfoods: "✨"
-};
+import { getRecentProducts } from "../utils/RecentlyViewed";
+import ProductCard from "../components/ProductCard";
+import { wishlistAPI } from "../api/wishlistAPI";
+import {
+  CATEGORY_BG_IMAGES,
+  ORGANIC_CATEGORY_ICONS
+} from "../constants/category";
+import HeroSection from "../components/HeroSection";
+import Categories from "../components/Categories";
 
 const getCategoryIcon = name => {
   const key = String(name || "").toLowerCase();
@@ -28,21 +27,6 @@ const getCategoryIcon = name => {
     if (key.includes(k)) return icon;
   }
   return "🌱";
-};
-
-const CATEGORY_BG_IMAGES = {
-  vegetables:
-    "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&q=80",
-  fruits:
-    "https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=600&q=80",
-  dairy: "https://images.unsplash.com/photo-1563636619-e9143da7973b?w=600&q=80",
-  grains:
-    "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=600&q=80",
-  herbs:
-    "https://images.unsplash.com/photo-1540914124281-342587941389?w=600&q=80",
-  nuts: "https://images.unsplash.com/photo-1599599810769-bcde5a160d32?w=600&q=80",
-  default:
-    "https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=600&q=80"
 };
 
 const getCategoryImage = name => {
@@ -67,6 +51,8 @@ export default function Home() {
   const navigate = useNavigate();
   const { incrementCart } = useCart();
   const [recentProducts, setRecentProducts] = useState([]);
+  const [wishlistIds, setWishlistIds] = useState(new Set());
+  const toastRef = useRef();
 
   useEffect(() => {
     const load = async () => {
@@ -103,9 +89,32 @@ export default function Home() {
     }
   }, [isAuthenticated, user]);
 
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const loadWishlist = async () => {
+      try {
+        const response = await wishlistAPI.getWishlist();
+
+        const ids = new Set(response.data.map(item => item.product.id));
+
+        setWishlistIds(ids);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadWishlist();
+  }, [isAuthenticated]);
+
   const showToast = msg => {
+    clearTimeout(toastRef.current);
+
     setToast(msg);
-    setTimeout(() => setToast(""), 2500);
+
+    toastRef.current = setTimeout(() => {
+      setToast("");
+    }, 2500);
   };
 
   const addToCart = async productId => {
@@ -151,6 +160,20 @@ export default function Home() {
     [allProducts]
   );
 
+  const visibleProducts = useMemo(() => {
+    return products.slice(0, 8);
+  }, [products]);
+
+  const recentProduct = useMemo(() => {
+    return recentProducts.slice(0, 8);
+  }, [recentProducts]);
+
+  const scrollProducts = useCallback(() => {
+    document.getElementById("products-section")?.scrollIntoView({
+      behavior: "smooth"
+    });
+  }, []);
+
   if (isLoading)
     return (
       <div className="loading-wrap">
@@ -167,64 +190,7 @@ export default function Home() {
       {toast && <div className="toast">{toast}</div>}
 
       {/* Hero */}
-      <section className="hero">
-        <div className="hero-content">
-          <span className="hero-badge">🌱 100% Certified Organic</span>
-          <h1 className="hero-title">
-            Nature's Best,
-            <br />
-            Delivered Fresh
-          </h1>
-          <p className="hero-desc">
-            From local farms to your table — hand-picked organic produce, dairy,
-            grains and superfoods with zero compromises.
-          </p>
-          <div className="hero-cta">
-            <button
-              className="btn btn-primary hero-btn"
-              onClick={() =>
-                document
-                  .getElementById("products-section")
-                  .scrollIntoView({ behavior: "smooth" })
-              }
-            >
-              Shop Now
-            </button>
-            <button
-              className="btn btn-secondary hero-btn"
-              onClick={() => navigate("/categories")}
-            >
-              Browse Categories
-            </button>
-          </div>
-          <div className="hero-stats">
-            <div className="stat">
-              <strong>500+</strong>
-              <span>Products</span>
-            </div>
-            <div className="stat">
-              <strong>50+</strong>
-              <span>Farms</span>
-            </div>
-            <div className="stat">
-              <strong>10K+</strong>
-              <span>Happy Customers</span>
-            </div>
-          </div>
-        </div>
-        <div className="hero-visual">
-          <div className="hero-image-wrap">
-            <img
-              src="https://images.unsplash.com/photo-1610348725531-843dff563e2c?w=700&q=80"
-              alt="Fresh organic produce"
-            />
-          </div>
-          <div className="floating-card card-1">🥕 Freshly Harvested</div>
-          <div className="floating-card card-2">✅ Chemical Free</div>
-          <div className="floating-card card-3">🚚 Next Day Delivery</div>
-        </div>
-      </section>
-
+      <HeroSection scrollProducts={scrollProducts} navigate={navigate} />
       {/* Trust Badges */}
       <section className="trust-bar">
         <div className="trust-item">
@@ -256,49 +222,14 @@ export default function Home() {
       )}
 
       {/* Categories */}
-      <section className="home-section">
-        <div className="container">
-          <div className="section-header">
-            <div>
-              <h2 className="section-title">Shop by Category</h2>
-              <p className="section-subtitle">
-                Explore our range of certified organic products
-              </p>
-            </div>
-          </div>
-          <div className="category-grid">
-            {categories.length > 0 ? (
-              categories.map(cat => (
-                <button
-                  key={cat.id}
-                  className={`category-card ${activeCategory === String(cat.id) ? "active" : ""}`}
-                  onClick={() => handleCategorySelect(cat)}
-                >
-                  n <img src={cat.image} alt={cat.name} loading="lazy" />
-                  <div className="cat-overlay">
-                    <span className="cat-icon">{cat.icon}</span>
-                    <h3>{cat.name}</h3>
-                  </div>
-                </button>
-              ))
-            ) : (
-              <p className="no-data">No categories yet. Check back soon!</p>
-            )}
-          </div>
-        </div>
-        <button
-          className="btn btn-secondary"
-          onClick={() => {
-            setActiveCategory("all");
-            setProducts(allProducts);
-            document
-              .getElementById("products-section")
-              .scrollIntoView({ behavior: "smooth" });
-          }}
-        >
-          Show All
-        </button>
-      </section>
+      <Categories
+        categories={categories}
+        activeCategory={activeCategory}
+        handleCategorySelect={handleCategorySelect}
+        setProducts={setProducts}
+        allProducts={allProducts}
+        setActiveCategory={setActiveCategory}
+      />
 
       {/* All Products */}
       <section className="home-section bg-alt" id="products-section">
@@ -319,16 +250,15 @@ export default function Home() {
           </div>
           <div className="product-grid">
             {products.length > 0 ? (
-              products
-                .slice(0, 8)
-                .map(p => (
-                  <ProductCard
-                    key={p.id}
-                    product={p}
-                    onAddToCart={addToCart}
-                    addingId={addingId}
-                  />
-                ))
+              visibleProducts.map(p => (
+                <ProductCard
+                  key={p.id}
+                  product={p}
+                  onAddToCart={addToCart}
+                  addingId={addingId}
+                  wishlistIds={wishlistIds}
+                />
+              ))
             ) : (
               <div className="no-data">
                 {catLoading ? (
@@ -423,6 +353,7 @@ export default function Home() {
                   onAddToCart={addToCart}
                   addingId={addingId}
                   featured
+                  wishlistIds={wishlistIds}
                 />
               ))}
             </div>
@@ -445,12 +376,13 @@ export default function Home() {
               </div>
 
               <div className="product-grid">
-                {recentProducts.slice(0, 8).map(product => (
+                {recentProduct.map(product => (
                   <ProductCard
                     key={product.id}
                     product={product}
                     onAddToCart={addToCart}
                     addingId={addingId}
+                    wishlistIds={wishlistIds}
                   />
                 ))}
               </div>
@@ -489,194 +421,5 @@ export default function Home() {
         </section>
       )}
     </div>
-  );
-}
-
-function ProductCard({ product, onAddToCart, addingId, featured }) {
-  const { isAuthenticated, user } = useContext(AuthContext);
-  const catName = product?.category?.name || product?.category || "";
-  const isAdding = addingId === product.id;
-  const navigate = useNavigate();
-  const [isInWishlist, setIsInWishlist] = useState(false);
-  const [wishlistLoading, setWishlistLoading] = useState(false);
-  const [toast, setToast] = useState("");
-
-  const showToast = msg => {
-    setToast(msg);
-    setTimeout(() => setToast(""), 2500);
-  };
-
-  const handleWishlist = async e => {
-    e.stopPropagation();
-    if (!isAuthenticated) {
-      navigate("/login");
-      return;
-    }
-
-    setWishlistLoading(true);
-    try {
-      if (isInWishlist) {
-        await wishlistAPI.removeFromWishlist(product.id);
-        setIsInWishlist(false);
-        showToast("Removed from wishlist ✓");
-      } else {
-        await wishlistAPI.addToWishlist(product.id);
-        setIsInWishlist(true);
-        showToast("Added to wishlist ❤️");
-      }
-    } catch (error) {
-      console.error("Wishlist error:", error);
-    } finally {
-      setWishlistLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setIsInWishlist(false);
-      return;
-    }
-
-    const checkWishlist = async () => {
-      try {
-        const response = await wishlistAPI.checkInWishlist(product.id);
-        setIsInWishlist(response?.data?.isInWishlist || false);
-      } catch (error) {
-        setIsInWishlist(false);
-      }
-    };
-
-    checkWishlist();
-  }, [product.id, isAuthenticated]);
-
-  return (
-    <>
-      <style>{`
-        .star-rating { position: relative; display: inline-block; line-height: 1; letter-spacing: 2px; user-select: none; }
-        .star-rating-bg { color: #dcdcdc; white-space: nowrap; }
-        .star-rating-fg { position: absolute; top: 0; left: 0; overflow: hidden; white-space: nowrap; color: #f5a623; pointer-events: none; }
-        .star-rating.interactive { cursor: pointer; }
-        .star-rating-pick { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; }
-        .star-rating-pick span { flex: 1; }
-
-        .pd-rating-row { display: inline-flex; align-items: center; gap: 8px; background: none; border: none; padding: 4px 0; margin: 4px 0 8px; cursor: pointer; font: inherit; }
-        .pd-rating-value { font-weight: 600; color: var(--color-text); }
-        .pd-rating-count { color: var(--color-text-muted); font-size: 13px; }
-
-        .pd-reviews { margin-top: var(--space-xl); padding-top: var(--space-xl); border-top: 1px solid var(--color-border, #e7e5df); }
-        .pd-reviews-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: var(--space-md); }
-        .pd-reviews-summary { display: flex; align-items: center; gap: 10px; }
-        .pd-reviews-avg { font-size: 26px; font-weight: 700; }
-        .pd-reviews-count { color: var(--color-text-muted); font-size: 14px; }
-
-        .pd-review-form { padding: var(--space-md); margin-bottom: var(--space-lg, 24px); }
-        .pd-review-form h3 { margin: 0 0 10px; font-size: 16px; }
-        .pd-review-textarea { width: 100%; margin-top: 12px; padding: 10px 12px; border: 1px solid var(--color-border, #ddd); border-radius: var(--radius-md, 8px); font: inherit; resize: vertical; }
-        .pd-review-error { color: #c0392b; font-size: 13px; margin-top: 8px; }
-        .pd-review-form .btn { margin-top: 12px; }
-        .pd-review-login-prompt { color: var(--color-text-muted); font-size: 14px; margin: 0; }
-        .pd-review-login-prompt button { background: none; border: none; color: var(--color-primary, #2e7d32); text-decoration: underline; cursor: pointer; padding: 0; font: inherit; }
-
-        .pd-reviews-list { display: flex; flex-direction: column; gap: 4px; }
-        .pd-review-item { padding: 14px 0; border-bottom: 1px solid var(--color-border, #eee); }
-        .pd-review-item-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
-        .pd-review-author { font-weight: 600; }
-        .pd-review-date { color: var(--color-text-muted); font-size: 13px; margin-left: auto; }
-        .pd-review-comment { color: var(--color-text); line-height: 1.5; margin: 0; }
-        .pd-no-reviews, .pd-reviews-loading { color: var(--color-text-muted); padding: 8px 0; }
-      `}</style>
-      {toast && <div className="toast">{toast}</div>}
-
-      <article
-        className={`product-card ${featured ? "featured" : ""}`}
-        onClick={() => {
-          if (isAuthenticated && user?.id) {
-            saveRecentProduct(product, user.id);
-          }
-
-          navigate(`/products/${product.id}`);
-        }}
-        style={{ cursor: "pointer" }}
-      >
-        <div className="product-img-wrap">
-          {product.imageUrl ? (
-            <img src={product.imageUrl} alt={product.name} loading="lazy" />
-          ) : (
-            <div className="product-img-placeholder">🌿</div>
-          )}
-          {featured && <span className="featured-ribbon">⭐ Top Pick</span>}
-
-          {/* Wishlist Button */}
-          <button
-            className={`wishlist-btn ${isInWishlist ? "active" : ""}`}
-            onClick={handleWishlist}
-            disabled={wishlistLoading}
-            title={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
-          >
-            {wishlistLoading ? "…" : isInWishlist ? "❤️" : "🤍"}
-          </button>
-        </div>
-        <div className="product-body">
-          {catName && <span className="tag">{catName}</span>}
-          <h3 className="product-name">{product.name}</h3>
-          <p className="product-desc">
-            {product.description ||
-              "Premium organic product, naturally sourced."}
-          </p>
-
-          {product.description && product.description.length > 80 && (
-            <button
-              className="show-more-btn"
-              onClick={e => {
-                e.stopPropagation();
-
-                if (isAuthenticated && user?.id) {
-                  saveRecentProduct(product, user.id);
-                }
-
-                navigate(`/products/${product.id}`);
-              }}
-            >
-              Show More
-            </button>
-          )}
-          <div className="product-foot">
-            <div>
-              <span className="product-price">
-                ₹{product.price}
-                {product.priceUnit && product.priceUnit !== "fixed" && (
-                  <span
-                    style={{
-                      fontSize: "12px",
-                      fontWeight: "500",
-                      color: "#6b7280",
-                      marginLeft: "3px"
-                    }}
-                  >
-                    /{product.priceUnit.replace("per_", "").replace("kg", "KG")}
-                  </span>
-                )}
-              </span>
-              {product.stock < 10 && product.stock > 0 && (
-                <span className="low-stock">Only {product.stock} left!</span>
-              )}
-              {product.stock === 0 && (
-                <span className="out-of-stock">Out of stock</span>
-              )}
-            </div>
-            <button
-              className="btn btn-primary btn-small add-btn"
-              onClick={e => {
-                e.stopPropagation();
-                onAddToCart(product.id);
-              }}
-              disabled={isAdding || product.stock === 0}
-            >
-              {isAdding ? "…" : "+ Cart"}
-            </button>
-          </div>
-        </div>
-      </article>
-    </>
   );
 }

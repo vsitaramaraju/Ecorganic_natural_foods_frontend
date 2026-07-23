@@ -539,6 +539,10 @@ export default function AdminProducts() {
                               src={product.imageUrl}
                               alt=""
                               className="prod-thumb"
+                              width="38"
+                              height="38"
+                              loading="lazy"
+                              decoding="async"
                               onError={e => (e.target.style.display = "none")}
                             />
                           )}

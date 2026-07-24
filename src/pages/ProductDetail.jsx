@@ -482,30 +482,6 @@ export default function ProductDetail() {
             {catName && <span className="tag">{catName}</span>}
             <h1 className="pd-title">{product.name}</h1>
 
-            {/* Rating Summary */}
-            <button
-              className="pd-rating-row"
-              onClick={scrollToReviews}
-              type="button"
-            >
-              <StarRating rating={reviewStats.average} size={16} />
-              {reviewStats.count > 0 ? (
-                <>
-                  <span className="pd-rating-value">
-                    {reviewStats.average.toFixed(1)}
-                  </span>
-                  <span className="pd-rating-count">
-                    ({reviewStats.count}{" "}
-                    {reviewStats.count === 1 ? "review" : "reviews"})
-                  </span>
-                </>
-              ) : (
-                <span className="pd-rating-count">
-                  No reviews yet — be the first!
-                </span>
-              )}
-            </button>
-
             {/* Stock Status */}
             <div className="pd-stock-row">
               {isOutOfStock ? (
@@ -559,6 +535,29 @@ export default function ProductDetail() {
             {product.description && (
               <p className="pd-description">{product.description}</p>
             )}
+            {/* Rating Summary */}
+            <button
+              className="pd-rating-row"
+              onClick={scrollToReviews}
+              type="button"
+            >
+              <StarRating rating={reviewStats.average} size={16} />
+              {reviewStats.count > 0 ? (
+                <>
+                  <span className="pd-rating-value">
+                    {reviewStats.average.toFixed(1)}
+                  </span>
+                  <span className="pd-rating-count">
+                    ({reviewStats.count}{" "}
+                    {reviewStats.count === 1 ? "review" : "reviews"})
+                  </span>
+                </>
+              ) : (
+                <span className="pd-rating-count">
+                  No reviews yet — be the first!
+                </span>
+              )}
+            </button>
 
             {/* Quantity + Actions */}
             {!isOutOfStock && (

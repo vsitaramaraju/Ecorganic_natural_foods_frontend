@@ -181,6 +181,7 @@
   line-height: 1.8;
   font-size: 0.95rem;
   padding: var(--space-md) 0;
+  text-align: initial;
 }
 
 /* ── Quantity & Buttons ── */

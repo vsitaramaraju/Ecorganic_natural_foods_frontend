@@ -402,9 +402,42 @@
 }
 .pd-related-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: var(--space-lg);
-  margin-top: var(--space-xl);
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 24px;
+  margin-top: 20px;
+}
+
+.pd-share-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 46px;
+  height: 46px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #333;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  transition: all 0.25s ease;
+  z-index: 20;
+}
+
+.pd-share-btn:hover {
+  transform: scale(1.08);
+  background: #fff;
+}
+
+.pd-share-btn:active {
+  transform: scale(0.95);
+}
+
+.pd-share-btn svg {
+  width: 22px;
+  height: 22px;
 }
 
 /* ── Responsive ── */

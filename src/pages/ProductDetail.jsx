@@ -6,6 +6,7 @@ import { wishlistAPI } from "../api/wishlistAPI";
 import "./ProductDetails.css";
 import { useCart } from "../context/CartContext";
 import { saveRecentProduct } from "../utils/RecentlyViewed";
+import "../components/ProductCard.css";
 
 function formatReviewDate(d) {
   if (!d) return "";
@@ -335,6 +336,25 @@ export default function ProductDetail() {
     );
   }
 
+  const handleShare = async () => {
+    const productUrl = `${window.location.origin}/products/${product.id}`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: product.name,
+          text: `Check out this product: ${product.name}`,
+          url: productUrl
+        });
+      } else {
+        await navigator.clipboard.writeText(productUrl);
+        showToast("Product link copied to clipboard!");
+      }
+    } catch (error) {
+      console.log("Share cancelled");
+    }
+  };
+
   return (
     <div className="pd-page">
       <style>{`
@@ -412,20 +432,45 @@ export default function ProductDetail() {
               }}
             >
               {images.length > 0 ? (
-                <img
-                  src={images[selectedImage]}
-                  alt={product.name}
-                  width="440"
-                  height="440"
-                  fetchpriority="high"
-                  decoding="async"
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                    display: "block"
-                  }}
-                />
+                <>
+                  <img
+                    src={images[selectedImage]}
+                    alt={product.name}
+                    width="440"
+                    height="440"
+                    fetchpriority="high"
+                    decoding="async"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      display: "block"
+                    }}
+                  />
+                  <button
+                    className="pd-share-btn"
+                    onClick={handleShare}
+                    title="Share Product"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="22"
+                      height="22"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="18" cy="5" r="3"></circle>
+                      <circle cx="6" cy="12" r="3"></circle>
+                      <circle cx="18" cy="19" r="3"></circle>
+                      <line x1="8.6" y1="13.5" x2="15.4" y2="17.5"></line>
+                      <line x1="15.4" y1="6.5" x2="8.6" y2="10.5"></line>
+                    </svg>
+                  </button>
+                </>
               ) : (
                 <div className="pd-img-placeholder">🌿</div>
               )}
@@ -832,9 +877,10 @@ export default function ProductDetail() {
 
 function RelatedCard({ product, navigate, user, isAuthenticated }) {
   const catName = product?.category?.name || product?.category || "";
+
   return (
     <article
-      className="shop-product-card"
+      className="product-card"
       onClick={() => {
         if (isAuthenticated && user?.id) {
           saveRecentProduct(product, user.id);
@@ -844,7 +890,7 @@ function RelatedCard({ product, navigate, user, isAuthenticated }) {
       }}
       style={{ cursor: "pointer" }}
     >
-      <div className="spimg-wrap">
+      <div className="product-img-wrap">
         {product.imageUrl ? (
           <img
             src={product.imageUrl}
@@ -855,33 +901,48 @@ function RelatedCard({ product, navigate, user, isAuthenticated }) {
             decoding="async"
           />
         ) : (
-          <div className="spimg-placeholder">🌿</div>
+          <div className="product-img-placeholder">🌿</div>
         )}
       </div>
-      <div className="sp-body">
+
+      <div className="product-body">
         {catName && <span className="tag">{catName}</span>}
-        <h3>{product.name}</h3>
-        <p className="sp-desc">
+
+        <h3 className="product-name">{product.name}</h3>
+
+        <p className="product-desc">
           {product.description || "Premium organic product, naturally sourced."}
         </p>
-        <div className="sp-foot">
-          <span className="sp-price">
-            ₹{product.price}
-            {product.priceUnit && product.priceUnit !== "fixed" && (
-              <span
-                style={{
-                  fontSize: "12px",
-                  fontWeight: "500",
-                  color: "#6b7280",
-                  marginLeft: "3px"
-                }}
-              >
-                /{product.priceUnit.replace("per_", "").replace("kg", "KG")}
-              </span>
+
+        <div className="product-foot">
+          <div>
+            <span className="product-price">
+              ₹{product.price}
+              {product.priceUnit && product.priceUnit !== "fixed" && (
+                <span
+                  style={{
+                    fontSize: "12px",
+                    fontWeight: "500",
+                    color: "#6b7280",
+                    marginLeft: "3px"
+                  }}
+                >
+                  /{product.priceUnit.replace("per_", "").replace("kg", "KG")}
+                </span>
+              )}
+            </span>
+
+            {product.stock < 10 && product.stock > 0 && (
+              <span className="low-stock">Only {product.stock} left!</span>
             )}
-          </span>
+
+            {product.stock === 0 && (
+              <span className="out-of-stock">Out of stock</span>
+            )}
+          </div>
+
           <button
-            className="btn btn-primary btn-small"
+            className="btn btn-primary btn-small add-btn"
             onClick={e => {
               e.stopPropagation();
 

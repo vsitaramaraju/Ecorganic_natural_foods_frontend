@@ -30,6 +30,21 @@ export const authAPI = {
     apiCall("/auth/login", {
       method: "POST",
       body: JSON.stringify(credentials)
+    }),
+  forgotPassword: email =>
+    apiCall("/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email })
+    }),
+  verifyResetToken: token =>
+    apiCall("/auth/verify-reset-token", {
+      method: "POST",
+      body: JSON.stringify({ token })
+    }),
+  resetPassword: (token, newPassword, confirmPassword) =>
+    apiCall("/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ token, newPassword, confirmPassword })
     })
 };
 

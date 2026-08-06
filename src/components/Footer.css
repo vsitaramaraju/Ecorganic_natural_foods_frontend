@@ -18,11 +18,12 @@
   max-width: 260px;
 }
 .footer-logo {
-  font-family: var(--font-heading);
-  font-size: 1.4rem;
-  color: #fff;
+  width: 180px;
+  height: auto;
   display: block;
-  margin-bottom: var(--space-sm);
+  margin-bottom: 16px;
+  object-fit: contain;
+  filter: brightness(0) invert(1); /* Makes a dark logo white for a dark footer */
 }
 .footer-brand p {
   font-size: 0.875rem;

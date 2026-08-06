@@ -32,12 +32,16 @@
 .navbar-logo {
   display: flex;
   align-items: center;
-  gap: 10px;
   text-decoration: none;
-  flex-shrink: 0;
 }
 
-.logo-leaf {
+.navbar-logo-image {
+  height: 55px;
+  width: auto;
+  object-fit: contain;
+}
+
+/* .logo-leaf {
   font-size: 1.8rem;
   line-height: 1;
 }
@@ -61,7 +65,7 @@
   color: var(--color-primary-light);
   text-transform: uppercase;
   letter-spacing: 0.1em;
-}
+} */
 
 /* ================= NAV LINKS ================= */
 

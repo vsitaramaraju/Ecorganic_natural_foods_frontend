@@ -6,6 +6,7 @@ import { FaSearch } from "react-icons/fa";
 import { useCart } from "../context/CartContext";
 import SearchResultsPopup from "./SearchResultsPopup";
 import API from "../api/axios";
+import logo from "../../public/images/Ecorganic logo.png";
 
 function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -96,11 +97,11 @@ function Navbar() {
       <div className="navbar-inner">
         {/* Logo */}
         <Link to={isAdmin ? "/admin/overview" : "/"} className="navbar-logo">
-          <span className="logo-leaf">🌿</span>
-          <div className="logo-text-wrap">
-            <span className="logo-brand">EchOrganics</span>
-            <span className="logo-tagline">Farm Fresh</span>
-          </div>
+          <img
+            src={logo}
+            alt="EchOrganics Logo"
+            className="navbar-logo-image"
+          />
         </Link>
 
         {/* ================= USER / GUEST NAV ================= */}

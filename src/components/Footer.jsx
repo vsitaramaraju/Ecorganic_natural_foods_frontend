@@ -7,7 +7,13 @@ export default function Footer() {
       <div className="footer-inner">
         {/* Brand */}
         <div className="footer-brand">
-          <span className="footer-logo">🌿 EchOrganics</span>
+          <span className="footer-logo">
+            <img
+              src="/images/Ecorganic logo.png"
+              alt="EchOrganics"
+              className="footer-logo"
+            />
+          </span>
           <p>
             Farm-fresh organic food delivered to your doorstep. Sustainably
             sourced, naturally good.
@@ -64,19 +70,19 @@ export default function Footer() {
         {/* Contact */}
         <div className="footer-col">
           <h4>Contact Us</h4>
-          <p>📧 hello@echorganics.in</p>
-          <p>📞 +91 98765 43210</p>
-          <p>📍 Vijayawada, AP – 520001</p>
-          <div className="footer-hours">
+          <p>📧 ecorganicplanet@gmail.com</p>
+          <p>📞 +91 9182536959</p>
+          <p>📍 V4/86-1,pamavatipuram,tirupati -517501</p>
+          {/* <div className="footer-hours">
             <span>⏰ Mon – Sat</span>
             <span>9:00 AM – 6:00 PM</span>
-          </div>
+          </div> */}
         </div>
       </div>
 
       {/* Bottom bar */}
       <div className="footer-bottom">
-        <p>© 2025 EchOrganics. All rights reserved.</p>
+        <p>© 2025 EcOrganic. All rights reserved.</p>
         <div className="footer-bottom-links">
           <Link to="/privacy-policy">Privacy Policy</Link>
           <span>·</span>

@@ -70,6 +70,8 @@ export default function ProductDetail() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
+  const [wishlistIds, setWishlistIds] = useState(new Set());
+  const [addingId, setAddingId] = useState(null);
   const { incrementCart } = useCart();
 
   // Ratings & reviews
@@ -147,6 +149,34 @@ export default function ProductDetail() {
 
     checkWishlist();
   }, [product?.id, isAuthenticated]);
+
+  // Load wishlist ids for the related products grid (same as Home page)
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setWishlistIds(new Set());
+      return;
+    }
+
+    const loadWishlist = async () => {
+      try {
+        const response = await wishlistAPI.getWishlist();
+
+        const items = Array.isArray(response?.data)
+          ? response.data
+          : response?.data?.data || [];
+
+        const ids = new Set(
+          items.map(item => item.productId ?? item.product?.id)
+        );
+
+        setWishlistIds(ids);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadWishlist();
+  }, [isAuthenticated]);
 
   // Load ratings & reviews for this product
   useEffect(() => {
@@ -242,6 +272,40 @@ export default function ProductDetail() {
       showToast(error?.response?.data?.message || "Error updating wishlist");
     } finally {
       setWishlistLoading(false);
+    }
+  };
+
+  const toggleWishlist = (productId, isAdding) => {
+    setWishlistIds(prev => {
+      const updated = new Set(prev);
+      if (isAdding) {
+        updated.add(productId);
+      } else {
+        updated.delete(productId);
+      }
+      return updated;
+    });
+
+    // Keep the main product's wishlist button in sync too
+    if (String(productId) === String(product?.id)) {
+      setIsInWishlist(isAdding);
+    }
+  };
+
+  const addToCartRelated = async productId => {
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+    setAddingId(productId);
+    try {
+      await API.post("/cart", { productId, quantity: 1 });
+      incrementCart(1);
+      showToast("Added to cart! 🛒");
+    } catch (e) {
+      showToast(e?.response?.data?.message || "Please login to add to cart");
+    } finally {
+      setAddingId(null);
     }
   };
 
@@ -865,6 +929,11 @@ export default function ProductDetail() {
                   navigate={navigate}
                   user={user}
                   isAuthenticated={isAuthenticated}
+                  onAddToCart={addToCartRelated}
+                  addingId={addingId}
+                  wishlistIds={wishlistIds}
+                  onToggleWishlist={toggleWishlist}
+                  showToast={showToast}
                 />
               ))}
             </div>
@@ -875,8 +944,47 @@ export default function ProductDetail() {
   );
 }
 
-function RelatedCard({ product, navigate, user, isAuthenticated }) {
+function RelatedCard({
+  product,
+  navigate,
+  user,
+  isAuthenticated,
+  onAddToCart,
+  addingId,
+  wishlistIds,
+  onToggleWishlist,
+  showToast
+}) {
   const catName = product?.category?.name || product?.category || "";
+  const isAdding = addingId === product.id;
+  const isInWishlist = wishlistIds.has(product.id);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+
+  const handleWishlist = async e => {
+    e.stopPropagation();
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+
+    setWishlistLoading(true);
+    try {
+      if (isInWishlist) {
+        await wishlistAPI.removeFromWishlist(product.id);
+        onToggleWishlist?.(product.id, false);
+        showToast?.("Removed from wishlist ✓");
+      } else {
+        await wishlistAPI.addToWishlist(product.id);
+        onToggleWishlist?.(product.id, true);
+        showToast?.("Added to wishlist ❤️");
+      }
+    } catch (error) {
+      console.error("Wishlist error:", error);
+      showToast?.(error?.response?.data?.message || "Error updating wishlist");
+    } finally {
+      setWishlistLoading(false);
+    }
+  };
 
   return (
     <article
@@ -903,6 +1011,16 @@ function RelatedCard({ product, navigate, user, isAuthenticated }) {
         ) : (
           <div className="product-img-placeholder">🌿</div>
         )}
+
+        {/* Wishlist Button */}
+        <button
+          className={`wishlist-btn ${isInWishlist ? "active" : ""}`}
+          onClick={handleWishlist}
+          disabled={wishlistLoading}
+          title={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
+        >
+          {wishlistLoading ? "…" : isInWishlist ? "❤️" : "🤍"}
+        </button>
       </div>
 
       <div className="product-body">
@@ -913,6 +1031,23 @@ function RelatedCard({ product, navigate, user, isAuthenticated }) {
         <p className="product-desc">
           {product.description || "Premium organic product, naturally sourced."}
         </p>
+
+        {product.description && product.description.length > 80 && (
+          <button
+            className="show-more-btn"
+            onClick={e => {
+              e.stopPropagation();
+
+              if (isAuthenticated && user?.id) {
+                saveRecentProduct(product, user.id);
+              }
+
+              navigate(`/products/${product.id}`);
+            }}
+          >
+            Show More
+          </button>
+        )}
 
         <div className="product-foot">
           <div>
@@ -945,15 +1080,11 @@ function RelatedCard({ product, navigate, user, isAuthenticated }) {
             className="btn btn-primary btn-small add-btn"
             onClick={e => {
               e.stopPropagation();
-
-              if (isAuthenticated && user?.id) {
-                saveRecentProduct(product, user.id);
-              }
-
-              navigate(`/products/${product.id}`);
+              onAddToCart(product.id);
             }}
+            disabled={isAdding || product.stock === 0}
           >
-            View
+            {isAdding ? "…" : "+ Cart"}
           </button>
         </div>
       </div>

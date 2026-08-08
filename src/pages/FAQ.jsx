@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import "./FAQ.css";
 
 const FAQS = [
@@ -221,9 +222,9 @@ export default function FAQ() {
           <h3>Still have questions?</h3>
           <p>Our support team is happy to help you personally.</p>
         </div>
-        <a href="/contact-us" className="btn btn-primary">
+        <Link to="/contact-us" className="btn btn-primary">
           Contact Us →
-        </a>
+        </Link>
       </div>
     </div>
   );

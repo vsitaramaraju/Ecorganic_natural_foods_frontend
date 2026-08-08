@@ -96,7 +96,13 @@ export default function Home() {
       try {
         const response = await wishlistAPI.getWishlist();
 
-        const ids = new Set(response.data.map(item => item.product.id));
+        const items = Array.isArray(response?.data)
+          ? response.data
+          : response?.data?.data || [];
+
+        const ids = new Set(
+          items.map(item => item.productId ?? item.product?.id)
+        );
 
         setWishlistIds(ids);
       } catch (err) {
@@ -106,6 +112,18 @@ export default function Home() {
 
     loadWishlist();
   }, [isAuthenticated]);
+
+  const toggleWishlist = (productId, isAdding) => {
+    setWishlistIds(prev => {
+      const updated = new Set(prev);
+      if (isAdding) {
+        updated.add(productId);
+      } else {
+        updated.delete(productId);
+      }
+      return updated;
+    });
+  };
 
   const showToast = msg => {
     clearTimeout(toastRef.current);
@@ -257,6 +275,7 @@ export default function Home() {
                   onAddToCart={addToCart}
                   addingId={addingId}
                   wishlistIds={wishlistIds}
+                  onToggleWishlist={toggleWishlist}
                 />
               ))
             ) : (
@@ -354,6 +373,7 @@ export default function Home() {
                   addingId={addingId}
                   featured
                   wishlistIds={wishlistIds}
+                  onToggleWishlist={toggleWishlist}
                 />
               ))}
             </div>
@@ -383,6 +403,7 @@ export default function Home() {
                     onAddToCart={addToCart}
                     addingId={addingId}
                     wishlistIds={wishlistIds}
+                    onToggleWishlist={toggleWishlist}
                   />
                 ))}
               </div>

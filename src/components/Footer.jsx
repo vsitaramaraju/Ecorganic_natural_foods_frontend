@@ -1,7 +1,21 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import "./Footer.css";
 
 export default function Footer() {
+  const location = useLocation();
+
+  const isAdmin = location.pathname.startsWith("/admin");
+
+  if (isAdmin) {
+    return (
+      <footer className="footer admin-footer">
+        <div className="footer-bottom">
+          <p>© 2026 EcOrganic Admin Panel. All rights reserved.</p>
+          <p>Version 1.0.0</p>
+        </div>
+      </footer>
+    );
+  }
   return (
     <footer className="footer">
       <div className="footer-inner">

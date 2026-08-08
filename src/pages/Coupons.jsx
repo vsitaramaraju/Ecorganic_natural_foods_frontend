@@ -1,82 +1,8 @@
 import { useState } from "react";
 import "./Coupons.css";
 import { useEffect } from "react";
+import { Link } from "react-router-dom";
 import API from "../api/axios";
-
-// const COUPONS = [
-//   {
-//     code: "WELCOME20",
-//     discount: "20% OFF",
-//     description: "First order discount for new customers",
-//     minOrder: 299,
-//     maxDiscount: 100,
-//     validity: "31 Dec 2025",
-//     type: "percent",
-//     category: "New User",
-//     emoji: "🎁",
-//     color: "green"
-//   },
-//   {
-//     code: "FRESH50",
-//     discount: "₹50 OFF",
-//     description: "Flat ₹50 off on fresh vegetables orders",
-//     minOrder: 499,
-//     maxDiscount: 50,
-//     validity: "31 Mar 2025",
-//     type: "flat",
-//     category: "Vegetables",
-//     emoji: "🥦",
-//     color: "teal"
-//   },
-//   {
-//     code: "ORGANIC15",
-//     discount: "15% OFF",
-//     description: "15% off on all certified organic products",
-//     minOrder: 599,
-//     maxDiscount: 150,
-//     validity: "28 Feb 2025",
-//     type: "percent",
-//     category: "Organic",
-//     emoji: "🌿",
-//     color: "green"
-//   },
-//   {
-//     code: "FREEDEL",
-//     discount: "FREE Delivery",
-//     description: "Free delivery on any order, any value",
-//     minOrder: 0,
-//     maxDiscount: null,
-//     validity: "15 Jan 2025",
-//     type: "delivery",
-//     category: "Delivery",
-//     emoji: "🚚",
-//     color: "blue"
-//   },
-//   {
-//     code: "FRUITS10",
-//     discount: "10% OFF",
-//     description: "10% off on all seasonal fruits",
-//     minOrder: 299,
-//     maxDiscount: 80,
-//     validity: "28 Feb 2025",
-//     type: "percent",
-//     category: "Fruits",
-//     emoji: "🍎",
-//     color: "orange"
-//   },
-//   {
-//     code: "DAIRY25",
-//     discount: "₹25 OFF",
-//     description: "Flat ₹25 off on dairy & eggs category",
-//     minOrder: 200,
-//     maxDiscount: 25,
-//     validity: "31 Jan 2025",
-//     type: "flat",
-//     category: "Dairy",
-//     emoji: "🥛",
-//     color: "yellow"
-//   }
-// ];
 
 const OFFERS = [
   {
@@ -180,7 +106,9 @@ export default function Coupons() {
                 </div>
                 <div className="coupon-body">
                   <div className="coupon-discount">
-                    {coupon.discountPercent}
+                    {coupon.discountPercent
+                      ? `${coupon.discountPercent}% OFF`
+                      : `₹${coupon.maxDiscountAmount ?? 0} OFF`}
                   </div>
                   <p className="coupon-desc">{coupon.description}</p>
                   <div className="coupon-meta">
@@ -229,13 +157,13 @@ export default function Coupons() {
               </div>
               <h3>{offer.title}</h3>
               <p>{offer.desc}</p>
-              <a
-                href="/shop"
+              <Link
+                to="/shop"
                 className="btn btn-secondary btn-small"
                 style={{ marginTop: "auto" }}
               >
                 Shop Now →
-              </a>
+              </Link>
             </div>
           ))}
         </div>

@@ -1,5 +1,5 @@
 import { useEffect, useState, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import API from "../api/axios";
 import { wishlistAPI } from "../api/wishlistAPI";
@@ -16,6 +16,8 @@ export default function Wishlist() {
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
   const [removingId, setRemovingId] = useState(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -59,16 +61,16 @@ export default function Wishlist() {
   };
 
   const handleClearWishlist = async () => {
-    if (
-      window.confirm("Are you sure you want to clear your entire wishlist?")
-    ) {
-      try {
-        await wishlistAPI.clearWishlist();
-        setWishlistItems([]);
-        showToast("Wishlist cleared ✓");
-      } catch (e) {
-        showToast(e?.response?.data?.message || "Failed to clear wishlist");
-      }
+    setIsClearing(true);
+    try {
+      await wishlistAPI.clearWishlist();
+      setWishlistItems([]);
+      setShowClearConfirm(false);
+      showToast("Wishlist cleared ✓");
+    } catch (e) {
+      showToast(e?.response?.data?.message || "Failed to clear wishlist");
+    } finally {
+      setIsClearing(false);
     }
   };
 
@@ -96,12 +98,12 @@ export default function Wishlist() {
           </div>
           <div className="alert alert-info">
             Please{" "}
-            <a
-              href="/login"
+            <Link
+              to="/login"
               style={{ color: "var(--color-primary)", fontWeight: "600" }}
             >
               log in
-            </a>{" "}
+            </Link>{" "}
             to view your wishlist.
           </div>
         </div>
@@ -140,7 +142,7 @@ export default function Wishlist() {
             {wishlistItems.length > 0 && (
               <button
                 className="btn btn-secondary"
-                onClick={handleClearWishlist}
+                onClick={() => setShowClearConfirm(true)}
               >
                 Clear Wishlist
               </button>
@@ -168,7 +170,12 @@ export default function Wishlist() {
         ) : (
           <div className="wishlist-grid">
             {wishlistItems.map(item => (
-              <article key={item.id} className="wishlist-card">
+              <article
+                key={item.id}
+                className="wishlist-card"
+                onClick={() => navigate(`/products/${item.product?.id}`)}
+                style={{ cursor: "pointer" }}
+              >
                 {/* Image */}
                 <div className="wishlist-card-img">
                   {item.product?.imageUrl ? (
@@ -187,7 +194,10 @@ export default function Wishlist() {
                   {/* Always-visible remove button, top-right of the image */}
                   <button
                     className="wishlist-remove-overlay"
-                    onClick={() => handleRemoveItem(item)}
+                    onClick={e => {
+                      e.stopPropagation();
+                      handleRemoveItem(item);
+                    }}
                     disabled={removingId === item.id}
                     title="Remove from wishlist"
                     aria-label="Remove from wishlist"
@@ -229,14 +239,20 @@ export default function Wishlist() {
                   <div className="wishlist-card-actions">
                     <button
                       className="btn btn-primary btn-small"
-                      onClick={() => navigate(`/products/${item.product?.id}`)}
+                      onClick={e => {
+                        e.stopPropagation();
+                        navigate(`/products/${item.product?.id}`);
+                      }}
                     >
                       View Details
                     </button>
 
                     <button
                       className={`btn btn-secondary btn-small ${item.product?.stock === 0 ? "disabled" : ""}`}
-                      onClick={() => handleAddToCart(item.product?.id)}
+                      onClick={e => {
+                        e.stopPropagation();
+                        handleAddToCart(item.product?.id);
+                      }}
                       disabled={item.product?.stock === 0}
                     >
                       🛒 Add to Cart
@@ -248,6 +264,64 @@ export default function Wishlist() {
           </div>
         )}
       </div>
+
+      {/* Clear wishlist confirmation modal */}
+      {showClearConfirm && (
+        <div
+          onClick={() => !isClearing && setShowClearConfirm(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0, 0, 0, 0.4)",
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center"
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: "#fff",
+              borderRadius: "16px",
+              padding: "28px 32px",
+              maxWidth: "400px",
+              width: "90%",
+              boxShadow: "0 20px 60px rgba(0, 0, 0, 0.2)"
+            }}
+          >
+            <div style={{ fontSize: "32px", marginBottom: "8px" }}>🗑</div>
+
+            <h2 style={{ marginBottom: "8px", color: "#1f2937" }}>
+              Clear Wishlist
+            </h2>
+
+            <p style={{ color: "#53586b", marginBottom: "20px" }}>
+              Are you sure you want to remove all {wishlistItems.length} item
+              {wishlistItems.length !== 1 ? "s" : ""} from your wishlist? This
+              action cannot be undone.
+            </p>
+
+            <div style={{ display: "flex", gap: "12px" }}>
+              <button
+                className="btn btn-primary"
+                style={{ background: "#dc2626", borderColor: "#dc2626" }}
+                onClick={handleClearWishlist}
+                disabled={isClearing}
+              >
+                {isClearing ? "Clearing…" : "Yes, Clear All"}
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowClearConfirm(false)}
+                disabled={isClearing}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

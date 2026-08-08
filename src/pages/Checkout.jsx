@@ -335,7 +335,7 @@ export default function Checkout() {
                   <span>
                     Coupon Discount ({couponApplied.discountPercent}%)
                   </span>
-                  <span>−₹{discountAmount}</span>Percent
+                  <span>−₹{discountAmount}</span>
                 </div>
               )}
               <div className="summary-divider" />

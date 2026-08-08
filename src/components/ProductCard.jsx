@@ -10,7 +10,8 @@ function ProductCard({
   onAddToCart,
   addingId,
   featured,
-  wishlistIds
+  wishlistIds,
+  onToggleWishlist
 }) {
   const { isAuthenticated, user } = useContext(AuthContext);
   const catName = product?.category?.name || product?.category || "";
@@ -36,9 +37,11 @@ function ProductCard({
     try {
       if (isInWishlist) {
         await wishlistAPI.removeFromWishlist(product.id);
+        onToggleWishlist?.(product.id, false);
         showToast("Removed from wishlist ✓");
       } else {
         await wishlistAPI.addToWishlist(product.id);
+        onToggleWishlist?.(product.id, true);
         showToast("Added to wishlist ❤️");
       }
     } catch (error) {
@@ -47,7 +50,6 @@ function ProductCard({
       setWishlistLoading(false);
     }
   };
-
   return (
     <>
       {toast && <div className="toast">{toast}</div>}

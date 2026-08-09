@@ -1,19 +1,13 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../utils/useAuth";
+import { useEffect, useRef } from "react";
 import "./Admin.css";
 
 export default function AdminPanel() {
   const { isAdmin, isAuthenticated, user } = useAuth();
-  if (!isAuthenticated || !isAdmin) {
-    return (
-      <div className="container admin-page">
-        <h1>Admin Panel</h1>
-        <div className="alert alert-error">
-          You do not have permission to access this page.
-        </div>
-      </div>
-    );
-  }
+  const location = useLocation();
+
+  const navRefs = useRef({});
 
   const NAV = [
     { to: "/admin/dashboard", label: "🏠 Dashboard" },
@@ -27,17 +21,41 @@ export default function AdminPanel() {
     { to: "/admin/reports", label: "📋 Reports" }
   ];
 
+  /*
+   * Automatically move the active sidebar item into view.
+   * This works both when:
+   * 1. User clicks another admin page
+   * 2. User refreshes the browser
+   */
+  useEffect(() => {
+    const activeNav = navRefs.current[location.pathname];
+
+    if (activeNav) {
+      requestAnimationFrame(() => {
+        activeNav.scrollIntoView({
+          behavior: "auto",
+          block: "nearest",
+          inline: "center"
+        });
+      });
+    }
+  }, [location.pathname]);
+
+  if (!isAuthenticated || !isAdmin) {
+    return (
+      <div className="admin-access-denied">
+        <h2>Admin Panel</h2>
+        <p>You do not have permission to access this page.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="container admin-page">
-      <div className="admin-page-header">
-        <div>
-          <h1 style={{ color: "black" }}>
-            Welcome, {user?.name || "Admin"} 👋
-          </h1>
-          <p>
-            Manage sales, orders, products, categories, and users from here.
-          </p>
-        </div>
+    <div className="admin-screen">
+      <div className="admin-header">
+        <h1 style={{ color: "black" }}>Welcome, {user?.name || "Admin"} 👋</h1>
+
+        <p>Manage sales, orders, products, categories, and users from here.</p>
       </div>
 
       <div className="admin-layout">
@@ -46,6 +64,9 @@ export default function AdminPanel() {
             <NavLink
               key={to}
               to={to}
+              ref={el => {
+                navRefs.current[to] = el;
+              }}
               className={({ isActive }) =>
                 `admin-nav-link ${isActive ? "active" : ""}`
               }
@@ -55,7 +76,7 @@ export default function AdminPanel() {
           ))}
         </aside>
 
-        <div className="admin-content admin-screen">
+        <div className="admin-content">
           <Outlet />
         </div>
       </div>

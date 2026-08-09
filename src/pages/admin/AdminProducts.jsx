@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   fetchCategories,
   fetchProducts,
@@ -21,6 +21,8 @@ const EMPTY_FORM = {
   categoryId: "",
   imageUrl: ""
 };
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 // Turns { pricingType, weightValue, weightUnit } into the priceUnit string
 // the backend expects, e.g. "fixed" or "per_200g" / "per_1.5kg".
@@ -62,6 +64,24 @@ export default function AdminProducts() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedProduct, setExpandedProduct] = useState(null);
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showCategoryMenu, setShowCategoryMenu] = useState(false);
+  const categoryMenuRef = useRef(null);
+
+  useEffect(() => {
+    if (!showCategoryMenu) return;
+    const handleClickOutside = e => {
+      if (
+        categoryMenuRef.current &&
+        !categoryMenuRef.current.contains(e.target)
+      ) {
+        setShowCategoryMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showCategoryMenu]);
 
   const loadData = async (categoryId = "all") => {
     const categoryData = await fetchCategories();
@@ -221,6 +241,19 @@ export default function AdminProducts() {
       !searchQuery || p.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Reset to page 1 whenever the search, category, or page size changes so
+  // the user doesn't land on an empty/out-of-range page.
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, activeCategory, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginated = filtered.slice(
+    (safePage - 1) * pageSize,
+    (safePage - 1) * pageSize + pageSize
+  );
+
   if (isLoading)
     return (
       <div className="dash-loading">
@@ -232,7 +265,7 @@ export default function AdminProducts() {
     <div className="admin-stack">
       {/* Form Toggle */}
       {!showForm && (
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <div style={{ display: "flex", justifyContent: "center" }}>
           <button className="btn btn-primary" onClick={() => setShowForm(true)}>
             + Add Product
           </button>
@@ -437,6 +470,22 @@ export default function AdminProducts() {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
             />
+            <select
+              value={pageSize}
+              onChange={e => setPageSize(Number(e.target.value))}
+              style={{
+                padding: "8px 12px",
+                border: "1.5px solid #e5e7eb",
+                borderRadius: 8
+              }}
+              title="Rows per page"
+            >
+              {PAGE_SIZE_OPTIONS.map(n => (
+                <option key={n} value={n}>
+                  {n} / page
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -449,10 +498,13 @@ export default function AdminProducts() {
           }}
         >
           <div
+            className="admin-cat-filter"
+            ref={categoryMenuRef}
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: "6px"
+              gap: "6px",
+              position: "relative"
             }}
           >
             <label
@@ -465,32 +517,55 @@ export default function AdminProducts() {
               Filter by Category
             </label>
 
-            <select
-              value={activeCategory}
-              onChange={e => handleCategoryFilter(e.target.value)}
-              style={{
-                minWidth: "250px",
-                padding: "12px 16px",
-                border: "1px solid #d1d5db",
-                borderRadius: "12px",
-                background: "#fff",
-                color: "#111827",
-                fontSize: "14px",
-                fontWeight: "500",
-                cursor: "pointer",
-                outline: "none",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                transition: "all 0.3s ease"
-              }}
+            <button
+              type="button"
+              className="admin-cat-filter-trigger"
+              onClick={() => setShowCategoryMenu(o => !o)}
+              aria-haspopup="listbox"
+              aria-expanded={showCategoryMenu}
             >
-              <option value="all">📦 All Categories</option>
+              <span>
+                {activeCategory === "all"
+                  ? "📦 All Categories"
+                  : categories.find(c => String(c.id) === activeCategory)
+                      ?.name || "All Categories"}
+              </span>
+              <span
+                className={`admin-cat-filter-caret ${showCategoryMenu ? "open" : ""}`}
+              >
+                ▾
+              </span>
+            </button>
 
-              {categories.map(c => (
-                <option key={c.id} value={String(c.id)}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+            {showCategoryMenu && (
+              <ul className="admin-cat-filter-menu" role="listbox">
+                <li
+                  role="option"
+                  aria-selected={activeCategory === "all"}
+                  className={activeCategory === "all" ? "active" : ""}
+                  onClick={() => {
+                    handleCategoryFilter("all");
+                    setShowCategoryMenu(false);
+                  }}
+                >
+                  📦 All Categories
+                </li>
+                {categories.map(c => (
+                  <li
+                    key={c.id}
+                    role="option"
+                    aria-selected={activeCategory === String(c.id)}
+                    className={activeCategory === String(c.id) ? "active" : ""}
+                    onClick={() => {
+                      handleCategoryFilter(String(c.id));
+                      setShowCategoryMenu(false);
+                    }}
+                  >
+                    {c.name}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
 
@@ -515,14 +590,14 @@ export default function AdminProducts() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {paginated.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="admin-empty-row">
                     No products found.
                   </td>
                 </tr>
               ) : (
-                filtered.map(product => (
+                paginated.map(product => (
                   <>
                     <tr
                       key={product.id}
@@ -652,6 +727,38 @@ export default function AdminProducts() {
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="admin-pagination">
+          <p className="admin-pagination-summary">
+            Showing {filtered.length === 0 ? 0 : (safePage - 1) * pageSize + 1}–
+            {Math.min(safePage * pageSize, filtered.length)} of{" "}
+            {filtered.length} products
+          </p>
+
+          {totalPages > 1 && (
+            <div className="admin-pagination-controls">
+              <button
+                type="button"
+                className="btn-action"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={safePage === 1}
+              >
+                ← Prev
+              </button>
+              <span className="admin-pagination-page">
+                Page {safePage} of {totalPages}
+              </span>
+              <button
+                type="button"
+                className="btn-action"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={safePage === totalPages}
+              >
+                Next →
+              </button>
+            </div>
+          )}
         </div>
       </section>
 

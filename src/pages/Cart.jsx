@@ -310,30 +310,34 @@ export default function Cart() {
 
                 {showCoupons && (
                   <div className="available-list">
-                    {availableCoupons.map(coupon => {
-                      return (
-                        <div key={coupon.code} className="coupon-item">
-                          <div>
-                            <h4>{coupon.code}</h4>
+                    {availableCoupons.length > 0 ? (
+                      availableCoupons.map(coupon => {
+                        return (
+                          <div key={coupon.code} className="coupon-item">
+                            <div>
+                              <h4>{coupon.code}</h4>
 
-                            {coupon.discountPercent ? (
-                              <p>{coupon.discountPercent}% OFF</p>
-                            ) : (
-                              <p>₹{coupon.maxDiscountAmount} OFF</p>
-                            )}
+                              {coupon.discountPercent ? (
+                                <p>{coupon.discountPercent}% OFF</p>
+                              ) : (
+                                <p>₹{coupon.maxDiscountAmount} OFF</p>
+                              )}
 
-                            <small>Min Order ₹{coupon.minOrderAmount}</small>
+                              <small>Min Order ₹{coupon.minOrderAmount}</small>
+                            </div>
+
+                            <button
+                              className="btn btn-primary btn-small"
+                              onClick={() => applyCoupon(coupon)}
+                            >
+                              Add
+                            </button>
                           </div>
-
-                          <button
-                            className="btn btn-primary btn-small"
-                            onClick={() => applyCoupon(coupon)}
-                          >
-                            Add
-                          </button>
-                        </div>
-                      );
-                    })}
+                        );
+                      })
+                    ) : (
+                      <h5>No coupons available</h5>
+                    )}
                   </div>
                 )}
               </div>

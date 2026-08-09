@@ -181,7 +181,14 @@ export default function AdminCoupons() {
       )}
 
       {/* Header and Form Toggle */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-around",
+          alignItems: "self-end",
+          marginBottom: "20px"
+        }}
+      >
         <div>
           <h2>Manage Coupons</h2>
           <p style={{ margin: "8px 0 0 0", color: "#6b7280" }}>
@@ -388,7 +395,15 @@ export default function AdminCoupons() {
       )}
 
       {/* Search and Filters */}
-      <div style={{ display: "flex", gap: "12px", marginBottom: "20px", alignItems: "flex-end", flexWrap: "wrap" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: "12px",
+          marginBottom: "20px",
+          alignItems: "flex-end",
+          flexWrap: "wrap"
+        }}
+      >
         <div style={{ flex: 1, minWidth: "200px" }}>
           <input
             type="text"
@@ -408,7 +423,10 @@ export default function AdminCoupons() {
           <button
             style={{
               padding: "8px 12px",
-              border: filterType === "all" ? "2px solid #667eea" : "1px solid #d1d5db",
+              border:
+                filterType === "all"
+                  ? "2px solid #667eea"
+                  : "1px solid #d1d5db",
               background: filterType === "all" ? "#f0f4ff" : "#fff",
               color: filterType === "all" ? "#667eea" : "#6b7280",
               borderRadius: "6px",
@@ -425,7 +443,10 @@ export default function AdminCoupons() {
               key={t.value}
               style={{
                 padding: "8px 12px",
-                border: filterType === t.value ? "2px solid #667eea" : "1px solid #d1d5db",
+                border:
+                  filterType === t.value
+                    ? "2px solid #667eea"
+                    : "1px solid #d1d5db",
                 background: filterType === t.value ? "#f0f4ff" : "#fff",
                 color: filterType === t.value ? "#667eea" : "#6b7280",
                 borderRadius: "6px",
@@ -473,15 +494,27 @@ export default function AdminCoupons() {
                     <strong>{coupon.code}</strong>
                   </td>
                   <td>
-                    <span style={{
-                      display: "inline-block",
-                      padding: "4px 8px",
-                      borderRadius: "4px",
-                      fontSize: "12px",
-                      fontWeight: "600",
-                      background: coupon.type === "GENERAL" ? "#dbeafe" : coupon.type === "NEW_USER" ? "#dcfce7" : "#fef3c7",
-                      color: coupon.type === "GENERAL" ? "#1d4ed8" : coupon.type === "NEW_USER" ? "#166534" : "#92400e"
-                    }}>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        padding: "4px 8px",
+                        borderRadius: "4px",
+                        fontSize: "12px",
+                        fontWeight: "600",
+                        background:
+                          coupon.type === "GENERAL"
+                            ? "#dbeafe"
+                            : coupon.type === "NEW_USER"
+                              ? "#dcfce7"
+                              : "#fef3c7",
+                        color:
+                          coupon.type === "GENERAL"
+                            ? "#1d4ed8"
+                            : coupon.type === "NEW_USER"
+                              ? "#166534"
+                              : "#92400e"
+                      }}
+                    >
                       {coupon.type}
                     </span>
                   </td>
@@ -492,7 +525,9 @@ export default function AdminCoupons() {
                       : "None"}
                   </td>
                   <td>
-                    {coupon.usageLimit ? `${coupon.usageLimit} uses` : "Unlimited"}
+                    {coupon.usageLimit
+                      ? `${coupon.usageLimit} uses`
+                      : "Unlimited"}
                   </td>
                   <td>{formatDate(coupon.endDate) || "N/A"}</td>
                   <td style={{ display: "flex", gap: "6px" }}>
@@ -511,16 +546,18 @@ export default function AdminCoupons() {
                       Delete
                     </button>
                     {deleteConfirm === coupon.id && (
-                      <div style={{
-                        position: "absolute",
-                        background: "#fff",
-                        border: "1px solid #d1d5db",
-                        borderRadius: "6px",
-                        padding: "10px",
-                        marginTop: "28px",
-                        boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                        zIndex: 10
-                      }}>
+                      <div
+                        style={{
+                          position: "absolute",
+                          background: "#fff",
+                          border: "1px solid #d1d5db",
+                          borderRadius: "6px",
+                          padding: "10px",
+                          marginTop: "28px",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                          zIndex: 10
+                        }}
+                      >
                         <p style={{ margin: "0 0 8px 0", fontSize: "13px" }}>
                           Delete this coupon?
                         </p>

@@ -38,6 +38,8 @@ const STATUS_COLORS = {
   CANCELLED: "#ef4444"
 };
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
 export default function AdminSales() {
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -47,6 +49,8 @@ export default function AdminSales() {
   const [dateTo, setDateTo] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("date_desc");
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     (async () => {
@@ -103,6 +107,18 @@ export default function AdminSales() {
     });
     return result;
   }, [orders, statusFilter, dateFrom, dateTo, searchQuery, sortBy]);
+
+  // Reset to page 1 whenever filters/search/sort/page size change.
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, dateFrom, dateTo, searchQuery, sortBy, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginated = useMemo(() => {
+    const start = (safePage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, safePage, pageSize]);
 
   const summary = useMemo(
     () => ({
@@ -219,6 +235,19 @@ export default function AdminSales() {
               <option value="amount_asc">Lowest Amount</option>
             </select>
           </div>
+          <div className="form-group">
+            <label>Rows</label>
+            <select
+              value={pageSize}
+              onChange={e => setPageSize(Number(e.target.value))}
+            >
+              {PAGE_SIZE_OPTIONS.map(n => (
+                <option key={n} value={n}>
+                  {n} / page
+                </option>
+              ))}
+            </select>
+          </div>
           <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
             <button
               className="btn btn-primary"
@@ -282,14 +311,14 @@ export default function AdminSales() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {paginated.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="admin-empty-row">
                     No orders match your filters.
                   </td>
                 </tr>
               ) : (
-                filtered.map(o => (
+                paginated.map(o => (
                   <tr key={o.id}>
                     <td>
                       <strong>#{o.id}</strong>
@@ -315,6 +344,38 @@ export default function AdminSales() {
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="admin-pagination">
+          <p className="admin-pagination-summary">
+            Showing {filtered.length === 0 ? 0 : (safePage - 1) * pageSize + 1}–
+            {Math.min(safePage * pageSize, filtered.length)} of{" "}
+            {filtered.length} orders
+          </p>
+
+          {totalPages > 1 && (
+            <div className="admin-pagination-controls">
+              <button
+                type="button"
+                className="btn-action"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={safePage === 1}
+              >
+                ← Prev
+              </button>
+              <span className="admin-pagination-page">
+                Page {safePage} of {totalPages}
+              </span>
+              <button
+                type="button"
+                className="btn-action"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={safePage === totalPages}
+              >
+                Next →
+              </button>
+            </div>
+          )}
         </div>
       </section>
     </div>

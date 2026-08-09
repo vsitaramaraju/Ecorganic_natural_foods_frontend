@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { fetchUsers, updateUserRole, formatDate } from "./adminShared";
 
 const ROLES = ["USER", "ADMIN"];
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -10,6 +11,8 @@ export default function AdminUsers() {
   const [message, setMessage] = useState({ type: "", text: "" });
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const load = async () => {
     const data = await fetchUsers();
@@ -49,6 +52,19 @@ export default function AdminUsers() {
     return result;
   }, [users, search, roleFilter]);
 
+  // Reset to page 1 whenever the filters, search, or page size change so
+  // the user doesn't land on an empty/out-of-range page.
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, roleFilter, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginated = useMemo(() => {
+    const start = (safePage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, safePage, pageSize]);
+
   const handleRoleChange = async (userId, newRole) => {
     try {
       setIsSaving(userId);
@@ -79,14 +95,7 @@ export default function AdminUsers() {
   return (
     <div className="admin-stack">
       {/* Stats */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
-          gap: 16,
-          marginBottom: 8
-        }}
-      >
+      <div className="admin-user-stats-grid">
         {[
           { label: "Total Users", value: users.length, icon: "👥" },
           { label: "Customers", value: totalUsers, icon: "🛒" },
@@ -138,7 +147,9 @@ export default function AdminUsers() {
             display: "flex",
             gap: 12,
             marginBottom: 16,
-            flexWrap: "wrap"
+            flexWrap: "wrap",
+            justifyContent: "space-between",
+            alignItems: "center"
           }}
         >
           <input
@@ -166,6 +177,22 @@ export default function AdminUsers() {
             <option value="USER">Customers</option>
             <option value="ADMIN">Admins</option>
           </select>
+          <select
+            value={pageSize}
+            onChange={e => setPageSize(Number(e.target.value))}
+            style={{
+              padding: "8px 12px",
+              border: "1.5px solid #e5e7eb",
+              borderRadius: 8
+            }}
+            title="Rows per page"
+          >
+            {PAGE_SIZE_OPTIONS.map(n => (
+              <option key={n} value={n}>
+                {n} / page
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="admin-table-wrap">
@@ -182,16 +209,18 @@ export default function AdminUsers() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {paginated.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="admin-empty-row">
                     No users found.
                   </td>
                 </tr>
               ) : (
-                filtered.map((user, idx) => (
+                paginated.map((user, idx) => (
                   <tr key={user.id}>
-                    <td style={{ color: "#9ca3af" }}>{idx + 1}</td>
+                    <td style={{ color: "#9ca3af" }}>
+                      {(safePage - 1) * pageSize + idx + 1}
+                    </td>
                     <td>
                       <strong>{user.name || "—"}</strong>
                     </td>
@@ -226,9 +255,37 @@ export default function AdminUsers() {
             </tbody>
           </table>
         </div>
-        <p style={{ color: "#9ca3af", fontSize: "0.78rem", marginTop: 8 }}>
-          Showing {filtered.length} of {users.length} users
-        </p>
+        <div className="admin-pagination">
+          <p className="admin-pagination-summary">
+            Showing {filtered.length === 0 ? 0 : (safePage - 1) * pageSize + 1}–
+            {Math.min(safePage * pageSize, filtered.length)} of{" "}
+            {filtered.length} users
+          </p>
+
+          {totalPages > 1 && (
+            <div className="admin-pagination-controls">
+              <button
+                type="button"
+                className="btn-action"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={safePage === 1}
+              >
+                ← Prev
+              </button>
+              <span className="admin-pagination-page">
+                Page {safePage} of {totalPages}
+              </span>
+              <button
+                type="button"
+                className="btn-action"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={safePage === totalPages}
+              >
+                Next →
+              </button>
+            </div>
+          )}
+        </div>
       </section>
     </div>
   );

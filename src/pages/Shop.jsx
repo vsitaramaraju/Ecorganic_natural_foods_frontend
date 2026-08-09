@@ -48,6 +48,8 @@ export default function Shop() {
   const { isAuthenticated } = useContext(AuthContext);
   const navigate = useNavigate();
   const { incrementCart } = useCart();
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -202,16 +204,84 @@ export default function Shop() {
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
-            <select
-              className="sort-select"
-              value={sortBy}
-              onChange={e => setSortBy(e.target.value)}
-            >
-              <option value="default">Sort: Default</option>
-              <option value="price-asc">Price: Low to High</option>
-              <option value="price-desc">Price: High to Low</option>
-              <option value="name">Name A–Z</option>
-            </select>
+            <div className="sort-dropdown">
+              <button
+                type="button"
+                className="sort-dropdown-button"
+                onClick={() => setSortDropdownOpen(prev => !prev)}
+              >
+                <span>
+                  {sortBy === "default" && "↕ Sort: Default"}
+                  {sortBy === "price-asc" && "↑ Price: Low to High"}
+                  {sortBy === "price-desc" && "↓ Price: High to Low"}
+                  {sortBy === "name" && "A–Z Name"}
+                </span>
+
+                <span
+                  className={`sort-dropdown-arrow ${
+                    sortDropdownOpen ? "open" : ""
+                  }`}
+                >
+                  ▾
+                </span>
+              </button>
+
+              {sortDropdownOpen && (
+                <div className="sort-dropdown-menu">
+                  <button
+                    type="button"
+                    className={`sort-dropdown-option ${
+                      sortBy === "default" ? "selected" : ""
+                    }`}
+                    onClick={() => {
+                      setSortBy("default");
+                      setSortDropdownOpen(false);
+                    }}
+                  >
+                    ↕ Sort: Default
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`sort-dropdown-option ${
+                      sortBy === "price-asc" ? "selected" : ""
+                    }`}
+                    onClick={() => {
+                      setSortBy("price-asc");
+                      setSortDropdownOpen(false);
+                    }}
+                  >
+                    ↑ Price: Low to High
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`sort-dropdown-option ${
+                      sortBy === "price-desc" ? "selected" : ""
+                    }`}
+                    onClick={() => {
+                      setSortBy("price-desc");
+                      setSortDropdownOpen(false);
+                    }}
+                  >
+                    ↓ Price: High to Low
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`sort-dropdown-option ${
+                      sortBy === "name" ? "selected" : ""
+                    }`}
+                    onClick={() => {
+                      setSortBy("name");
+                      setSortDropdownOpen(false);
+                    }}
+                  >
+                    A–Z Name
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -219,25 +289,112 @@ export default function Shop() {
       <div className="shop-body container">
         {/* Sidebar */}
         <aside className="shop-sidebar">
-          <h3>Categories</h3>
-          <button
-            className={`cat-btn ${activeCat === "all" ? "active" : ""}`}
-            onClick={() => setActiveCat("all")}
-          >
-            🌿 All Products <span className="cat-count">{products.length}</span>
-          </button>
-          {categories.map(c => (
+          {/* Desktop Categories */}
+          <div className="desktop-categories">
+            <h3>Categories</h3>
+
             <button
-              key={c.id}
-              className={`cat-btn ${activeCat === String(c.id) ? "active" : ""}`}
-              onClick={() => setActiveCat(String(c.id))}
+              className={`cat-btn ${activeCat === "all" ? "active" : ""}`}
+              onClick={() => setActiveCat("all")}
             >
-              {c.name}
-              <span className="cat-count">
-                {products.filter(p => p.categoryId === c.id).length}
-              </span>
+              🌿 All Products
+              <span className="cat-count">{products.length}</span>
             </button>
-          ))}
+
+            {categories.map(c => (
+              <button
+                key={c.id}
+                className={`cat-btn ${
+                  activeCat === String(c.id) ? "active" : ""
+                }`}
+                onClick={() => setActiveCat(String(c.id))}
+              >
+                {c.name}
+                <span className="cat-count">
+                  {products.filter(p => p.categoryId === c.id).length}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Mobile Category Dropdown */}
+          <div className="mobile-category-dropdown">
+            <label>Filter by Category</label>
+
+            <div className="category-select-wrapper">
+              <button
+                type="button"
+                className="category-select-button"
+                onClick={() => setCategoryDropdownOpen(prev => !prev)}
+              >
+                <span>
+                  {activeCat === "all"
+                    ? `🌿 All Categories (${products.length})`
+                    : `${
+                        categories.find(c => String(c.id) === activeCat)?.name
+                      } (${
+                        products.filter(p => String(p.categoryId) === activeCat)
+                          .length
+                      })`}
+                </span>
+
+                <span
+                  className={`category-arrow ${
+                    categoryDropdownOpen ? "open" : ""
+                  }`}
+                >
+                  ▾
+                </span>
+              </button>
+
+              {categoryDropdownOpen && (
+                <div className="category-dropdown-menu">
+                  {/* All Categories */}
+                  <button
+                    type="button"
+                    className={`category-option ${
+                      activeCat === "all" ? "selected" : ""
+                    }`}
+                    onClick={() => {
+                      setActiveCat("all");
+                      setCategoryDropdownOpen(false);
+                    }}
+                  >
+                    <span>🌿 All Categories</span>
+
+                    <span className="category-option-count">
+                      {products.length}
+                    </span>
+                  </button>
+
+                  {/* Categories */}
+                  {categories.map(c => {
+                    const count = products.filter(
+                      p => p.categoryId === c.id
+                    ).length;
+
+                    return (
+                      <button
+                        type="button"
+                        key={c.id}
+                        className={`category-option ${
+                          activeCat === String(c.id) ? "selected" : ""
+                        }`}
+                        onClick={() => {
+                          setActiveCat(String(c.id));
+                          setCategoryDropdownOpen(false);
+                        }}
+                      >
+                        <span>{c.name}</span>
+
+                        <span className="category-option-count">{count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
         </aside>
 
         {/* Products */}

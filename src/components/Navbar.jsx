@@ -193,7 +193,7 @@ function Navbar() {
               </Link>
             </div>
           ) : (
-            <AdminOrderNotifications />
+            isAdmin && <AdminOrderNotifications />
           )}
 
           {/* PROFILE */}

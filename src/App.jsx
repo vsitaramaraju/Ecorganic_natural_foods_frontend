@@ -1,9 +1,10 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useContext } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import ScrollToTop from "./ScrollToTop";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { AuthContext } from "./context/AuthContext";
 
 // Home is loaded eagerly since it's the landing page and needs to be
 // available immediately. Everything else is code-split so the initial
@@ -56,6 +57,20 @@ function PageFallback() {
   );
 }
 
+function HomeRoute() {
+  const { isAuthenticated, isAdmin, isLoading } = useContext(AuthContext);
+
+  if (isLoading) {
+    return <PageFallback />;
+  }
+
+  if (isAuthenticated && isAdmin) {
+    return <Navigate to="/admin/overview" replace />;
+  }
+
+  return <Home />;
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -65,7 +80,7 @@ function App() {
         <Suspense fallback={<PageFallback />}>
           <Routes>
             {/* Public routes */}
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<HomeRoute />} />
             <Route path="/shop" element={<Shop />} />
             <Route path="/categories" element={<Categories />} />
             <Route path="/products/:id" element={<ProductDetail />} />

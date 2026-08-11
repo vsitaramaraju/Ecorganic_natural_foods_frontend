@@ -13,6 +13,7 @@ export function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const [toast, setToast] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const redirectAfterLogin = (currentUser, currentToken) => {
     login(currentUser, currentToken);
@@ -122,18 +123,43 @@ export function Login() {
               </div>
               <div className="form-group">
                 <label>Password</label>
-                <input
-                  type="password"
-                  value={form.password}
-                  onChange={e => {
-                    setForm(p => ({ ...p, password: e.target.value }));
-                    if (errors.password)
-                      setErrors(p => ({ ...p, password: "" }));
-                  }}
-                  placeholder="Enter your password"
-                  className={errors.password ? "form-error" : ""}
-                  disabled={isLoading}
-                />
+
+                <div className="password-input-wrap">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={form.password}
+                    onChange={e => {
+                      setForm(p => ({
+                        ...p,
+                        password: e.target.value
+                      }));
+
+                      if (errors.password) {
+                        setErrors(p => ({
+                          ...p,
+                          password: ""
+                        }));
+                      }
+                    }}
+                    placeholder="Enter your password"
+                    className={errors.password ? "form-error" : ""}
+                    disabled={isLoading}
+                  />
+
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    onClick={() => setShowPassword(prev => !prev)}
+                    disabled={isLoading}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
+                    title={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? "🙈" : "👁️"}
+                  </button>
+                </div>
+
                 {errors.password && (
                   <span className="form-error-message">{errors.password}</span>
                 )}

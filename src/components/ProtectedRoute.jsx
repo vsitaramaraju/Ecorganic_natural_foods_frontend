@@ -4,18 +4,25 @@ import { AuthContext } from "../context/AuthContext";
 
 /**
  * Wraps a route so only authenticated users can access it.
- * Unauthenticated users are redirected to /login, with the
- * current path saved so they can be sent back after login.
  *
- * Usage:
- *   <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
- *   <Route path="/admin" element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
+ * Admin routes:
+ *   <ProtectedRoute adminOnly>
+ *     <Admin />
+ *   </ProtectedRoute>
+ *
+ * Normal protected routes:
+ *   <ProtectedRoute>
+ *     <Cart />
+ *   </ProtectedRoute>
  */
 export default function ProtectedRoute({ children, adminOnly = false }) {
   const { isAuthenticated, isAdmin, isLoading } = useContext(AuthContext);
+
   const location = useLocation();
 
-  // Wait for auth state to be restored from localStorage
+  // --------------------------------------------------
+  // 1. Wait until authentication has been restored
+  // --------------------------------------------------
   if (isLoading) {
     return (
       <div className="loading-wrap">
@@ -24,13 +31,22 @@ export default function ProtectedRoute({ children, adminOnly = false }) {
     );
   }
 
+  // --------------------------------------------------
+  // 2. User is not authenticated
+  // --------------------------------------------------
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // --------------------------------------------------
+  // 3. Admin route but user is not an admin
+  // --------------------------------------------------
   if (adminOnly && !isAdmin) {
     return <Navigate to="/" replace />;
   }
 
+  // --------------------------------------------------
+  // 4. Authentication and permissions are valid
+  // --------------------------------------------------
   return children;
 }

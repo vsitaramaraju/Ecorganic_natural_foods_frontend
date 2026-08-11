@@ -7,8 +7,7 @@
   position: relative;
   width: 46px;
   height: 46px;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  border: none;
   background: #fff;
   color: #1f2937;
   display: inline-flex;
@@ -21,9 +20,7 @@
 
 .admin-notification-button:hover,
 .admin-notification-button.has-pending {
-  border-color: #667eea;
   color: #667eea;
-  box-shadow: 0 4px 14px rgba(102, 126, 234, 0.12);
 }
 
 .admin-notification-count {

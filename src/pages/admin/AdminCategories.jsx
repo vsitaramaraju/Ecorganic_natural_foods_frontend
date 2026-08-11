@@ -11,7 +11,6 @@ export default function AdminCategories() {
   const [message, setMessage] = useState({ type: "", text: "" });
   const [form, setForm] = useState(DEFAULT_FORM);
   const [editingId, setEditingId] = useState(null);
-  const [deleteConfirm, setDeleteConfirm] = useState(null); // { id, name }
 
   const loadData = async () => {
     const data = await fetchCategories();

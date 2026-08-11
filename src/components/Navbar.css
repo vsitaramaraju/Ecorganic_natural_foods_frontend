@@ -412,7 +412,8 @@
   .navbar-links,
   .navbar-search,
   .auth-actions,
-  .user-icons-wrap {
+  .user-icons-wrap,
+  .profile-wrap {
     display: none;
   }
 
@@ -422,5 +423,8 @@
 
   .mobile-menu {
     display: flex;
+  }
+  .admin-nav-only {
+    display: none;
   }
 }

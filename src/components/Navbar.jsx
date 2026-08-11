@@ -7,6 +7,7 @@ import { useCart } from "../context/CartContext";
 import SearchResultsPopup from "./SearchResultsPopup";
 import API from "../api/axios";
 import logo from "../../public/images/Ecorganic logo.png";
+import AdminOrderNotifications from "./AdminOrderNotifications";
 
 function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -163,18 +164,20 @@ function Navbar() {
         {/* ================= ADMIN NAV ================= */}
 
         {isAdmin && (
-          <div className="admin-nav-only">
-            <Link to="/admin/overview" className="nav-link admin-badge">
-              ⚙ Dashboard
-            </Link>
-          </div>
+          <>
+            <div className="admin-nav-only">
+              <Link to="/admin/overview" className="nav-link admin-badge">
+                ⚙ Dashboard
+              </Link>
+            </div>
+          </>
         )}
 
         {/* ================= RIGHT SECTION ================= */}
 
         <div className="navbar-right">
           {/* USER ICON ACTIONS */}
-          {user && !isAdmin && (
+          {user && !isAdmin ? (
             <div className="user-icons-wrap">
               <Link to="/wishlist" className="dropdown-item">
                 ❤️
@@ -189,6 +192,8 @@ function Navbar() {
                 )}
               </Link>
             </div>
+          ) : (
+            <AdminOrderNotifications />
           )}
 
           {/* PROFILE */}
@@ -330,18 +335,16 @@ function Navbar() {
             <Link to="/addresses" className="mob-link">
               📍 Addresses
             </Link>
-
-            <Link to="/profile" className="mob-link">
-              👤 Profile
-            </Link>
           </>
         )}
-
         {isAdmin && (
           <Link to="/admin/overview" className="mob-link">
             ⚙ Dashboard
           </Link>
         )}
+        <Link to="/profile" className="mob-link">
+          👤 Profile
+        </Link>
 
         {user ? (
           <button className="mob-link logout-mob" onClick={handleLogout}>

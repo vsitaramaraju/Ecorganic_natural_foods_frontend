@@ -2,6 +2,7 @@ import { useEffect, useState, useContext } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import API from "../api/axios";
 import { AuthContext } from "../context/AuthContext";
+import { wishlistAPI } from "../api/wishlistAPI";
 import "./Checkout.css";
 import { useCart } from "../context/CartContext";
 
@@ -164,6 +165,36 @@ export default function Checkout() {
     }
   };
 
+  /* After a successful purchase, remove any of the just-bought products
+     that are currently in the user's wishlist — once you own it, it no
+     longer needs to be "wished for". */
+  const removePurchasedItemsFromWishlist = async purchasedCart => {
+    try {
+      const response = await wishlistAPI.getWishlist();
+
+      const items = Array.isArray(response?.data)
+        ? response.data
+        : response?.data?.data || [];
+
+      const wishlistedIds = new Set(
+        items.map(item => item.productId ?? item.product?.id)
+      );
+
+      const toRemove = purchasedCart
+        .map(i => i.product?.id)
+        .filter(id => id != null && wishlistedIds.has(id));
+
+      if (toRemove.length === 0) return;
+
+      await Promise.allSettled(
+        toRemove.map(id => wishlistAPI.removeFromWishlist(id))
+      );
+    } catch (err) {
+      // Non-critical — never let a wishlist cleanup failure block checkout.
+      console.error("Failed to sync wishlist after purchase:", err);
+    }
+  };
+
   /* ── Place order ── */
   const placeOrder = async () => {
     if (!selectedAddressId) {
@@ -176,8 +207,11 @@ export default function Checkout() {
       await API.post("/orders", {
         addressId: selectedAddressId,
         paymentMethod,
-        couponCode: couponApplied?.code || undefined
+        couponCode: couponApplied?.code || undefined,
+        status: "PENDING"
       });
+
+      await removePurchasedItemsFromWishlist(cart);
 
       setCart([]);
       await refreshCart();

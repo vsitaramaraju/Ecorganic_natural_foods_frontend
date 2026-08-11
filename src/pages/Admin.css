@@ -770,6 +770,7 @@
   cursor: pointer;
   font-weight: 600;
   transition: all 0.15s;
+  background-color: #2d6a4f;
 }
 .btn-edit {
   background: #eff6ff;

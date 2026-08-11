@@ -1,0 +1,195 @@
+.admin-notification-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.admin-notification-button {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  color: #1f2937;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.admin-notification-button:hover,
+.admin-notification-button.has-pending {
+  border-color: #667eea;
+  color: #667eea;
+  box-shadow: 0 4px 14px rgba(102, 126, 234, 0.12);
+}
+
+.admin-notification-count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff;
+}
+
+.admin-notification-panel {
+  position: absolute;
+  z-index: 1000;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 390px;
+  max-width: calc(100vw - 30px);
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.16);
+  overflow: hidden;
+}
+
+.admin-notification-header {
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #eef0f3;
+}
+
+.admin-notification-header div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.admin-notification-header strong {
+  color: #111827;
+  font-size: 15px;
+}
+
+.admin-notification-header span {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.admin-notification-header-icon {
+  color: #667eea;
+}
+
+.admin-notification-list {
+  max-height: 390px;
+  overflow-y: auto;
+}
+
+.admin-order-notification-item {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid #f0f1f3;
+  background: #fff;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-order-notification-item:hover {
+  background: #f8f9ff;
+}
+
+.admin-order-notification-icon {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff4d5;
+  color: #8a5d00;
+}
+
+.admin-order-notification-content {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.admin-order-notification-content strong {
+  color: #111827;
+  font-size: 13px;
+}
+
+.admin-order-notification-content span,
+.admin-order-notification-content small {
+  color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-order-notification-content span {
+  font-size: 12px;
+}
+
+.admin-order-notification-content small {
+  font-size: 11px;
+}
+
+.admin-order-notification-arrow {
+  color: #9ca3af;
+  font-size: 22px;
+}
+
+.admin-notification-empty {
+  min-height: 110px;
+  padding: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.notification-error {
+  color: #b91c1c;
+}
+
+.admin-notification-footer {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid #eef0f3;
+  background: #fafafa;
+  color: #667eea;
+  padding: 13px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-notification-footer:hover {
+  background: #f4f5ff;
+}
+
+@media (max-width: 600px) {
+  .admin-notification-panel {
+    position: fixed;
+    top: 74px;
+    right: 15px;
+    width: min(390px, calc(100vw - 30px));
+  }
+}

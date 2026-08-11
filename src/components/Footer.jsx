@@ -1,10 +1,10 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import "./Footer.css";
+import { useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
 
 export default function Footer() {
-  const location = useLocation();
-
-  const isAdmin = location.pathname.startsWith("/admin");
+  const { isAdmin } = useContext(AuthContext);
 
   if (isAdmin) {
     return (

@@ -2,6 +2,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../utils/useAuth";
 import { useEffect, useRef } from "react";
 import "./Admin.css";
+import AdminOrderNotifications from "../components/AdminOrderNotifications";
 
 export default function AdminPanel() {
   const { isAdmin, isAuthenticated, user } = useAuth();
@@ -53,9 +54,14 @@ export default function AdminPanel() {
   return (
     <div className="admin-screen">
       <div className="admin-header">
-        <h1 style={{ color: "black" }}>Welcome, {user?.name || "Admin"} 👋</h1>
-
-        <p>Manage sales, orders, products, categories, and users from here.</p>
+        <div className="admin-header-copy">
+          <h1 style={{ color: "black" }}>
+            Welcome, {user?.name || "Admin"} 👋
+          </h1>
+          <p>
+            Manage sales, orders, products, categories, and users from here.
+          </p>
+        </div>
       </div>
 
       <div className="admin-layout">

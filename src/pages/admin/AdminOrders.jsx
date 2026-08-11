@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   ORDER_STATUSES,
   fetchOrders,
@@ -19,6 +20,23 @@ export default function AdminOrders() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const requestedStatus = String(
+      searchParams.get("status") || ""
+    ).toUpperCase();
+
+    const requestedOrder = searchParams.get("order");
+
+    if (ORDER_STATUSES.includes(requestedStatus)) {
+      setStatusFilter(requestedStatus);
+    }
+
+    if (requestedOrder) {
+      setSearch(requestedOrder);
+    }
+  }, [searchParams]);
 
   const loadOrders = async () => {
     const data = await fetchOrders();
@@ -45,12 +63,16 @@ export default function AdminOrders() {
 
   const filtered = useMemo(() => {
     let result = [...orders];
-    if (statusFilter !== "ALL")
+
+    if (statusFilter !== "ALL") {
       result = result.filter(
         o => String(o.status || "PENDING").toUpperCase() === statusFilter
       );
+    }
+
     if (search.trim()) {
       const q = search.toLowerCase();
+
       result = result.filter(
         o =>
           String(o.id).includes(q) ||
@@ -58,18 +80,21 @@ export default function AdminOrders() {
           (o.user?.email || "").toLowerCase().includes(q)
       );
     }
+
     return result;
   }, [orders, search, statusFilter]);
 
-  // Reset to page 1 whenever filters/search/page size change.
   useEffect(() => {
     setCurrentPage(1);
   }, [search, statusFilter, pageSize]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+
   const safePage = Math.min(currentPage, totalPages);
+
   const paginated = useMemo(() => {
     const start = (safePage - 1) * pageSize;
+
     return filtered.slice(start, start + pageSize);
   }, [filtered, safePage, pageSize]);
 
@@ -77,9 +102,20 @@ export default function AdminOrders() {
     try {
       setIsSaving(true);
       setMessage({ type: "", text: "" });
+
       await updateOrderStatus(orderId, status);
+
       await loadOrders();
-      setMessage({ type: "success", text: "Order status updated" });
+
+      setMessage({
+        type: "success",
+        text:
+          status === "CONFIRMED"
+            ? "Order approved successfully"
+            : status === "CANCELLED"
+              ? "Order cancelled successfully"
+              : "Order status updated"
+      });
     } catch (error) {
       setMessage({
         type: "error",
@@ -101,7 +137,9 @@ export default function AdminOrders() {
 
       {message.text && (
         <div
-          className={`alert ${message.type === "error" ? "alert-error" : "alert-success"}`}
+          className={`alert ${
+            message.type === "error" ? "alert-error" : "alert-success"
+          }`}
         >
           {message.text}
         </div>
@@ -130,6 +168,7 @@ export default function AdminOrders() {
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
+
         <select
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
@@ -140,12 +179,14 @@ export default function AdminOrders() {
           }}
         >
           <option value="ALL">All Statuses</option>
+
           {ORDER_STATUSES.map(s => (
             <option key={s} value={s}>
               {s}
             </option>
           ))}
         </select>
+
         <select
           value={pageSize}
           onChange={e => setPageSize(Number(e.target.value))}
@@ -176,6 +217,7 @@ export default function AdminOrders() {
               <th>Action</th>
             </tr>
           </thead>
+
           <tbody>
             {paginated.length === 0 ? (
               <tr>
@@ -184,47 +226,93 @@ export default function AdminOrders() {
                 </td>
               </tr>
             ) : (
-              paginated.map(order => (
-                <tr key={order.id}>
-                  <td>#{order.id}</td>
-                  <td>{formatDate(order.createdAt || order.orderDate)}</td>
-                  <td>
-                    <div>{order.user?.name || order.customerName || "—"}</div>
-                    {order.user?.email && (
-                      <div style={{ fontSize: "0.75rem", color: "#9ca3af" }}>
-                        {order.user.email}
-                      </div>
-                    )}
-                  </td>
-                  <td>{formatCurrency(getOrderAmount(order))}</td>
-                  <td>
-                    <span
-                      className={`admin-status-pill status-${String(order.status || "").toLowerCase()}`}
-                    >
-                      {order.status || "PENDING"}
-                    </span>
-                  </td>
-                  <td>
-                    <select
-                      value={String(order.status || "PENDING").toUpperCase()}
-                      onChange={e =>
-                        handleStatusUpdate(order.id, e.target.value)
-                      }
-                      disabled={isSaving}
-                    >
-                      {ORDER_STATUSES.map(status => (
-                        <option key={status} value={status}>
-                          {status}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                </tr>
-              ))
+              paginated.map(order => {
+                const currentStatus = String(
+                  order.status || "PENDING"
+                ).toUpperCase();
+
+                return (
+                  <tr key={order.id}>
+                    <td>#{order.id}</td>
+
+                    <td>{formatDate(order.createdAt || order.orderDate)}</td>
+
+                    <td>
+                      <div>{order.user?.name || order.customerName || "—"}</div>
+
+                      {order.user?.email && (
+                        <div
+                          style={{
+                            fontSize: "0.75rem",
+                            color: "#9ca3af"
+                          }}
+                        >
+                          {order.user.email}
+                        </div>
+                      )}
+                    </td>
+
+                    <td>{formatCurrency(getOrderAmount(order))}</td>
+
+                    <td>
+                      <span
+                        className={`admin-status-pill status-${String(
+                          order.status || ""
+                        ).toLowerCase()}`}
+                      >
+                        {order.status || "PENDING"}
+                      </span>
+                    </td>
+
+                    <td>
+                      {/* Pending orders */}
+                      {currentStatus === "PENDING" ? (
+                        <select
+                          value=""
+                          onChange={e => {
+                            if (e.target.value) {
+                              handleStatusUpdate(order.id, e.target.value);
+                            }
+                          }}
+                          disabled={isSaving}
+                          style={{
+                            padding: "7px 10px",
+                            border: "1.5px solid #e5e7eb",
+                            borderRadius: 8,
+                            cursor: isSaving ? "not-allowed" : "pointer"
+                          }}
+                        >
+                          <option value="">Select Action</option>
+
+                          <option value="CONFIRMED">Approve Order</option>
+
+                          <option value="CANCELLED">Cancel Order</option>
+                        </select>
+                      ) : (
+                        /* Already processed orders */
+                        <select
+                          value={currentStatus}
+                          onChange={e =>
+                            handleStatusUpdate(order.id, e.target.value)
+                          }
+                          disabled={isSaving}
+                        >
+                          {ORDER_STATUSES.map(status => (
+                            <option key={status} value={status}>
+                              {status}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
       </div>
+
       <div className="admin-pagination">
         <p className="admin-pagination-summary">
           Showing {filtered.length === 0 ? 0 : (safePage - 1) * pageSize + 1}–
@@ -242,9 +330,11 @@ export default function AdminOrders() {
             >
               ← Prev
             </button>
+
             <span className="admin-pagination-page">
               Page {safePage} of {totalPages}
             </span>
+
             <button
               type="button"
               className="btn-action"

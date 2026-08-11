@@ -8,6 +8,7 @@ export default function AdminCategories() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [form, setForm] = useState(DEFAULT_FORM);
   const [editingId, setEditingId] = useState(null);
@@ -74,13 +75,7 @@ export default function AdminCategories() {
     }
   };
 
-  const handleDelete = async (id, name) => {
-    if (
-      !window.confirm(
-        `Delete category "${name}"? This may affect products in this category.`
-      )
-    )
-      return;
+  const handleDelete = async id => {
     try {
       setIsDeleting(id);
       setMessage({ type: "", text: "" });
@@ -97,6 +92,7 @@ export default function AdminCategories() {
       });
     } finally {
       setIsDeleting(null);
+      setDeleteConfirm(null);
     }
   };
 
@@ -220,7 +216,7 @@ export default function AdminCategories() {
                             borderRadius: 6,
                             border: "1.5px solid"
                           }}
-                          onClick={() => handleDelete(cat.id, cat.name)}
+                          onClick={() => setDeleteConfirm(cat.id)}
                           disabled={isDeleting === cat.id}
                         >
                           {isDeleting === cat.id ? "Deleting…" : "🗑 Delete"}
@@ -234,6 +230,35 @@ export default function AdminCategories() {
           </table>
         </div>
       </section>
+
+      {/* Delete Confirm Modal */}
+      {deleteConfirm && (
+        <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
+          <div className="modal-box" onClick={e => e.stopPropagation()}>
+            <h3>Delete Category?</h3>
+            <p>
+              This may affect products in this category. This action cannot be
+              undone.
+            </p>
+            <div className="admin-form-actions">
+              <button
+                className="btn btn-primary"
+                style={{ background: "#dc2626", borderColor: "#dc2626" }}
+                onClick={() => handleDelete(deleteConfirm)}
+                disabled={isDeleting === deleteConfirm}
+              >
+                {isDeleting === deleteConfirm ? "Deleting…" : "Yes, Delete"}
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setDeleteConfirm(null)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

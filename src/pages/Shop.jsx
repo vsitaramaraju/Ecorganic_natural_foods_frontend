@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import API from "../api/axios";
+import { IMAGE_BASE_URL } from "../api/api";
 import { AuthContext } from "../context/AuthContext";
 import { wishlistAPI } from "../api/wishlistAPI";
 import "./Shop.css";
@@ -414,14 +415,17 @@ export default function Shop() {
                   style={{ cursor: "pointer" }}
                 >
                   <div className="spimg-wrap">
-                    {p.imageUrl ? (
-                      <img
-                        src={p.imageUrl}
-                        alt={p.name}
-                        width="300"
-                        height="300"
-                        loading="lazy"
-                        decoding="async"
+                    {(() => {
+                      const displayImage = p?.images?.[0]?.imageUrl || p?.imageUrl;
+                      const fullImageUrl = displayImage ? IMAGE_BASE_URL + displayImage : null;
+                      return fullImageUrl ? (
+                        <img
+                          src={fullImageUrl}
+                          alt={p.name}
+                          width="300"
+                          height="300"
+                          loading="lazy"
+                          decoding="async"
                       />
                     ) : (
                       <div className="spimg-placeholder">🌿</div>

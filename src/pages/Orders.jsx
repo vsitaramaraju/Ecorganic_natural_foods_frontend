@@ -1,6 +1,7 @@
 import { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
+import { IMAGE_BASE_URL } from "../api/api";
 import { AuthContext } from "../context/AuthContext";
 import "./Orders.css";
 
@@ -174,19 +175,25 @@ export default function Orders() {
                     {order.items.map((item, idx) => (
                       <div key={idx} className="order-item">
                         <span className="order-item-icon">
-                          {item.product?.imageUrl ? (
-                            <img
-                              src={item.product.imageUrl}
-                              alt={item.product.name}
-                              style={{ width: "100px" }}
-                              width="100"
-                              height="100"
-                              loading="lazy"
-                              decoding="async"
-                            />
-                          ) : (
-                            <span>🌿</span>
-                          )}
+                          {(() => {
+                            const displayImage =
+                              item.product?.images?.[0]?.imageUrl ||
+                              item.product?.imageUrl;
+                            const fullImageUrl = displayImage ? IMAGE_BASE_URL + displayImage : null;
+                            return fullImageUrl ? (
+                              <img
+                                src={fullImageUrl}
+                                alt={item.product?.name || "Product"}
+                                style={{ width: "100px" }}
+                                width="100"
+                                height="100"
+                                loading="lazy"
+                                decoding="async"
+                              />
+                            ) : (
+                              <span>🌿</span>
+                            );
+                          })()}
                         </span>
                         <span className="order-item-name">
                           {item.productName || item.product?.name || "Product"}

@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import API from "../api/axios";
+import { IMAGE_BASE_URL } from "../api/api";
 import { AuthContext } from "../context/AuthContext";
 import { wishlistAPI } from "../api/wishlistAPI";
 import "./SearchResults.css";
@@ -186,18 +187,23 @@ export default function SearchResultsPage() {
                 onClick={() => handleProductClick(product.id)}
               >
                 <div className="search-card-img">
-                  {product.imageUrl ? (
-                    <img
-                      src={product.imageUrl}
-                      alt={product.name}
-                      width="300"
-                      height="225"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  ) : (
-                    <div className="search-img-placeholder">🌿</div>
-                  )}
+                  {(() => {
+                    const displayImage =
+                      product?.images?.[0]?.imageUrl || product?.imageUrl;
+                    const fullImageUrl = displayImage ? IMAGE_BASE_URL + displayImage : null;
+                    return fullImageUrl ? (
+                      <img
+                        src={fullImageUrl}
+                        alt={product.name}
+                        width="300"
+                        height="225"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <div className="search-img-placeholder">🌿</div>
+                    );
+                  })()}
                   {/* Wishlist Button */}
                   <button
                     className={`wishlist-btn-search ${wishlistItems.has(product.id) ? "active" : ""}`}

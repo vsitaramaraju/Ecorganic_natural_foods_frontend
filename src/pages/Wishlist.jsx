@@ -2,6 +2,7 @@ import { useEffect, useState, useContext } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import API from "../api/axios";
+import { IMAGE_BASE_URL } from "../api/api";
 import { wishlistAPI } from "../api/wishlistAPI";
 import "./Wishlist.css";
 import { useCart } from "../context/CartContext";
@@ -178,18 +179,24 @@ export default function Wishlist() {
               >
                 {/* Image */}
                 <div className="wishlist-card-img">
-                  {item.product?.imageUrl ? (
-                    <img
-                      src={item.product.imageUrl}
-                      alt={item.product.name}
-                      width="300"
-                      height="225"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  ) : (
-                    <div className="wishlist-img-placeholder">🌿</div>
-                  )}
+                  {(() => {
+                    const displayImage =
+                      item.product?.images?.[0]?.imageUrl ||
+                      item.product?.imageUrl;
+                    const fullImageUrl = displayImage ? IMAGE_BASE_URL + displayImage : null;
+                    return fullImageUrl ? (
+                      <img
+                        src={fullImageUrl}
+                        alt={item.product?.name}
+                        width="300"
+                        height="225"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <div className="wishlist-img-placeholder">🌿</div>
+                    );
+                  })()}
 
                   {/* Always-visible remove button, top-right of the image */}
                   <button

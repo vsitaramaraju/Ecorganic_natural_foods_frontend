@@ -9,6 +9,7 @@ import {
   saveProduct,
   deleteProduct
 } from "./adminShared";
+import { IMAGE_BASE_URL } from "../../api/api";
 
 const EMPTY_FORM = {
   name: "",
@@ -19,7 +20,53 @@ const EMPTY_FORM = {
   weightUnit: "g", // "g" | "kg"
   stock: "",
   categoryId: "",
-  imageUrl: ""
+  imageFiles: [] // Multiple image files
+};
+
+const ALLOWED_IMAGE_TYPES = {
+  "image/jpeg": true,
+  "image/png": true,
+  "image/gif": true,
+  "image/webp": true
+};
+
+const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp"];
+
+const validateImageFile = file => {
+  // Check MIME type
+  if (!ALLOWED_IMAGE_TYPES[file.type]) {
+    return {
+      valid: false,
+      error: `Invalid file type: ${file.name}. Allowed formats: jpg, jpeg, png, gif, webp`
+    };
+  }
+
+  // Check file extension
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  if (!ext || !ALLOWED_EXTENSIONS.includes(ext)) {
+    return {
+      valid: false,
+      error: `Invalid file extension: ${file.name}. Allowed formats: jpg, jpeg, png, gif, webp`
+    };
+  }
+
+  return { valid: true };
+};
+
+const validateImageFiles = files => {
+  const errors = [];
+  const validFiles = [];
+
+  files.forEach(file => {
+    const validation = validateImageFile(file);
+    if (validation.valid) {
+      validFiles.push(file);
+    } else {
+      errors.push(validation.error);
+    }
+  });
+
+  return { validFiles, errors };
 };
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
@@ -68,6 +115,7 @@ export default function AdminProducts() {
   const [currentPage, setCurrentPage] = useState(1);
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const categoryMenuRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (!showCategoryMenu) return;
@@ -130,7 +178,7 @@ export default function AdminProducts() {
       weightUnit,
       stock: String(product.stock || ""),
       categoryId: getProductCategoryId(product),
-      imageUrl: product.imageUrl || ""
+      imageFiles: [] // Clear file selection when editing
     });
     setEditingId(product.id);
     setShowForm(true);
@@ -150,22 +198,11 @@ export default function AdminProducts() {
       return;
     }
 
-    const payload = {
-      name: productForm.name.trim(),
-      description: productForm.description.trim(),
-      price: Number(productForm.price),
-      priceUnit,
-      stock: Number(productForm.stock),
-      categoryId: productForm.categoryId
-        ? Number(productForm.categoryId)
-        : undefined,
-      imageUrl: productForm.imageUrl.trim() || undefined
-    };
     if (
-      !payload.name ||
-      isNaN(payload.price) ||
-      isNaN(payload.stock) ||
-      !payload.categoryId
+      !productForm.name.trim() ||
+      isNaN(Number(productForm.price)) ||
+      isNaN(Number(productForm.stock)) ||
+      !productForm.categoryId
     ) {
       setMessage({
         type: "error",
@@ -173,10 +210,28 @@ export default function AdminProducts() {
       });
       return;
     }
+
     try {
       setIsSaving(true);
       setMessage({ type: "", text: "" });
-      const response = await saveProduct(payload, editingId);
+
+      // Use FormData for multipart file upload
+      const formData = new FormData();
+      formData.append("name", productForm.name.trim());
+      formData.append("description", productForm.description.trim());
+      formData.append("price", Number(productForm.price));
+      formData.append("priceUnit", priceUnit);
+      formData.append("stock", Number(productForm.stock));
+      formData.append("categoryId", Number(productForm.categoryId));
+
+      // Add multiple image files
+      if (productForm.imageFiles && productForm.imageFiles.length > 0) {
+        productForm.imageFiles.forEach(file => {
+          formData.append("images", file);
+        });
+      }
+
+      const response = await saveProduct(formData, editingId);
       setMessage({
         type: "success",
         text:
@@ -425,14 +480,103 @@ export default function AdminProducts() {
               />
             </div>
             <div className="form-group admin-form-full">
-              <label htmlFor="p-img">Image URL</label>
+              <label htmlFor="p-images">Upload Multiple Product Images</label>
               <input
-                id="p-img"
-                value={productForm.imageUrl}
-                onChange={e =>
-                  setProductForm(p => ({ ...p, imageUrl: e.target.value }))
-                }
+                id="p-images"
+                type="file"
+                multiple
+                accept="image/*"
+                ref={fileInputRef}
+                onChange={e => {
+                  const files = Array.from(e.target.files || []);
+                  const { validFiles, errors } = validateImageFiles(files);
+                  
+                  if (errors.length > 0) {
+                    setMessage({
+                      type: "error",
+                      text: errors.join("\n")
+                    });
+                  }
+                  
+                  setProductForm(p => ({ ...p, imageFiles: validFiles }));
+                }}
               />
+              <small
+                style={{
+                  color: "#6b7280",
+                  fontSize: "12px",
+                  marginTop: "4px",
+                  display: "block"
+                }}
+              >
+                Select one or more images (jpg, jpeg, png, gif, webp). These will appear as thumbnails on the product page.
+              </small>
+              {productForm.imageFiles && productForm.imageFiles.length > 0 && (
+                <div
+                  style={{
+                    marginTop: "12px",
+                    display: "flex",
+                    gap: "8px",
+                    flexWrap: "wrap"
+                  }}
+                >
+                  {productForm.imageFiles.map((file, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        position: "relative",
+                        width: "80px",
+                        height: "80px",
+                        borderRadius: "8px",
+                        overflow: "hidden",
+                        border: "2px solid #e5e7eb"
+                      }}
+                    >
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={`preview-${idx}`}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover"
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = productForm.imageFiles.filter(
+                            (_, i) => i !== idx
+                          );
+                          setProductForm(p => ({
+                            ...p,
+                            imageFiles: updated
+                          }));
+                        }}
+                        style={{
+                          position: "absolute",
+                          top: "-2px",
+                          right: "-2px",
+                          background: "#ef4444",
+                          color: "white",
+                          border: "none",
+                          width: "24px",
+                          height: "24px",
+                          borderRadius: "50%",
+                          cursor: "pointer",
+                          fontSize: "14px",
+                          lineHeight: "1",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center"
+                        }}
+                        title="Remove image"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="admin-form-actions admin-form-full">
               <button
@@ -611,7 +755,7 @@ export default function AdminProducts() {
                         <div className="prod-name-cell">
                           {product.imageUrl && (
                             <img
-                              src={product.imageUrl}
+                              src={IMAGE_BASE_URL + product.imageUrl}
                               alt=""
                               className="prod-thumb"
                               width="38"
@@ -708,7 +852,7 @@ export default function AdminProducts() {
                             {product.description || "No description provided."}
                             {product.imageUrl && (
                               <div style={{ marginTop: 8 }}>
-                                <strong>Image:</strong>{" "}
+                                <strong>Main Image:</strong>{" "}
                                 <a
                                   href={product.imageUrl}
                                   target="_blank"
@@ -716,6 +860,50 @@ export default function AdminProducts() {
                                 >
                                   {product.imageUrl}
                                 </a>
+                              </div>
+                            )}
+                            {product.images && product.images.length > 0 && (
+                              <div style={{ marginTop: 12 }}>
+                                <strong>Product Images ({product.images.length}):</strong>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    gap: "8px",
+                                    flexWrap: "wrap",
+                                    marginTop: "8px"
+                                  }}
+                                >
+                                  {product.images.map((img, idx) => (
+                                    <a
+                                      key={idx}
+                                      href={img.imageUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      title={img.imageUrl}
+                                      style={{
+                                        display: "inline-block",
+                                        width: "60px",
+                                        height: "60px",
+                                        borderRadius: "6px",
+                                        overflow: "hidden",
+                                        border: "1px solid #e5e7eb"
+                                      }}
+                                    >
+                                      <img
+                                        src={IMAGE_BASE_URL + img.imageUrl}
+                                        alt={`Image ${idx + 1}`}
+                                        style={{
+                                          width: "100%",
+                                          height: "100%",
+                                          objectFit: "cover"
+                                        }}
+                                        onError={e =>
+                                          (e.target.style.display = "none")
+                                        }
+                                      />
+                                    </a>
+                                  ))}
+                                </div>
                               </div>
                             )}
                           </div>

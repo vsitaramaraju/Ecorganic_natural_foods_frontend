@@ -1,6 +1,7 @@
 import { useEffect, useState, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import API from "../api/axios";
+import { IMAGE_BASE_URL } from "../api/api";
 import { AuthContext } from "../context/AuthContext";
 import { wishlistAPI } from "../api/wishlistAPI";
 import "./ProductDetails.css";
@@ -367,9 +368,12 @@ export default function ProductDetail() {
   };
 
   const images = product?.images?.length
-    ? product.images
+    ? product.images.map(img => {
+        const url = img.imageUrl || img;
+        return url.startsWith('/') ? IMAGE_BASE_URL + url : url;
+      })
     : product?.imageUrl
-      ? [product.imageUrl]
+      ? [product?.imageUrl?.startsWith('/') ? IMAGE_BASE_URL + product.imageUrl : product.imageUrl]
       : [];
 
   const isOutOfStock = product?.stock === 0;
@@ -999,18 +1003,23 @@ function RelatedCard({
       style={{ cursor: "pointer" }}
     >
       <div className="product-img-wrap">
-        {product.imageUrl ? (
-          <img
-            src={product.imageUrl}
-            alt={product.name}
-            width="300"
-            height="300"
-            loading="lazy"
-            decoding="async"
-          />
-        ) : (
-          <div className="product-img-placeholder">🌿</div>
-        )}
+        {(() => {
+          // Get first image from images array, fallback to imageUrl, then placeholder
+          const displayImage =
+            product?.images?.[0]?.imageUrl || product?.imageUrl;
+          return displayImage ? (
+            <img
+              src={displayImage}
+              alt={product.name}
+              width="300"
+              height="300"
+              loading="lazy"
+              decoding="async"
+            />
+          ) : (
+            <div className="product-img-placeholder">🌿</div>
+          );
+        })()}
 
         {/* Wishlist Button */}
         <button

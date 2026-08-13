@@ -262,18 +262,24 @@ export default function Checkout() {
               {cart.map(item => (
                 <div key={item.id} className="co-item">
                   <div className="co-item-img">
-                    {item.product.imageUrl ? (
-                      <img
-                        src={item.product.imageUrl}
-                        alt={item.product.name}
-                        width="56"
-                        height="56"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    ) : (
-                      <span>🌿</span>
-                    )}
+                    {(() => {
+                      const displayImage =
+                        item.product?.images?.[0]?.imageUrl ||
+                        item.product?.imageUrl;
+                      const fullImageUrl = displayImage ? IMAGE_BASE_URL + displayImage : null;
+                      return fullImageUrl ? (
+                        <img
+                          src={fullImageUrl}
+                          alt={item.product.name}
+                          width="56"
+                          height="56"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      ) : (
+                        <span>🌿</span>
+                      );
+                    })()}
                   </div>
                   <div className="co-item-info">
                     <h4>{item.product.name}</h4>

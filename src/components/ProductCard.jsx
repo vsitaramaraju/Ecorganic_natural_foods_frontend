@@ -1,6 +1,7 @@
 import React, { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+import { IMAGE_BASE_URL } from "../api/api";
 import { wishlistAPI } from "../api/wishlistAPI";
 import { saveRecentProduct } from "../utils/RecentlyViewed";
 import "./ProductCard.css";
@@ -66,18 +67,24 @@ function ProductCard({
         style={{ cursor: "pointer" }}
       >
         <div className="product-img-wrap">
-          {product.imageUrl ? (
-            <img
-              src={product.imageUrl}
-              alt={product.name}
-              width="300"
-              height="300"
-              loading="lazy"
-              decoding="async"
-            />
-          ) : (
-            <div className="product-img-placeholder">🌿</div>
-          )}
+          {(() => {
+            // Get first image from images array, fallback to imageUrl, then placeholder
+            const displayImage =
+              product?.images?.[0]?.imageUrl || product?.imageUrl;
+            const fullImageUrl = displayImage ? IMAGE_BASE_URL + displayImage : null;
+            return fullImageUrl ? (
+              <img
+                src={fullImageUrl}
+                alt={product.name}
+                width="300"
+                height="300"
+                loading="lazy"
+                decoding="async"
+              />
+            ) : (
+              <div className="product-img-placeholder">🌿</div>
+            );
+          })()}
           {featured && <span className="featured-ribbon">⭐ Top Pick</span>}
 
           {/* Wishlist Button */}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
+import { IMAGE_BASE_URL } from "../api/api";
 import "./Categories.css";
 
 const getCategoryIcon = name => {
@@ -63,20 +64,25 @@ export default function Categories() {
                 }}
               >
                 <div className="cat-page-img">
-                  {cat.imageUrl ? (
-                    <img
-                      src={cat.imageUrl}
-                      alt={cat.name}
-                      width="300"
-                      height="225"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  ) : (
-                    <span className="cat-page-icon">
-                      {getCategoryIcon(cat.name)}
-                    </span>
-                  )}
+                  {(() => {
+                    const displayImage =
+                      cat?.images?.[0]?.imageUrl || cat?.imageUrl;
+                    const fullImageUrl = displayImage ? IMAGE_BASE_URL + displayImage : null;
+                    return fullImageUrl ? (
+                      <img
+                        src={fullImageUrl}
+                        alt={cat.name}
+                        width="300"
+                        height="225"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <span className="cat-page-icon">
+                        {getCategoryIcon(cat.name)}
+                      </span>
+                    );
+                  })()}
                 </div>
                 <div className="cat-page-body">
                   <h3>{cat.name}</h3>

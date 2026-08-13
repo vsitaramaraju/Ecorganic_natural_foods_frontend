@@ -1,7 +1,54 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { fetchCategories, saveCategory, deleteCategory } from "./adminShared";
+import { IMAGE_BASE_URL } from "../../api/api";
 
-const DEFAULT_FORM = { name: "", imageUrl: "" };
+const ALLOWED_IMAGE_TYPES = {
+  "image/jpeg": true,
+  "image/png": true,
+  "image/gif": true,
+  "image/webp": true
+};
+
+const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp"];
+
+const validateImageFile = file => {
+  // Check MIME type
+  if (!ALLOWED_IMAGE_TYPES[file.type]) {
+    return {
+      valid: false,
+      error: `Invalid file type: ${file.name}. Allowed formats: jpg, jpeg, png, gif, webp`
+    };
+  }
+
+  // Check file extension
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  if (!ext || !ALLOWED_EXTENSIONS.includes(ext)) {
+    return {
+      valid: false,
+      error: `Invalid file extension: ${file.name}. Allowed formats: jpg, jpeg, png, gif, webp`
+    };
+  }
+
+  return { valid: true };
+};
+
+const validateImageFiles = files => {
+  const errors = [];
+  const validFiles = [];
+
+  files.forEach(file => {
+    const validation = validateImageFile(file);
+    if (validation.valid) {
+      validFiles.push(file);
+    } else {
+      errors.push(validation.error);
+    }
+  });
+
+  return { validFiles, errors };
+};
+
+const DEFAULT_FORM = { name: "", imageFiles: [] };
 
 export default function AdminCategories() {
   const [categories, setCategories] = useState([]);
@@ -12,6 +59,7 @@ export default function AdminCategories() {
   const [message, setMessage] = useState({ type: "", text: "" });
   const [form, setForm] = useState(DEFAULT_FORM);
   const [editingId, setEditingId] = useState(null);
+  const fileInputRef = useRef(null);
 
   const loadData = async () => {
     const data = await fetchCategories();
@@ -39,25 +87,41 @@ export default function AdminCategories() {
   };
 
   const startEdit = cat => {
-    setForm({ name: cat.name || "", imageUrl: cat.imageUrl || "" });
+    setForm({ name: cat.name || "", imageFiles: [] });
     setEditingId(cat.id);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleSubmit = async e => {
     e.preventDefault();
-    const payload = {
-      name: form.name.trim(),
-      imageUrl: form.imageUrl.trim() || undefined
-    };
-    if (!payload.name) {
+
+    if (!form.name.trim()) {
       setMessage({ type: "error", text: "Category name is required" });
       return;
     }
+
+    // When creating new category, at least one image is required
+    if (!editingId && (!form.imageFiles || form.imageFiles.length === 0)) {
+      setMessage({ type: "error", text: "At least one image is required" });
+      return;
+    }
+
     try {
       setIsSaving(true);
       setMessage({ type: "", text: "" });
-      await saveCategory(payload, editingId);
+
+      // Use FormData for multipart file upload
+      const formData = new FormData();
+      formData.append("name", form.name.trim());
+
+      // Add image files
+      if (form.imageFiles && form.imageFiles.length > 0) {
+        form.imageFiles.forEach(file => {
+          formData.append("images", file);
+        });
+      }
+
+      await saveCategory(formData, editingId);
       await loadData();
       setMessage({
         type: "success",
@@ -121,13 +185,103 @@ export default function AdminCategories() {
             />
           </div>
           <div className="form-group admin-form-full">
-            <label htmlFor="cat-image">Image URL</label>
+            <label htmlFor="cat-images">Upload Category Images</label>
             <input
-              id="cat-image"
-              value={form.imageUrl}
-              onChange={e => setForm(p => ({ ...p, imageUrl: e.target.value }))}
-              placeholder="https://..."
+              id="cat-images"
+              type="file"
+              multiple
+              accept="image/*"
+              ref={fileInputRef}
+              onChange={e => {
+                const files = Array.from(e.target.files || []);
+                const { validFiles, errors } = validateImageFiles(files);
+                
+                if (errors.length > 0) {
+                  setMessage({
+                    type: "error",
+                    text: errors.join("\n")
+                  });
+                }
+                
+                setForm(p => ({ ...p, imageFiles: validFiles }));
+              }}
             />
+            <small
+              style={{
+                color: "#6b7280",
+                fontSize: "12px",
+                marginTop: "4px",
+                display: "block"
+              }}
+            >
+              Select one or more images (jpg, jpeg, png, gif, webp). Minimum 1 image required for new categories.
+            </small>
+            {form.imageFiles && form.imageFiles.length > 0 && (
+              <div
+                style={{
+                  marginTop: "12px",
+                  display: "flex",
+                  gap: "8px",
+                  flexWrap: "wrap"
+                }}
+              >
+                {form.imageFiles.map((file, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      position: "relative",
+                      width: "80px",
+                      height: "80px",
+                      borderRadius: "8px",
+                      overflow: "hidden",
+                      border: "2px solid #e5e7eb"
+                    }}
+                  >
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt={`preview-${idx}`}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover"
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updated = form.imageFiles.filter(
+                          (_, i) => i !== idx
+                        );
+                        setForm(p => ({
+                          ...p,
+                          imageFiles: updated
+                        }));
+                      }}
+                      style={{
+                        position: "absolute",
+                        top: "-2px",
+                        right: "-2px",
+                        background: "#ef4444",
+                        color: "white",
+                        border: "none",
+                        width: "24px",
+                        height: "24px",
+                        borderRadius: "50%",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        lineHeight: "1",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center"
+                      }}
+                      title="Remove image"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div className="admin-form-actions admin-form-full">
             <button
@@ -178,24 +332,29 @@ export default function AdminCategories() {
                       <strong>{cat.name}</strong>
                     </td>
                     <td>
-                      {cat.imageUrl ? (
-                        <img
-                          src={cat.imageUrl}
-                          alt={cat.name}
-                          width="48"
-                          height="48"
-                          loading="lazy"
-                          decoding="async"
-                          style={{
-                            width: 48,
-                            height: 48,
-                            objectFit: "cover",
-                            borderRadius: 6
-                          }}
-                        />
-                      ) : (
-                        <span style={{ color: "#9ca3af" }}>—</span>
-                      )}
+                      {(() => {
+                        const displayImage =
+                          cat?.images?.[0]?.imageUrl || cat?.imageUrl;
+                        const fullImageUrl = displayImage ? IMAGE_BASE_URL + displayImage : null;
+                        return fullImageUrl ? (
+                          <img
+                            src={fullImageUrl}
+                            alt={cat.name}
+                            width="48"
+                            height="48"
+                            loading="lazy"
+                            decoding="async"
+                            style={{
+                              width: 48,
+                              height: 48,
+                              objectFit: "cover",
+                              borderRadius: 6
+                            }}
+                          />
+                        ) : (
+                          <span style={{ color: "#9ca3af" }}>—</span>
+                        );
+                      })()}
                     </td>
                     <td>
                       <div style={{ display: "flex", gap: 8 }}>

@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { IMAGE_BASE_URL } from "../api/api";
 import "./SearchResultsPopup.css";
 
 export default function SearchResultsPopup({
@@ -72,18 +73,23 @@ export default function SearchResultsPopup({
                   >
                     {/* Product Image */}
                     <div className="search-result-img">
-                      {product.imageUrl ? (
-                        <img
-                          src={product.imageUrl}
-                          alt={product.name}
-                          width="60"
-                          height="60"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      ) : (
-                        <div className="search-result-placeholder">🌿</div>
-                      )}
+                      {(() => {
+                        const displayImage =
+                          product?.images?.[0]?.imageUrl || product?.imageUrl;
+                        const fullImageUrl = displayImage ? IMAGE_BASE_URL + displayImage : null;
+                        return fullImageUrl ? (
+                          <img
+                            src={fullImageUrl}
+                            alt={product.name}
+                            width="60"
+                            height="60"
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        ) : (
+                          <div className="search-result-placeholder">🌿</div>
+                        );
+                      })()}
                     </div>
 
                     {/* Product Info */}

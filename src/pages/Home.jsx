@@ -8,6 +8,7 @@ import {
 } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
+import { IMAGE_BASE_URL } from "../api/api";
 import { AuthContext } from "../context/AuthContext";
 import "./Home.css";
 import { useCart } from "../context/CartContext";
@@ -69,7 +70,15 @@ export default function Home() {
           cats.map(c => ({
             ...c,
             icon: getCategoryIcon(c.name),
-            image: c.imageUrl || getCategoryImage(c.name)
+            image: (() => {
+              const imgUrl = c?.images?.[0]?.imageUrl || c?.imageUrl || getCategoryImage(c.name);
+              // For getCategoryImage results (URLs starting with http), use as-is
+              // For API image URLs (starting with /), concatenate with base URL
+              if (imgUrl && imgUrl.startsWith('/')) {
+                return IMAGE_BASE_URL + imgUrl;
+              }
+              return imgUrl;
+            })()
           }))
         );
       } catch (e) {

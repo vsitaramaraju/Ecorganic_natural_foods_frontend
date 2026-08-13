@@ -6,7 +6,6 @@ import {
   formatCurrency,
   formatDate,
   getOrderAmount,
-  getOrderItemsCount,
   getCategoryName,
   exportToCSV as exportCSV
 } from "./adminShared";

@@ -416,8 +416,13 @@ export default function Shop() {
                 >
                   <div className="spimg-wrap">
                     {(() => {
-                      const displayImage = p?.images?.[0]?.imageUrl || p?.imageUrl;
-                      const fullImageUrl = displayImage ? IMAGE_BASE_URL + displayImage : null;
+                      const displayImage =
+                        p?.images?.[0]?.imageUrl || p?.imageUrl;
+
+                      const fullImageUrl = displayImage
+                        ? IMAGE_BASE_URL + displayImage
+                        : null;
+
                       return fullImageUrl ? (
                         <img
                           src={fullImageUrl}
@@ -426,13 +431,18 @@ export default function Shop() {
                           height="300"
                           loading="lazy"
                           decoding="async"
-                      />
-                    ) : (
-                      <div className="spimg-placeholder">🌿</div>
-                    )}
+                        />
+                      ) : (
+                        <div className="spimg-placeholder">🌿</div>
+                      );
+                    })()}
+
                     {/* Wishlist Button */}
                     <button
-                      className={`wishlist-btn-shop ${wishlistItems.has(p.id) ? "active" : ""}`}
+                      type="button"
+                      className={`wishlist-btn-shop ${
+                        wishlistItems.has(p.id) ? "active" : ""
+                      }`}
                       onClick={e => handleWishlist(e, p.id)}
                       disabled={wishlistLoading.has(p.id)}
                       title={
@@ -448,11 +458,14 @@ export default function Shop() {
                           : "🤍"}
                     </button>
                   </div>
+
                   <div className="sp-body">
                     {p.category?.name && (
                       <span className="tag">{p.category.name}</span>
                     )}
+
                     <h3>{p.name}</h3>
+
                     <div className="sp-description-wrap">
                       <p className="sp-desc">
                         {p.description || "Premium organic product."}
@@ -471,8 +484,10 @@ export default function Shop() {
                         </button>
                       )}
                     </div>
+
                     <div className="sp-foot">
                       <span className="sp-price">₹{p.price}</span>
+
                       <button
                         className="btn btn-primary btn-small"
                         onClick={e => {

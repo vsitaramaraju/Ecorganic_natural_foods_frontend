@@ -1,6 +1,7 @@
 import { useEffect, useState, useContext } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import API from "../api/axios";
+import { IMAGE_BASE_URL } from "../api/api";
 import { AuthContext } from "../context/AuthContext";
 import { wishlistAPI } from "../api/wishlistAPI";
 import "./Checkout.css";
@@ -266,7 +267,9 @@ export default function Checkout() {
                       const displayImage =
                         item.product?.images?.[0]?.imageUrl ||
                         item.product?.imageUrl;
-                      const fullImageUrl = displayImage ? IMAGE_BASE_URL + displayImage : null;
+                      const fullImageUrl = displayImage
+                        ? IMAGE_BASE_URL + displayImage
+                        : null;
                       return fullImageUrl ? (
                         <img
                           src={fullImageUrl}

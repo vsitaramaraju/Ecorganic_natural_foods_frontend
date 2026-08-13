@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
+import { IMAGE_BASE_URL } from "../api/api";
 import "./Cart.css";
 import { useCart } from "../context/CartContext";
 
@@ -190,7 +191,9 @@ export default function Cart() {
                     const displayImage =
                       item.product?.images?.[0]?.imageUrl ||
                       item.product?.imageUrl;
-                    const fullImageUrl = displayImage ? IMAGE_BASE_URL + displayImage : null;
+                    const fullImageUrl = displayImage
+                      ? IMAGE_BASE_URL + displayImage
+                      : null;
                     return fullImageUrl ? (
                       <img
                         src={fullImageUrl}

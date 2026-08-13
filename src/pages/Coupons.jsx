@@ -35,11 +35,6 @@ export default function Coupons() {
   const [copied, setCopied] = useState(null);
   const [activeTab, setActiveTab] = useState("coupons");
   const [coupons, setCoupons] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchCoupons();
-  }, []);
 
   const fetchCoupons = async () => {
     try {
@@ -48,10 +43,12 @@ export default function Coupons() {
       setCoupons(res.data);
     } catch (err) {
       console.error(err);
-    } finally {
-      setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchCoupons();
+  }, []);
 
   const handleCopy = code => {
     navigator.clipboard.writeText(code).catch(() => {});

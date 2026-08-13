@@ -143,7 +143,7 @@ export default function ProductDetail() {
       try {
         const response = await wishlistAPI.checkInWishlist(product.id);
         setIsInWishlist(response?.data?.isInWishlist || false);
-      } catch (error) {
+      } catch {
         setIsInWishlist(false);
       }
     };
@@ -204,7 +204,7 @@ export default function ProductDetail() {
       const list = getReviewList(data);
       setReviews(list);
       setReviewStats(getReviewStats(data, list));
-    } catch (e) {
+    } catch {
       // non-critical — fail silently like related products
       setReviews([]);
       setReviewStats({ average: 0, count: 0 });
@@ -370,10 +370,14 @@ export default function ProductDetail() {
   const images = product?.images?.length
     ? product.images.map(img => {
         const url = img.imageUrl || img;
-        return url.startsWith('/') ? IMAGE_BASE_URL + url : url;
+        return url.startsWith("/") ? IMAGE_BASE_URL + url : url;
       })
     : product?.imageUrl
-      ? [product?.imageUrl?.startsWith('/') ? IMAGE_BASE_URL + product.imageUrl : product.imageUrl]
+      ? [
+          product?.imageUrl?.startsWith("/")
+            ? IMAGE_BASE_URL + product.imageUrl
+            : product.imageUrl
+        ]
       : [];
 
   const isOutOfStock = product?.stock === 0;
@@ -419,7 +423,7 @@ export default function ProductDetail() {
         showToast("Product link copied to clipboard!");
       }
     } catch (error) {
-      console.log("Share cancelled");
+      console.log("Share cancelled", error);
     }
   };
 
@@ -486,108 +490,83 @@ export default function ProductDetail() {
         <div className="pd-layout">
           {/* ── Image Gallery ── */}
           <div className="pd-gallery">
-            <div
-              className="pd-main-image"
-              style={{
-                width: "100%",
-                maxWidth: 440,
-                aspectRatio: "1 / 1",
-                margin: "0 auto",
-                overflow: "hidden",
-                borderRadius: "var(--radius-lg, 12px)",
-                background: "var(--color-surface-muted, #f6f6f4)",
-                position: "relative"
-              }}
-            >
-              {images.length > 0 ? (
-                <>
-                  <img
-                    src={images[selectedImage]}
-                    alt={product.name}
-                    width="440"
-                    height="440"
-                    fetchpriority="high"
-                    decoding="async"
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                      display: "block"
-                    }}
-                  />
-                  <button
-                    className="pd-share-btn"
-                    onClick={handleShare}
-                    title="Share Product"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="22"
-                      height="22"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+            <div className="pd-gallery-inner">
+              {/* Left-side thumbnails (desktop/tablet) / below main image (mobile) */}
+              {images.length > 1 && (
+                <div className="pd-thumbnails">
+                  {images.map((src, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      className={`pd-thumb ${
+                        selectedImage === i ? "active" : ""
+                      }`}
+                      onClick={() => setSelectedImage(i)}
                     >
-                      <circle cx="18" cy="5" r="3"></circle>
-                      <circle cx="6" cy="12" r="3"></circle>
-                      <circle cx="18" cy="19" r="3"></circle>
-                      <line x1="8.6" y1="13.5" x2="15.4" y2="17.5"></line>
-                      <line x1="15.4" y1="6.5" x2="8.6" y2="10.5"></line>
-                    </svg>
-                  </button>
-                </>
-              ) : (
-                <div className="pd-img-placeholder">🌿</div>
+                      <img
+                        src={src}
+                        alt={`${product.name} ${i + 1}`}
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </button>
+                  ))}
+                </div>
               )}
-              {isOutOfStock && (
-                <div className="pd-oos-overlay">Out of Stock</div>
-              )}
-            </div>
-            {images.length > 1 && (
-              <div
-                className="pd-thumbnails"
-                style={{
-                  maxWidth: 440,
-                  margin: "0 auto",
-                  display: "flex",
-                  gap: 8
-                }}
-              >
-                {images.map((src, i) => (
-                  <button
-                    key={i}
-                    className={`pd-thumb ${selectedImage === i ? "active" : ""}`}
-                    onClick={() => setSelectedImage(i)}
-                    style={{
-                      width: 64,
-                      height: 64,
-                      padding: 0,
-                      overflow: "hidden",
-                      borderRadius: "var(--radius-md, 8px)",
-                      flexShrink: 0
-                    }}
-                  >
+
+              {/* Main image */}
+              <div className="pd-main-image">
+                {images.length > 0 ? (
+                  <>
                     <img
-                      src={src}
-                      alt={`${product.name} ${i + 1}`}
-                      width="64"
-                      height="64"
-                      loading="lazy"
+                      src={images[selectedImage]}
+                      alt={product.name}
+                      width="440"
+                      height="440"
+                      fetchPriority="high"
                       decoding="async"
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                        display: "block"
-                      }}
                     />
-                  </button>
-                ))}
+                    <button
+                      className="pd-share-btn"
+                      onClick={handleShare}
+                      aria-label="Share product"
+                      style={{
+                        position: "absolute",
+                        bottom: "12px",
+                        right: "12px",
+                        zIndex: 2
+                      }}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="22"
+                        height="22"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <circle cx="18" cy="5" r="3"></circle>
+                        <circle cx="6" cy="12" r="3"></circle>
+                        <circle cx="18" cy="19" r="3"></circle>
+                        <line x1="8.6" y1="13.5" x2="15.4" y2="17.5"></line>
+                        <line x1="15.4" y1="6.5" x2="8.6" y2="10.5"></line>
+                      </svg>
+                    </button>
+                  </>
+                ) : (
+                  <div className="pd-img-placeholder">🌿</div>
+                )}
+
+                {isOutOfStock && (
+                  <div className="pd-oos-overlay">Out of Stock</div>
+                )}
               </div>
-            )}
+            </div>
           </div>
 
           {/* ── Product Info ── */}

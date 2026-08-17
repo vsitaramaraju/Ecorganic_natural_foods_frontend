@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { submitContactForm } from "../api/contactAPI";
 import "./ContactUs.css";
 
 export default function ContactUs() {
@@ -11,6 +12,7 @@ export default function ContactUs() {
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [status, setStatus] = useState(null);
 
   const validate = () => {
     const e = {};
@@ -29,9 +31,26 @@ export default function ContactUs() {
     e.preventDefault();
     if (!validate()) return;
     setIsLoading(true);
-    await new Promise(r => setTimeout(r, 1200));
-    setIsLoading(false);
-    setSubmitted(true);
+    setStatus(null);
+
+    try {
+      const response = await submitContactForm(form);
+
+      if (response.data.success) {
+        setStatus({
+          type: "success",
+          message: response.data.message || "Message sent successfully!"
+        });
+        setSubmitted(true);
+      }
+    } catch (error) {
+      setStatus({
+        type: "error",
+        message: error.response?.data?.message || "Failed to send message. Please try again."
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -93,7 +112,12 @@ export default function ContactUs() {
 
         {/* Form */}
         <div className="contact-form-wrap card">
-          {submitted ? (
+          {status && (
+            <div className={`alert alert-${status.type}`} style={{ marginBottom: "20px" }}>
+              {status.message}
+            </div>
+          )}
+          {submitted && status?.type === "success" ? (
             <div className="contact-success">
               <div style={{ fontSize: "3rem", marginBottom: 16 }}>🎉</div>
               <h2>Message Sent!</h2>
@@ -106,6 +130,7 @@ export default function ContactUs() {
                 style={{ marginTop: 20 }}
                 onClick={() => {
                   setSubmitted(false);
+                  setStatus(null);
                   setForm({ name: "", email: "", subject: "", message: "" });
                 }}
               >

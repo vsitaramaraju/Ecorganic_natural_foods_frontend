@@ -3,82 +3,41 @@ import { Link } from "react-router-dom";
 
 const SECTIONS = [
   {
-    title: "1. Delivery Coverage",
-    content: `We currently deliver to the following cities in Andhra Pradesh and Telangana:
-
-• Vijayawada (same-day available)
-• Guntur
-• Hyderabad
-• Visakhapatnam
-• Tirupati
-• Rajahmundry
-
-We are rapidly expanding. Check the checkout page for delivery availability at your pincode.`
+    title: "1. Shipping Locations",
+    content: `
+•We currently ship orders across India.
+•Shipping availability may vary for certain pin codes depending on courier service covergae.`
   },
   {
-    title: "2. Delivery Timelines",
-    content: `Standard Delivery: 24–48 hours from order placement.
-
-Same-Day Delivery: Available in Vijayawada for orders placed before 12:00 PM (noon) on business days.
-
-Express Delivery (4 Hours): Available in select pincodes in Vijayawada for ₹79 extra.
-
-Business Days: Monday to Saturday, excluding public holidays. Orders placed on Sundays will be processed the next business day.`
+    title: "2. Order Processing Times",
+    content: `• Orders are processed within 1-2 business days after payment confirmation.
+    • Orders placed on weekends or public holidays will be processed on the next business day.`
   },
   {
-    title: "3. Delivery Charges",
-    content: `• Free Delivery: Orders above ₹499
-• Standard Delivery Fee: ₹49 for orders below ₹499
-• Same-Day Delivery: ₹29 extra (free for orders above ₹799 in Vijayawada)
-• Express Delivery (4hr): ₹79 flat
-
-We reserve the right to modify delivery charges during peak seasons or festivals.`
+    title: "3. Delivery Timeline",
+    content: `• Estimated delivery time is 3-7 business days from the date of dispatch, depending on your destination.
+    • Delivery timelines may be affected by courier delays, weather conditions, strikes, or other unforeseen circumstances.`
   },
   {
-    title: "4. Order Tracking",
-    content: `Once your order is dispatched, you will receive:
-
-• An SMS with your tracking link
-• An email confirmation with order details
-• Real-time status updates in the 'My Orders' section of your account
-
-If your tracking shows 'Delivered' but you haven't received the order, contact us within 24 hours.`
+    title: "4. Shipping Charges",
+    content: `• Shipping charges, if applicable, will be displayed at checkout before payment.
+    • In some cases, free shipping may be offered during promotions.`
   },
   {
-    title: "5. Return Policy",
-    content: `We accept returns under the following conditions:
-
-✅ Eligible for return:
-• Damaged or spoiled products on delivery
-• Wrong item delivered
-• Missing items from order
-• Products with broken seals
-
-❌ Not eligible:
-• Perishable produce reported after 24 hours of delivery
-• Products that have been consumed or opened (unless defective)
-• Items purchased during special/clearance sales (unless damaged)`
+    title: "5. Tracking Orders",
+    content: `• Once shipped, you will receive a tracking ID and courier details via SMS/email.`
   },
   {
-    title: "6. How to Request a Return",
-    content: `Step 1: Go to 'My Orders' and select the order.
-Step 2: Click 'Report Issue' or 'Request Return'.
-Step 3: Select the item(s) and reason for return.
-Step 4: Upload a clear photo of the damaged/incorrect product.
-Step 5: Submit — our team will review within 4 hours.
-
-For fresh produce, returns must be reported within 24 hours of delivery.`
+    title: "6. Return Eligibility",
+    content: `• Returns are provided only in the following situations:
+    1. You received a damaged or defective product.
+    2. You received the wrong product.`
   },
   {
-    title: "7. Refund Policy",
-    content: `Once a return is approved:
-
-• UPI / Wallet: Refund within 1–2 hours
-• Credit/Debit Card: 3–5 business days
-• Net Banking: 2–4 business days
-• COD: Store credit added to your EchOrganics wallet within 24 hours (bank transfer available on request)
-
-Refund status can be tracked in your Orders section.`
+    title: "7. Refund Process",
+    content: `• Notify us within 24 hours of delivery by email at ecorganicplanet@gmail.com or call +91 9182536959.
+    • Kindly provide 360 degrees unboxing video of the parcel received and additional add clear photos of the product and packaging.
+    • Upon verification, the refund will be processed within 7-10 business days to your original payment method.`
   },
   {
     title: "8. Order Cancellation",
@@ -99,9 +58,9 @@ We'll arrange a replacement or full refund within 24 hours of approval.`
   },
   {
     title: "10. Contact for Shipping Issues",
-    content: `📧 Email: support@echorganics.in
-📞 Phone: +91 98765 43210 (Mon–Sat, 9 AM–6 PM)
-💬 Live Chat: Available on app (Mon–Sat, 9 AM–8 PM)
+    content: `📧 Email: ecorganicplanet@gmail.com
+📞 Phone: +91 9182536959 (Mon–Sat, 9 AM–6 PM)
+
 
 For urgent delivery issues, call us — we prioritize delivery complaints.`
   }
@@ -113,7 +72,7 @@ export default function ShippingPolicy() {
       <div className="static-hero">
         <span className="static-icon">🚚</span>
         <h1 className="section-title">Shipping & Return Policy</h1>
-        <p className="section-subtitle">Last updated: January 1, 2025</p>
+        <p className="section-subtitle">Last updated: August 27, 2026</p>
       </div>
 
       {/* Quick highlights */}
@@ -121,7 +80,7 @@ export default function ShippingPolicy() {
         className="shipping-highlight-grid"
         style={{ maxWidth: 800, margin: "0 auto var(--space-xl)" }}
       >
-        <div className="shipping-highlight">
+        {/* <div className="shipping-highlight">
           <span className="sh-icon">🚀</span>
           <h3>24–48 Hr Delivery</h3>
           <p>Same-day available in Vijayawada</p>
@@ -135,7 +94,7 @@ export default function ShippingPolicy() {
           <span className="sh-icon">🔄</span>
           <h3>Easy Returns</h3>
           <p>Report within 24 hours, refund in 5 days</p>
-        </div>
+        </div> */}
       </div>
 
       <div className="static-content card">

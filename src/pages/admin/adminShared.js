@@ -125,13 +125,17 @@ export const updateOrderStatus = async (orderId, status) => {
 export const saveProduct = async (payload, editingProductId) => {
   // Check if payload is FormData (for multipart file uploads)
   const isFormData = payload instanceof FormData;
-  
+
   // Axios will automatically handle Content-Type for FormData
   // Don't explicitly set it to let axios set the boundary
   const config = isFormData ? {} : {};
 
   if (editingProductId) {
-    const res = await API.put(`/admin/products/${editingProductId}`, payload, config);
+    const res = await API.put(
+      `/admin/products/${editingProductId}`,
+      payload,
+      config
+    );
     return res?.data;
   }
   const res = await API.post("/products", payload, config);
@@ -146,12 +150,16 @@ export const deleteProduct = async productId => {
 export const saveCategory = async (payload, editingCategoryId) => {
   // Check if payload is FormData (for multipart file uploads)
   const isFormData = payload instanceof FormData;
-  
+
   // Axios will automatically handle Content-Type for FormData
   const config = isFormData ? {} : {};
 
   if (editingCategoryId) {
-    const res = await API.put(`/categories/${editingCategoryId}`, payload, config);
+    const res = await API.put(
+      `/categories/${editingCategoryId}`,
+      payload,
+      config
+    );
     return res?.data;
   }
   const res = await API.post("/categories", payload, config);
@@ -168,5 +176,15 @@ export const updateUserRole = async (userId, role) => {
     () => API.put(`/admin/users/${userId}/role`, { role }),
     () => API.put(`/admin/users/${userId}`, { role })
   ]);
+  return res?.data;
+};
+
+export const updateUser = async (userId, payload) => {
+  const res = await API.put(`/admin/users/${userId}`, payload);
+  return res?.data;
+};
+
+export const deleteUser = async userId => {
+  const res = await API.delete(`/admin/users/${userId}`);
   return res?.data;
 };

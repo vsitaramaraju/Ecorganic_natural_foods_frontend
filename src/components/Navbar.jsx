@@ -8,6 +8,7 @@ import SearchResultsPopup from "./SearchResultsPopup";
 import API from "../api/axios";
 import logo from "../../public/images/Ecorganic logo.png";
 import AdminOrderNotifications from "./AdminOrderNotifications";
+import NotificationBell from "./NotificationBell";
 
 function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -177,6 +178,8 @@ function Navbar() {
 
         <div className="navbar-right">
           {/* USER ICON ACTIONS */}
+          {user && !isAdmin && <NotificationBell />}
+
           {user && !isAdmin ? (
             <div className="user-icons-wrap">
               <Link to="/wishlist" className="dropdown-item">

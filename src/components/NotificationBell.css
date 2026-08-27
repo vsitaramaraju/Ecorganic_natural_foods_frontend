@@ -1,0 +1,217 @@
+.notification-bell-wrapper {
+  position: relative;
+  flex-shrink: 0;
+  display: inline-flex;
+}
+
+.notification-bell-button {
+  position: relative;
+  width: auto;
+  height: auto;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  cursor: pointer;
+  transition: var(--transition);
+  padding: 0;
+}
+
+.notification-bell-button:hover,
+.notification-bell-button.has-unread {
+  color: var(--color-primary);
+  transform: scale(1.1);
+}
+
+.notification-bell-count {
+  position: absolute;
+  top: -7px;
+  right: -9px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  font-family: var(--font-body);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  pointer-events: none;
+  box-shadow: 0 0 0 2px var(--color-surface);
+  animation: notif-badge-pop 0.2s ease;
+}
+
+@keyframes notif-badge-pop {
+  from {
+    transform: scale(0.5);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.notification-bell-panel {
+  position: absolute;
+  z-index: 1000;
+  top: calc(100% + 16px);
+  right: -10px;
+  width: 380px;
+  max-width: calc(100vw - 30px);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.16);
+  overflow: hidden;
+}
+
+.notification-bell-header {
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+}
+
+.notification-bell-header div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.notification-bell-header strong {
+  color: var(--color-primary-dark);
+  font-size: 15px;
+}
+
+.notification-bell-header span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.notification-bell-header-icon {
+  color: var(--color-primary);
+}
+
+.notification-bell-list {
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.notification-bell-item {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--color-surface-alt);
+  background: var(--color-surface);
+  padding: 14px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.notification-bell-item:last-child {
+  border-bottom: none;
+}
+
+.notification-bell-item:hover {
+  background: var(--color-surface-alt);
+}
+
+.notification-bell-icon {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-xlight);
+  color: var(--color-primary-dark);
+  font-size: 15px;
+  overflow: hidden;
+}
+
+.notification-bell-icon.icon-coupon {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+}
+
+.notification-bell-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.notification-bell-icon-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-bell-content {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.notification-bell-content strong {
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.notification-bell-content span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.notification-bell-content small {
+  color: var(--color-text-light);
+  font-size: 11px;
+}
+
+.notification-bell-empty {
+  min-height: 110px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.notification-bell-empty svg {
+  font-size: 20px;
+  color: var(--color-text-light);
+}
+
+@media (max-width: 600px) {
+  .notification-bell-panel {
+    position: fixed;
+    top: 74px;
+    right: 15px;
+    left: 15px;
+    width: auto;
+    max-width: none;
+  }
+}

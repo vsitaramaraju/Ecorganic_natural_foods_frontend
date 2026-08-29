@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
+import { IMAGE_BASE_URL } from "../../api/api";
 import {
   ORDER_STATUSES,
   fetchOrders,
@@ -10,6 +11,18 @@ import {
 } from "./adminShared";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+const VISIBLE_ITEM_COUNT = 2; // how many products show inline before "+N more"
+
+const resolveImage = raw => {
+  if (!raw) return null;
+  if (/^https?:\/\//i.test(raw)) return raw;
+  return `${IMAGE_BASE_URL}${raw}`;
+};
+
+const getItemImage = item =>
+  resolveImage(item?.product?.images?.[0]?.imageUrl || item?.product?.imageUrl);
+
+const getItemName = item => item?.product?.name || "Deleted product";
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
@@ -21,6 +34,7 @@ export default function AdminOrders() {
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchParams] = useSearchParams();
+  const [viewItemsOrder, setViewItemsOrder] = useState(null); // full order object, for the "see all items" modal
 
   useEffect(() => {
     const requestedStatus = String(
@@ -212,6 +226,7 @@ export default function AdminOrders() {
               <th>Order</th>
               <th>Date</th>
               <th>Customer</th>
+              <th>Products</th>
               <th>Amount</th>
               <th>Status</th>
               <th>Action</th>
@@ -221,7 +236,7 @@ export default function AdminOrders() {
           <tbody>
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={6} className="admin-empty-row">
+                <td colSpan={7} className="admin-empty-row">
                   No orders found.
                 </td>
               </tr>
@@ -250,6 +265,106 @@ export default function AdminOrders() {
                           {order.user.email}
                         </div>
                       )}
+                    </td>
+
+                    <td>
+                      {(() => {
+                        const items = Array.isArray(order.items)
+                          ? order.items
+                          : [];
+                        if (items.length === 0) {
+                          return <span style={{ color: "#9ca3af" }}>—</span>;
+                        }
+                        const visible = items.slice(0, VISIBLE_ITEM_COUNT);
+                        const extraCount = items.length - visible.length;
+                        return (
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 6
+                            }}
+                          >
+                            {visible.map((item, idx) => {
+                              const img = getItemImage(item);
+                              return (
+                                <div
+                                  key={item.id ?? idx}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 8
+                                  }}
+                                >
+                                  {img ? (
+                                    <img
+                                      src={img}
+                                      alt=""
+                                      style={{
+                                        width: 30,
+                                        height: 30,
+                                        borderRadius: 6,
+                                        objectFit: "cover",
+                                        flexShrink: 0
+                                      }}
+                                      onError={e => {
+                                        e.currentTarget.style.display = "none";
+                                      }}
+                                    />
+                                  ) : (
+                                    <span
+                                      style={{
+                                        width: 30,
+                                        height: 30,
+                                        borderRadius: 6,
+                                        background: "#f0f4f0",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontSize: 12,
+                                        flexShrink: 0
+                                      }}
+                                    >
+                                      📦
+                                    </span>
+                                  )}
+                                  <span
+                                    style={{
+                                      fontSize: "0.8rem",
+                                      lineHeight: 1.25
+                                    }}
+                                  >
+                                    {getItemName(item)}
+                                    <span style={{ color: "#9ca3af" }}>
+                                      {" "}
+                                      × {item.quantity}
+                                    </span>
+                                  </span>
+                                </div>
+                              );
+                            })}
+                            {extraCount > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => setViewItemsOrder(order)}
+                                style={{
+                                  alignSelf: "flex-start",
+                                  border: "none",
+                                  background: "none",
+                                  color: "#2d6a4f",
+                                  fontSize: "0.75rem",
+                                  fontWeight: 600,
+                                  cursor: "pointer",
+                                  padding: 0,
+                                  textDecoration: "underline"
+                                }}
+                              >
+                                +{extraCount} more
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
 
                     <td>{formatCurrency(getOrderAmount(order))}</td>
@@ -346,6 +461,104 @@ export default function AdminOrders() {
           </div>
         )}
       </div>
+
+      {/* View all items modal - only opened via the "+N more" link */}
+      {viewItemsOrder && (
+        <div className="modal-overlay" onClick={() => setViewItemsOrder(null)}>
+          <div
+            className="modal-box"
+            style={{ maxWidth: 480, textAlign: "left" }}
+            onClick={e => e.stopPropagation()}
+          >
+            <h3>Order #{viewItemsOrder.id} — Items</h3>
+            <p style={{ marginBottom: 14 }}>
+              {(viewItemsOrder.items || []).length} product
+              {(viewItemsOrder.items || []).length === 1 ? "" : "s"} in this
+              order
+            </p>
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+                maxHeight: 360,
+                overflowY: "auto"
+              }}
+            >
+              {(viewItemsOrder.items || []).map((item, idx) => {
+                const img = getItemImage(item);
+                return (
+                  <div
+                    key={item.id ?? idx}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      paddingBottom: 12,
+                      borderBottom: "1px solid #f0f4f0"
+                    }}
+                  >
+                    {img ? (
+                      <img
+                        src={img}
+                        alt=""
+                        style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: 8,
+                          objectFit: "cover",
+                          flexShrink: 0
+                        }}
+                        onError={e => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <span
+                        style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: 8,
+                          background: "#f0f4f0",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 18,
+                          flexShrink: 0
+                        }}
+                      >
+                        📦
+                      </span>
+                    )}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: "0.85rem", fontWeight: 600 }}>
+                        {getItemName(item)}
+                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "#9ca3af" }}>
+                        Qty {item.quantity} × {formatCurrency(item.price)}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: "0.85rem", fontWeight: 600 }}>
+                      {formatCurrency((item.price || 0) * (item.quantity || 0))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="admin-form-actions" style={{ marginTop: 18 }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setViewItemsOrder(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

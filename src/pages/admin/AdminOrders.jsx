@@ -24,6 +24,152 @@ const getItemImage = item =>
 
 const getItemName = item => item?.product?.name || "Deleted product";
 
+/* ── Ship-From (return/warehouse) address — editable by the admin, persisted locally ── */
+const SHIP_FROM_STORAGE_KEY = "admin_ship_from_address";
+
+const DEFAULT_SHIP_FROM = {
+  business: "EchOrganics Fulfillment Center",
+  street: "",
+  city: "Vijayawada",
+  state: "Andhra Pradesh",
+  pincode: "520001",
+  phone: "+91 98765 43210"
+};
+
+const loadShipFromAddress = () => {
+  try {
+    const raw = localStorage.getItem(SHIP_FROM_STORAGE_KEY);
+    if (!raw) return DEFAULT_SHIP_FROM;
+    return { ...DEFAULT_SHIP_FROM, ...JSON.parse(raw) };
+  } catch {
+    return DEFAULT_SHIP_FROM;
+  }
+};
+
+const saveShipFromAddress = address => {
+  localStorage.setItem(SHIP_FROM_STORAGE_KEY, JSON.stringify(address));
+};
+
+const formatShipFromHTML = from => {
+  const cityLine = [from.city, from.state, from.pincode]
+    .filter(Boolean)
+    .join(", ");
+  return [
+    from.business,
+    from.street,
+    cityLine,
+    from.phone ? `📞 ${from.phone}` : ""
+  ]
+    .filter(Boolean)
+    .join("<br/>");
+};
+
+/* ── Address helpers ── */
+const hasAddress = order =>
+  Boolean(order?.address && (order.address.street || order.address.city));
+
+const formatAddressLines = address => {
+  if (!address) return [];
+  const lines = [];
+  if (address.name || address.phone) {
+    lines.push([address.name, address.phone].filter(Boolean).join(" · "));
+  }
+  if (address.street) lines.push(address.street);
+  const cityLine = [address.city, address.state, address.pincode]
+    .filter(Boolean)
+    .join(", ");
+  if (cityLine) lines.push(cityLine);
+  if (address.country) lines.push(address.country);
+  return lines;
+};
+
+/* ── Shipping / parcel label (for admin to print & paste on the package) ── */
+function generateShippingLabelHTML(order, fromAddress) {
+  const addr = order.address;
+  const customerName =
+    order.user?.name || order.customerName || addr?.name || "—";
+  const itemCount = (order.items || []).reduce(
+    (sum, i) => sum + Number(i?.quantity ?? 1),
+    0
+  );
+
+  const toBlock = addr
+    ? `${addr.name || customerName}<br/>
+       ${addr.street || ""}<br/>
+       ${[addr.city, addr.state, addr.pincode].filter(Boolean).join(", ")}<br/>
+       ${addr.country || ""}<br/>
+       ${addr.phone ? `📞 ${addr.phone}` : ""}`
+    : `<span style="color:#c53030">No delivery address on file — contact customer before shipping.</span>`;
+
+  const fromBlock = formatShipFromHTML(fromAddress || DEFAULT_SHIP_FROM);
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Shipping Label - Order #${order.id}</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',sans-serif;color:#1a2e1a;background:#fff;padding:24px}
+  .label{width:100%;max-width:520px;margin:0 auto;border:3px dashed #1b4332;border-radius:10px;padding:24px}
+  .label-header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #2d6a4f;padding-bottom:12px;margin-bottom:18px}
+  .brand{font-size:1.2rem;font-weight:700;color:#1b4332}
+  .order-tag{font-size:.85rem;color:#2d6a4f;font-weight:700}
+  .section{margin-bottom:16px}
+  .section h4{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:#5a7a5a;margin-bottom:6px}
+  .from p{font-size:.8rem;line-height:1.5;color:#5a7a5a}
+  .to{background:#f0f4f0;border-radius:8px;padding:14px 16px}
+  .to p{font-size:1rem;line-height:1.7;font-weight:600}
+  .meta-row{display:flex;justify-content:space-between;font-size:.82rem;color:#5a7a5a;margin-top:14px;border-top:1px dashed #d5e8d7;padding-top:10px}
+  .cod{display:inline-block;margin-top:10px;padding:4px 10px;border-radius:6px;background:#fff3cd;color:#856404;font-weight:700;font-size:.78rem}
+</style>
+</head><body>
+<div class="label">
+  <div class="label-header">
+    <div class="brand">🌿 EchOrganics</div>
+    <div class="order-tag">ORDER #${order.id}</div>
+  </div>
+  <div class="section from">
+    <h4>Ship From</h4>
+    <p>${fromBlock}</p>
+  </div>
+  <div class="section to">
+    <h4>Ship To</h4>
+    <p>${toBlock}</p>
+  </div>
+  <div class="meta-row">
+    <span>Items: ${itemCount}</span>
+    <span>Amount: ${formatCurrency(getOrderAmount(order))}</span>
+    <span>Status: ${order.status || "PENDING"}</span>
+  </div>
+  ${
+    String(order.paymentMethod || "")
+      .toUpperCase()
+      .includes("COD")
+      ? `<span class="cod">💰 CASH ON DELIVERY</span>`
+      : ""
+  }
+</div>
+</body></html>`;
+}
+
+function downloadShippingLabel(order, fromAddress) {
+  const html = generateShippingLabelHTML(order, fromAddress);
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `EchOrganics_Label_Order${order.id}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function printShippingLabel(order, fromAddress) {
+  const html = generateShippingLabelHTML(order, fromAddress);
+  const win = window.open("", "_blank");
+  win.document.write(html);
+  win.document.close();
+  setTimeout(() => {
+    win.print();
+  }, 400);
+}
+
 export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -35,6 +181,9 @@ export default function AdminOrders() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchParams] = useSearchParams();
   const [viewItemsOrder, setViewItemsOrder] = useState(null); // full order object, for the "see all items" modal
+  const [shipFrom, setShipFrom] = useState(loadShipFromAddress);
+  const [editingShipFrom, setEditingShipFrom] = useState(false);
+  const [shipFromDraft, setShipFromDraft] = useState(shipFrom);
 
   useEffect(() => {
     const requestedStatus = String(
@@ -143,6 +292,18 @@ export default function AdminOrders() {
     }
   };
 
+  const openShipFromEditor = () => {
+    setShipFromDraft(shipFrom);
+    setEditingShipFrom(true);
+  };
+
+  const handleSaveShipFrom = e => {
+    e.preventDefault();
+    setShipFrom(shipFromDraft);
+    saveShipFromAddress(shipFromDraft);
+    setEditingShipFrom(false);
+  };
+
   if (isLoading) return <p>Loading orders...</p>;
 
   return (
@@ -217,6 +378,15 @@ export default function AdminOrders() {
             </option>
           ))}
         </select>
+
+        <button
+          type="button"
+          className="btn-action"
+          onClick={openShipFromEditor}
+          title="Edit the 'Ship From' address printed on shipping labels"
+        >
+          🏷️ Edit Ship-From Address
+        </button>
       </div>
 
       <div className="admin-table-wrap">
@@ -226,9 +396,11 @@ export default function AdminOrders() {
               <th>Order</th>
               <th>Date</th>
               <th>Customer</th>
+              <th>Delivery Address</th>
               <th>Products</th>
               <th>Amount</th>
               <th>Status</th>
+              <th>Shipping Label</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -236,7 +408,7 @@ export default function AdminOrders() {
           <tbody>
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={7} className="admin-empty-row">
+                <td colSpan={9} className="admin-empty-row">
                   No orders found.
                 </td>
               </tr>
@@ -264,6 +436,35 @@ export default function AdminOrders() {
                         >
                           {order.user.email}
                         </div>
+                      )}
+                    </td>
+
+                    <td style={{ minWidth: 170 }}>
+                      {hasAddress(order) ? (
+                        <div style={{ fontSize: "0.78rem", lineHeight: 1.45 }}>
+                          {formatAddressLines(order.address).map((line, i) => (
+                            <div
+                              key={i}
+                              style={
+                                i === 0
+                                  ? { fontWeight: 600 }
+                                  : { color: "#5a7a5a" }
+                              }
+                            >
+                              {line}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span
+                          style={{
+                            fontSize: "0.75rem",
+                            color: "#c53030",
+                            fontWeight: 600
+                          }}
+                        >
+                          ⚠️ No address on file
+                        </span>
                       )}
                     </td>
 
@@ -380,6 +581,43 @@ export default function AdminOrders() {
                     </td>
 
                     <td>
+                      <div
+                        style={{ display: "flex", gap: 6, flexWrap: "wrap" }}
+                      >
+                        <button
+                          type="button"
+                          className="btn-action"
+                          title="Print shipping label"
+                          disabled={!hasAddress(order)}
+                          onClick={() => printShippingLabel(order, shipFrom)}
+                          style={{
+                            opacity: hasAddress(order) ? 1 : 0.5,
+                            cursor: hasAddress(order)
+                              ? "pointer"
+                              : "not-allowed"
+                          }}
+                        >
+                          🖨️ Print
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-action"
+                          title="Download shipping label"
+                          disabled={!hasAddress(order)}
+                          onClick={() => downloadShippingLabel(order, shipFrom)}
+                          style={{
+                            opacity: hasAddress(order) ? 1 : 0.5,
+                            cursor: hasAddress(order)
+                              ? "pointer"
+                              : "not-allowed"
+                          }}
+                        >
+                          ⬇️ Label
+                        </button>
+                      </div>
+                    </td>
+
+                    <td>
                       {/* Pending orders */}
                       {currentStatus === "PENDING" ? (
                         <select
@@ -477,6 +715,28 @@ export default function AdminOrders() {
               order
             </p>
 
+            {hasAddress(viewItemsOrder) && (
+              <div
+                style={{
+                  background: "#f0f4f0",
+                  borderRadius: 8,
+                  padding: "10px 12px",
+                  marginBottom: 14,
+                  fontSize: "0.8rem",
+                  lineHeight: 1.5
+                }}
+              >
+                <div style={{ fontWeight: 700, marginBottom: 2 }}>
+                  📍 Delivery Address
+                </div>
+                {formatAddressLines(viewItemsOrder.address).map((line, i) => (
+                  <div key={i} style={{ color: "#5a7a5a" }}>
+                    {line}
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div
               style={{
                 display: "flex",
@@ -557,6 +817,154 @@ export default function AdminOrders() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Edit Ship-From address modal */}
+      {editingShipFrom && (
+        <div
+          className="modal-overlay"
+          onClick={() => setEditingShipFrom(false)}
+        >
+          <form
+            className="modal-box"
+            style={{ maxWidth: 440, textAlign: "left" }}
+            onClick={e => e.stopPropagation()}
+            onSubmit={handleSaveShipFrom}
+          >
+            <h3>Ship-From Address</h3>
+            <p
+              style={{
+                marginBottom: 14,
+                fontSize: "0.82rem",
+                color: "#5a7a5a"
+              }}
+            >
+              This is the sender address printed on every shipping label.
+            </p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <label style={{ fontSize: "0.8rem", fontWeight: 600 }}>
+                Business / Warehouse Name
+                <input
+                  value={shipFromDraft.business}
+                  onChange={e =>
+                    setShipFromDraft(p => ({ ...p, business: e.target.value }))
+                  }
+                  style={{
+                    width: "100%",
+                    marginTop: 4,
+                    padding: "8px 10px",
+                    border: "1.5px solid #e5e7eb",
+                    borderRadius: 8
+                  }}
+                />
+              </label>
+
+              <label style={{ fontSize: "0.8rem", fontWeight: 600 }}>
+                Street Address
+                <input
+                  value={shipFromDraft.street}
+                  onChange={e =>
+                    setShipFromDraft(p => ({ ...p, street: e.target.value }))
+                  }
+                  placeholder="e.g. Plot 12, Industrial Estate"
+                  style={{
+                    width: "100%",
+                    marginTop: 4,
+                    padding: "8px 10px",
+                    border: "1.5px solid #e5e7eb",
+                    borderRadius: 8
+                  }}
+                />
+              </label>
+
+              <div style={{ display: "flex", gap: 10 }}>
+                <label style={{ fontSize: "0.8rem", fontWeight: 600, flex: 1 }}>
+                  City
+                  <input
+                    value={shipFromDraft.city}
+                    onChange={e =>
+                      setShipFromDraft(p => ({ ...p, city: e.target.value }))
+                    }
+                    style={{
+                      width: "100%",
+                      marginTop: 4,
+                      padding: "8px 10px",
+                      border: "1.5px solid #e5e7eb",
+                      borderRadius: 8
+                    }}
+                  />
+                </label>
+
+                <label style={{ fontSize: "0.8rem", fontWeight: 600, flex: 1 }}>
+                  State
+                  <input
+                    value={shipFromDraft.state}
+                    onChange={e =>
+                      setShipFromDraft(p => ({ ...p, state: e.target.value }))
+                    }
+                    style={{
+                      width: "100%",
+                      marginTop: 4,
+                      padding: "8px 10px",
+                      border: "1.5px solid #e5e7eb",
+                      borderRadius: 8
+                    }}
+                  />
+                </label>
+              </div>
+
+              <div style={{ display: "flex", gap: 10 }}>
+                <label style={{ fontSize: "0.8rem", fontWeight: 600, flex: 1 }}>
+                  Pincode
+                  <input
+                    value={shipFromDraft.pincode}
+                    onChange={e =>
+                      setShipFromDraft(p => ({ ...p, pincode: e.target.value }))
+                    }
+                    style={{
+                      width: "100%",
+                      marginTop: 4,
+                      padding: "8px 10px",
+                      border: "1.5px solid #e5e7eb",
+                      borderRadius: 8
+                    }}
+                  />
+                </label>
+
+                <label style={{ fontSize: "0.8rem", fontWeight: 600, flex: 1 }}>
+                  Phone
+                  <input
+                    value={shipFromDraft.phone}
+                    onChange={e =>
+                      setShipFromDraft(p => ({ ...p, phone: e.target.value }))
+                    }
+                    style={{
+                      width: "100%",
+                      marginTop: 4,
+                      padding: "8px 10px",
+                      border: "1.5px solid #e5e7eb",
+                      borderRadius: 8
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="admin-form-actions" style={{ marginTop: 18 }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setEditingShipFrom(false)}
+              >
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary">
+                Save
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </section>

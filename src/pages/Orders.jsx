@@ -179,7 +179,9 @@ export default function Orders() {
                             const displayImage =
                               item.product?.images?.[0]?.imageUrl ||
                               item.product?.imageUrl;
-                            const fullImageUrl = displayImage ? IMAGE_BASE_URL + displayImage : null;
+                            const fullImageUrl = displayImage
+                              ? IMAGE_BASE_URL + displayImage
+                              : null;
                             return fullImageUrl ? (
                               <img
                                 src={fullImageUrl}

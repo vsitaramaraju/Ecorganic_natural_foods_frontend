@@ -1,5 +1,7 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
-const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE_URL || "http://localhost:5000";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+const IMAGE_BASE_URL =
+  import.meta.env.VITE_IMAGE_BASE_URL || "http://localhost:5000";
 
 export { IMAGE_BASE_URL };
 
@@ -107,6 +109,21 @@ export const updateProfile = data =>
     body: JSON.stringify(data)
   });
 
+export const notificationAPI = {
+  // Persisted notifications the signed-in user hasn't read yet - includes
+  // anything that happened while they were logged out or offline.
+  getMyNotifications: () => apiCall("/notifications"),
+  markRead: () => apiCall("/notifications/read", { method: "POST" })
+};
+
+export const adminNotificationAPI = {
+  // Same idea, but for admins - events from the customer side (new
+  // orders) that every admin should know about, whether or not one was
+  // online when it happened.
+  getMyNotifications: () => apiCall("/admin/notifications"),
+  markRead: () => apiCall("/admin/notifications/read", { method: "POST" })
+};
+
 export default {
   authAPI,
   productAPI,
@@ -114,5 +131,7 @@ export default {
   cartAPI,
   addressAPI,
   orderAPI,
-  updateProfile
+  updateProfile,
+  notificationAPI,
+  adminNotificationAPI
 };

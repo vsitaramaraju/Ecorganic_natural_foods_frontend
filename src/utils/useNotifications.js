@@ -1,23 +1,24 @@
-import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { io } from "socket.io-client";
 import { AuthContext } from "../context/AuthContext";
-import { IMAGE_BASE_URL } from "../api/api";
+import { IMAGE_BASE_URL, notificationAPI } from "../api/api";
 
 /**
- * Customer-facing notification system, powered by a live Socket.IO
- * connection instead of periodic REST polling.
+ * Customer-facing notification system. The database is the single source
+ * of truth (no localStorage involved anywhere):
  *
- * The server pushes an event the moment something notification-worthy
- * happens:
- *  - "product:new"   a new product was added by an admin
- *  - "category:new"  a new category was added by an admin
- *  - "coupon:new"     a new active coupon was added by an admin
- *  - "order:status"   one of the signed-in user's own orders changed status
- *
- * Each pushed notification is stored in localStorage (so the badge count
- * survives a refresh) and the whole list is cleared - both from state and
- * localStorage - the moment the bell is opened, which is what "read" means
- * for this feature.
+ *  - On login/app load, GET /api/notifications fetches everything the user
+ *    hasn't read yet - including anything that happened while they were
+ *    logged out.
+ *  - While the tab stays open and connected, a live Socket.IO connection
+ *    pushes new events straight into memory the moment they happen:
+ *     - "product:new"   a new product was added by an admin
+ *     - "category:new"  a new category was added by an admin
+ *     - "coupon:new"     a new active coupon was added by an admin
+ *     - "order:status"   one of the signed-in user's own orders changed status
+ *  - Opening the bell calls POST /api/notifications/read, which moves the
+ *    user's "read" cursor forward on the server, and clears the in-memory
+ *    list. A page refresh after that won't bring the same items back.
  */
 
 const ORDER_STATUS_LABELS = {
@@ -29,23 +30,6 @@ const ORDER_STATUS_LABELS = {
   CANCELLED: "cancelled"
 };
 
-const readJSON = (key, fallback) => {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
-  } catch {
-    return fallback;
-  }
-};
-
-const writeJSON = (key, value) => {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // localStorage may be unavailable (private mode / quota) - fail silently
-  }
-};
-
 const resolveImage = raw => {
   if (!raw) return null;
   if (/^https?:\/\//i.test(raw)) return raw;
@@ -55,48 +39,99 @@ const resolveImage = raw => {
 const makeNotifId = () =>
   `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
+// A live-pushed notification and the same event later fetched from the
+// server won't share an id (local ones are generated client-side, server
+// ones use the DB row id) - so duplicates are matched on their content
+// instead. type+title+message is specific enough per event (order id,
+// product name, coupon code etc. all end up baked into the title/message).
+const notifKey = n => `${n.type}|${n.title}|${n.message}`;
+
+const mergeNotifications = (local, fetched) => {
+  const localKeys = new Set(local.map(notifKey));
+  const newFromServer = fetched.filter(n => !localKeys.has(notifKey(n)));
+  return [...newFromServer, ...local]
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 40);
+};
+
 export default function useNotifications() {
-  const { user, token, isAdmin, isAuthenticated } = useContext(AuthContext);
-  const userKey = user?.id ?? user?._id ?? user?.email ?? "guest";
+  const { token, isAdmin, isAuthenticated } = useContext(AuthContext);
 
-  const notifStorageKey = `echorganics_notifications_${userKey}`;
+  const [notifications, setNotifications] = useState([]);
 
-  const [notifications, setNotifications] = useState(() =>
-    isAuthenticated ? readJSON(notifStorageKey, []) : []
-  );
-
-  const notifStorageKeyRef = useRef(notifStorageKey);
-  notifStorageKeyRef.current = notifStorageKey;
-
-  // Reload the list whenever the signed-in user changes.
+  // Signed out (or switched accounts) - nothing to show.
   useEffect(() => {
-    setNotifications(isAuthenticated ? readJSON(notifStorageKey, []) : []);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [notifStorageKey, isAuthenticated]);
-
-  const pushNotification = useCallback(notif => {
-    setNotifications(prev => {
-      const next = [
-        {
-          id: makeNotifId(),
-          createdAt: new Date().toISOString(),
-          ...notif
-        },
-        ...prev
-      ].slice(0, 40); // keep it bounded
-      writeJSON(notifStorageKeyRef.current, next);
-      return next;
-    });
-  }, []);
-
-  // Clears everything currently stored - called when the bell is opened.
-  const clearNotifications = useCallback(() => {
-    writeJSON(notifStorageKeyRef.current, []);
-    setNotifications([]);
-  }, []);
+    if (!isAuthenticated) setNotifications([]);
+  }, [isAuthenticated]);
 
   // ---------------------------------------------------------------------
-  // Live socket connection - replaces the old setInterval REST polling.
+  // Fetch from the server on login/app load (and whenever the token
+  // changes, e.g. after a fresh sign-in). This is the only place the list
+  // gets hydrated from - there's no local cache to fall back on, so a user
+  // who was logged out (or just not on the site) when an admin made a
+  // change still sees it here, since the backend persisted it.
+  // ---------------------------------------------------------------------
+  useEffect(() => {
+    if (!isAuthenticated || isAdmin || !token) return undefined;
+
+    let cancelled = false;
+    notificationAPI
+      .getMyNotifications()
+      .then(fetched => {
+        if (cancelled || !Array.isArray(fetched)) return;
+        setNotifications(prev =>
+          mergeNotifications(
+            prev,
+            fetched.map(n => ({
+              id: `server_${n.id}`,
+              type: n.type,
+              title: n.title,
+              message: n.message,
+              image: n.image,
+              link: n.link,
+              createdAt: n.createdAt
+            }))
+          )
+        );
+      })
+      .catch(err => {
+        console.error("Failed to fetch notifications:", err);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, isAdmin, token]);
+
+  // Adds a live-pushed notification straight into memory.
+  const pushNotification = useCallback(notif => {
+    setNotifications(
+      prev =>
+        [
+          {
+            id: makeNotifId(),
+            createdAt: new Date().toISOString(),
+            ...notif
+          },
+          ...prev
+        ].slice(0, 40) // keep it bounded
+    );
+  }, []);
+
+  // Clears the in-memory list - called when the bell is opened. Also tells
+  // the server to move the user's "read" cursor forward, so a refresh
+  // right after doesn't re-fetch the same items.
+  const clearNotifications = useCallback(() => {
+    setNotifications([]);
+    if (isAuthenticated && !isAdmin) {
+      notificationAPI.markRead().catch(err => {
+        console.error("Failed to mark notifications read:", err);
+      });
+    }
+  }, [isAuthenticated, isAdmin]);
+
+  // ---------------------------------------------------------------------
+  // Live socket connection for real-time delivery while the tab is open.
   // Only customers (not admins) need this, since the events it listens for
   // are things admins themselves create.
   // ---------------------------------------------------------------------
@@ -179,7 +214,9 @@ export default function useNotifications() {
       const label = ORDER_STATUS_LABELS[status] || status.toLowerCase();
       const extraCount = data?.extraCount || 0;
       const itemsSuffix =
-        extraCount > 0 ? ` + ${extraCount} more item${extraCount === 1 ? "" : "s"}` : "";
+        extraCount > 0
+          ? ` + ${extraCount} more item${extraCount === 1 ? "" : "s"}`
+          : "";
       pushNotification({
         type: "order",
         title: `${data?.productName || "Your order"}${itemsSuffix}`,

@@ -1,66 +1,29 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaBell, FaCheckCircle, FaClock } from "react-icons/fa";
-import {
-  fetchOrders,
-  formatCurrency,
-  getOrderAmount
-} from "../pages/admin/adminShared";
+import { FaBell, FaBoxOpen, FaRegBellSlash } from "react-icons/fa";
+import useAdminNotifications from "../utils/useAdminNotifications";
 import "./AdminOrderNotifications.css";
 
-const POLL_INTERVAL = 30000;
-
-const getPendingOrders = orders =>
-  orders.filter(
-    order => String(order?.status || "PENDING").toUpperCase() === "PENDING"
-  );
-
-const getCustomerName = order =>
-  order?.user?.name || order?.customerName || order?.user?.email || "Customer";
-
-const getOrderDate = order => {
-  const value = order?.createdAt || order?.orderDate;
+const getTimeAgo = value => {
   if (!value) return "Just now";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Just now";
-  return date.toLocaleString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit"
-  });
+  const diffMs = Date.now() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays}d ago`;
 };
 
 export default function AdminOrderNotifications() {
-  const [pendingOrders, setPendingOrders] = useState([]);
+  const { notifications, count, clearNotifications } = useAdminNotifications();
   const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [displayedNotifications, setDisplayedNotifications] = useState([]);
   const wrapperRef = useRef(null);
   const navigate = useNavigate();
-
-  const loadPendingOrders = async (showLoading = false) => {
-    try {
-      if (showLoading) setIsLoading(true);
-      const orders = await fetchOrders();
-      setPendingOrders(getPendingOrders(orders));
-      setError("");
-    } catch (err) {
-      console.error("Failed to load admin order notifications:", err);
-      setError("Unable to refresh orders");
-    } finally {
-      if (showLoading) setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadPendingOrders(true);
-    const interval = window.setInterval(
-      () => loadPendingOrders(false),
-      POLL_INTERVAL
-    );
-    return () => window.clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     const handleOutsideClick = event => {
@@ -68,39 +31,42 @@ export default function AdminOrderNotifications() {
         setIsOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handleOutsideClick);
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
-  const sortedOrders = useMemo(
-    () =>
-      [...pendingOrders].sort(
-        (a, b) =>
-          new Date(b?.createdAt || b?.orderDate || 0) -
-          new Date(a?.createdAt || a?.orderDate || 0)
-      ),
-    [pendingOrders]
-  );
+  const handleToggle = () => {
+    setIsOpen(open => {
+      const next = !open;
+      if (next) {
+        // Snapshot what's showing right now, then clear + mark read on the
+        // server - "read" means "removed" for this feature, same as the
+        // customer-facing bell.
+        setDisplayedNotifications(notifications);
+        clearNotifications();
+      }
+      return next;
+    });
+  };
 
-  const handleViewOrder = orderId => {
+  const handleItemClick = link => {
     setIsOpen(false);
-    navigate(`/admin/orders?order=${orderId}`);
+    if (link) navigate(link);
   };
 
   return (
     <div className="admin-notification-wrapper" ref={wrapperRef}>
       <button
         type="button"
-        className={`admin-notification-button ${pendingOrders.length ? "has-pending" : ""}`}
-        onClick={() => setIsOpen(open => !open)}
-        aria-label={`Order notifications${pendingOrders.length ? `, ${pendingOrders.length} pending` : ""}`}
+        className={`admin-notification-button ${count ? "has-pending" : ""}`}
+        onClick={handleToggle}
+        aria-label={`Notifications${count ? `, ${count} new` : ""}`}
         aria-expanded={isOpen}
       >
         <FaBell />
-        {pendingOrders.length > 0 && (
+        {count > 0 && (
           <span className="admin-notification-count">
-            {pendingOrders.length > 99 ? "99+" : pendingOrders.length}
+            {count > 99 ? "99+" : count}
           </span>
         )}
       </button>
@@ -109,46 +75,37 @@ export default function AdminOrderNotifications() {
         <div className="admin-notification-panel">
           <div className="admin-notification-header">
             <div>
-              <strong>Order Notifications</strong>
+              <strong>Notifications</strong>
               <span>
-                {pendingOrders.length
-                  ? `${pendingOrders.length} order${pendingOrders.length === 1 ? "" : "s"} awaiting approval`
-                  : "All orders are approved"}
+                {displayedNotifications.length
+                  ? `${displayedNotifications.length} update${displayedNotifications.length === 1 ? "" : "s"}`
+                  : "You're all caught up"}
               </span>
             </div>
             <FaBell className="admin-notification-header-icon" />
           </div>
 
-          {isLoading ? (
-            <div className="admin-notification-empty">Checking orders...</div>
-          ) : error ? (
-            <div className="admin-notification-empty notification-error">
-              {error}
-            </div>
-          ) : sortedOrders.length === 0 ? (
+          {displayedNotifications.length === 0 ? (
             <div className="admin-notification-empty">
-              <FaCheckCircle />
-              <span>No pending orders</span>
+              <FaRegBellSlash />
+              <span>No new notifications</span>
             </div>
           ) : (
             <div className="admin-notification-list">
-              {sortedOrders.slice(0, 8).map(order => (
+              {displayedNotifications.map(notif => (
                 <button
                   type="button"
                   className="admin-order-notification-item"
-                  key={order.id}
-                  onClick={() => handleViewOrder(order.id)}
+                  key={notif.id}
+                  onClick={() => handleItemClick(notif.link)}
                 >
                   <span className="admin-order-notification-icon">
-                    <FaClock />
+                    <FaBoxOpen />
                   </span>
                   <span className="admin-order-notification-content">
-                    <strong>New order #{order.id}</strong>
-                    <span>{getCustomerName(order)}</span>
-                    <small>
-                      {formatCurrency(getOrderAmount(order))} ·{" "}
-                      {getOrderDate(order)}
-                    </small>
+                    <strong>{notif.title}</strong>
+                    <span>{notif.message}</span>
+                    <small>{getTimeAgo(notif.createdAt)}</small>
                   </span>
                   <span className="admin-order-notification-arrow">›</span>
                 </button>
@@ -164,9 +121,7 @@ export default function AdminOrderNotifications() {
               navigate("/admin/orders?status=PENDING");
             }}
           >
-            {pendingOrders.length
-              ? "Review all pending orders"
-              : "Open order management"}
+            Review pending orders
           </button>
         </div>
       )}

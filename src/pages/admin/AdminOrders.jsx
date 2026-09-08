@@ -92,6 +92,18 @@ function generateShippingLabelHTML(order, fromAddress) {
     (sum, i) => sum + Number(i?.quantity ?? 1),
     0
   );
+  const itemRows = (order.items || []).length
+    ? (order.items || [])
+        .map(
+          item =>
+            `<tr><td>${getItemName(item)}</td><td>${
+              item.quantity ?? 1
+            }</td><td>${formatCurrency(
+              Number(item.price || 0) * Number(item.quantity ?? 1)
+            )}</td></tr>`
+        )
+        .join("")
+    : `<tr><td colspan="3">No ordered items found.</td></tr>`;
 
   const toBlock = addr
     ? `${addr.name || customerName}<br/>
@@ -116,6 +128,11 @@ function generateShippingLabelHTML(order, fromAddress) {
   .from p{font-size:.8rem;line-height:1.5;color:#5a7a5a}
   .to{background:#f0f4f0;border-radius:8px;padding:14px 16px}
   .to p{font-size:1rem;line-height:1.7;font-weight:600}
+  .items{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:.82rem}
+  .items th,.items td{text-align:left;padding:7px 8px;border-bottom:1px solid #d5e8d7}
+  .items th{color:#5a7a5a;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em}
+  .items th:nth-child(2),.items td:nth-child(2){text-align:center;width:54px}
+  .items th:last-child,.items td:last-child{text-align:right;white-space:nowrap}
   .meta-row{display:flex;justify-content:space-between;font-size:.82rem;color:#5a7a5a;margin-top:14px;border-top:1px dashed #d5e8d7;padding-top:10px}
   .cod{display:inline-block;margin-top:10px;padding:4px 10px;border-radius:6px;background:#fff3cd;color:#856404;font-weight:700;font-size:.78rem}
 </style>
@@ -132,6 +149,13 @@ function generateShippingLabelHTML(order, fromAddress) {
   <div class="section to">
     <h4>Ship To</h4>
     <p>${toBlock}</p>
+  </div>
+  <div class="section">
+    <h4>Ordered Items</h4>
+    <table class="items">
+      <thead><tr><th>Product</th><th>Qty</th><th>Amount</th></tr></thead>
+      <tbody>${itemRows}</tbody>
+    </table>
   </div>
   <div class="meta-row">
     <span>Items: ${itemCount}</span>

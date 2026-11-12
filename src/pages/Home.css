@@ -112,7 +112,8 @@
   background: var(--color-primary);
   color: #fff;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  /* --trust-cols is set from the number of trust badges (admin-editable) */
+  grid-template-columns: repeat(var(--trust-cols, 4), 1fr);
 }
 .trust-item {
   display: flex;

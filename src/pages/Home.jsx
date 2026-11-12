@@ -20,6 +20,8 @@ import {
   ORGANIC_CATEGORY_ICONS
 } from "../constants/category";
 import HeroSection from "../components/HeroSection";
+import { CtaBanner, TrustBar, WhySection } from "../components/HomeSections";
+import { DEFAULT_BANNER } from "../constants/homeBanner";
 import Categories from "../components/Categories";
 
 const getCategoryIcon = name => {
@@ -54,14 +56,18 @@ export default function Home() {
   const [recentProducts, setRecentProducts] = useState([]);
   const [wishlistIds, setWishlistIds] = useState(new Set());
   const toastRef = useRef();
+  const [banner, setBanner] = useState(DEFAULT_BANNER);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [prodRes, catRes] = await Promise.all([
+        const [prodRes, catRes, bannerRes] = await Promise.all([
           API.get("/products"),
-          API.get("/categories")
+          API.get("/categories"),
+          // The banner is optional: if it fails, keep the default banner.
+          API.get("/home-banner").catch(() => null)
         ]);
+        if (bannerRes?.data) setBanner({ ...DEFAULT_BANNER, ...bannerRes.data });
         const prods = Array.isArray(prodRes?.data) ? prodRes.data : [];
         const cats = Array.isArray(catRes?.data) ? catRes.data : [];
         setAllProducts(prods);
@@ -201,6 +207,20 @@ export default function Home() {
     });
   }, []);
 
+  // Hero button links: "#products" (or empty) scrolls to products,
+  // "http(s)://…" opens an external page, anything else is an in-app route.
+  const handleBannerAction = useCallback(
+    link => {
+      if (!link || link === "#products") return scrollProducts();
+      if (/^https?:\/\//i.test(link)) {
+        window.location.href = link;
+        return;
+      }
+      navigate(link);
+    },
+    [navigate, scrollProducts]
+  );
+
   if (isLoading)
     return (
       <div className="loading-wrap">
@@ -217,30 +237,11 @@ export default function Home() {
       {toast && <div className="toast">{toast}</div>}
 
       {/* Hero */}
-      <HeroSection scrollProducts={scrollProducts} navigate={navigate} />
+      {banner.isVisible !== false && (
+        <HeroSection banner={banner} onAction={handleBannerAction} />
+      )}
       {/* Trust Badges */}
-      <section className="trust-bar">
-        <div className="trust-item">
-          <span>🌿</span>
-          <strong>100% Organic</strong>
-          <small>Certified by APEDA</small>
-        </div>
-        <div className="trust-item">
-          <span>🚚</span>
-          <strong>Free Delivery</strong>
-          <small>On orders above ₹499</small>
-        </div>
-        <div className="trust-item">
-          <span>🔄</span>
-          <strong>Easy Returns</strong>
-          <small>No questions asked</small>
-        </div>
-        <div className="trust-item">
-          <span>🛡️</span>
-          <strong>Safe Payments</strong>
-          <small>100% secure checkout</small>
-        </div>
-      </section>
+      {banner.trustVisible !== false && <TrustBar items={banner.trustItems} />}
 
       {error && (
         <div className="container">
@@ -316,50 +317,13 @@ export default function Home() {
       </section>
 
       {/* Why Us */}
-      <section className="home-section why-section">
-        <div className="container">
-          <h2 className="section-title" style={{ textAlign: "center" }}>
-            Why EchOrganics?
-          </h2>
-          <p className="section-subtitle" style={{ textAlign: "center" }}>
-            We're not just a store — we're a movement for healthier living
-          </p>
-          <div className="why-grid">
-            <div className="why-card">
-              <div className="why-icon">🌾</div>
-              <h3>Direct from Farm</h3>
-              <p>
-                We partner directly with certified organic farmers, cutting out
-                middlemen to deliver the freshest produce.
-              </p>
-            </div>
-            <div className="why-card">
-              <div className="why-icon">🔬</div>
-              <h3>Lab Tested</h3>
-              <p>
-                Every batch is tested for pesticides and chemicals. We guarantee
-                what's on the label is what's in the pack.
-              </p>
-            </div>
-            <div className="why-card">
-              <div className="why-icon">♻️</div>
-              <h3>Eco Packaging</h3>
-              <p>
-                100% biodegradable packaging. We care about your health and the
-                planet equally.
-              </p>
-            </div>
-            <div className="why-card">
-              <div className="why-icon">💚</div>
-              <h3>Community First</h3>
-              <p>
-                Every purchase supports local organic farmers and sustainable
-                farming practices in India.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      {banner.whyVisible !== false && (
+        <WhySection
+          title={banner.whyTitle}
+          subtitle={banner.whySubtitle}
+          cards={banner.whyCards}
+        />
+      )}
 
       {/* Featured */}
       {featuredProducts.length > 0 && (
@@ -435,20 +399,15 @@ export default function Home() {
           </section>
         )
       ) : (
-        <section className="cta-banner">
-          <div className="cta-content">
-            <h2>Ready to eat healthier?</h2>
-            <p>
-              Join 10,000+ families who switched to organic with EchOrganics
-            </p>
-            <button
-              className="btn btn-accent"
-              onClick={() => navigate("/register")}
-            >
-              Create Free Account →
-            </button>
-          </div>
-        </section>
+        banner.ctaVisible !== false && (
+          <CtaBanner
+            title={banner.ctaTitle}
+            text={banner.ctaText}
+            buttonText={banner.ctaButtonText}
+            buttonLink={banner.ctaButtonLink}
+            onAction={handleBannerAction}
+          />
+        )
       )}
     </div>
   );

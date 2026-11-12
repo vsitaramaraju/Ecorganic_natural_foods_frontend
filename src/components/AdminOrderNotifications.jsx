@@ -118,10 +118,10 @@ export default function AdminOrderNotifications() {
             className="admin-notification-footer"
             onClick={() => {
               setIsOpen(false);
-              navigate("/admin/orders?status=PENDING");
+              navigate("/admin/orders");
             }}
           >
-            Review pending orders
+            View all orders
           </button>
         </div>
       )}

@@ -10,6 +10,12 @@ import {
   deleteProduct
 } from "./adminShared";
 import { IMAGE_BASE_URL } from "../../api/api";
+import ProductImageManager from "./ProductImageManager";
+import {
+  appendImagesToFormData,
+  existingImagesOf,
+  revokeImagePreviews
+} from "./productImages";
 
 const EMPTY_FORM = {
   name: "",
@@ -20,7 +26,7 @@ const EMPTY_FORM = {
   weightUnit: "g", // "g" | "kg"
   stock: "",
   categoryId: "",
-  imageFiles: [] // Multiple image files
+  images: [] // existing + newly picked images, in display order (first = main)
 };
 
 const ALLOWED_IMAGE_TYPES = {
@@ -115,7 +121,6 @@ export default function AdminProducts() {
   const [currentPage, setCurrentPage] = useState(1);
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const categoryMenuRef = useRef(null);
-  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (!showCategoryMenu) return;
@@ -160,6 +165,7 @@ export default function AdminProducts() {
   }, []);
 
   const resetForm = () => {
+    revokeImagePreviews(productForm.images);
     setProductForm(EMPTY_FORM);
     setEditingId(null);
     setShowForm(false);
@@ -178,7 +184,7 @@ export default function AdminProducts() {
       weightUnit,
       stock: String(product.stock || ""),
       categoryId: getProductCategoryId(product),
-      imageFiles: [] // Clear file selection when editing
+      images: existingImagesOf(product)
     });
     setEditingId(product.id);
     setShowForm(true);
@@ -211,6 +217,11 @@ export default function AdminProducts() {
       return;
     }
 
+    if (productForm.images.length === 0) {
+      setMessage({ type: "error", text: "Add at least one product image." });
+      return;
+    }
+
     try {
       setIsSaving(true);
       setMessage({ type: "", text: "" });
@@ -224,12 +235,7 @@ export default function AdminProducts() {
       formData.append("stock", Number(productForm.stock));
       formData.append("categoryId", Number(productForm.categoryId));
 
-      // Add multiple image files
-      if (productForm.imageFiles && productForm.imageFiles.length > 0) {
-        productForm.imageFiles.forEach(file => {
-          formData.append("images", file);
-        });
-      }
+      appendImagesToFormData(formData, productForm.images, Boolean(editingId));
 
       const response = await saveProduct(formData, editingId);
       setMessage({
@@ -246,7 +252,10 @@ export default function AdminProducts() {
       setMessage({
         type: "error",
         text:
-          e?.response?.data?.message || e?.message || "Failed to save product"
+          e?.response?.data?.message ||
+          e?.response?.data?.error ||
+          e?.message ||
+          "Failed to save product"
       });
     } finally {
       setIsSaving(false);
@@ -480,103 +489,13 @@ export default function AdminProducts() {
               />
             </div>
             <div className="form-group admin-form-full">
-              <label htmlFor="p-images">Upload Multiple Product Images</label>
-              <input
-                id="p-images"
-                type="file"
-                multiple
-                accept="image/*"
-                ref={fileInputRef}
-                onChange={e => {
-                  const files = Array.from(e.target.files || []);
-                  const { validFiles, errors } = validateImageFiles(files);
-                  
-                  if (errors.length > 0) {
-                    setMessage({
-                      type: "error",
-                      text: errors.join("\n")
-                    });
-                  }
-                  
-                  setProductForm(p => ({ ...p, imageFiles: validFiles }));
-                }}
+              <label>Product Images</label>
+              <ProductImageManager
+                images={productForm.images}
+                onChange={images => setProductForm(p => ({ ...p, images }))}
+                validateFiles={validateImageFiles}
+                onError={text => setMessage({ type: "error", text })}
               />
-              <small
-                style={{
-                  color: "#6b7280",
-                  fontSize: "12px",
-                  marginTop: "4px",
-                  display: "block"
-                }}
-              >
-                Select one or more images (jpg, jpeg, png, gif, webp). These will appear as thumbnails on the product page.
-              </small>
-              {productForm.imageFiles && productForm.imageFiles.length > 0 && (
-                <div
-                  style={{
-                    marginTop: "12px",
-                    display: "flex",
-                    gap: "8px",
-                    flexWrap: "wrap"
-                  }}
-                >
-                  {productForm.imageFiles.map((file, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        position: "relative",
-                        width: "80px",
-                        height: "80px",
-                        borderRadius: "8px",
-                        overflow: "hidden",
-                        border: "2px solid #e5e7eb"
-                      }}
-                    >
-                      <img
-                        src={URL.createObjectURL(file)}
-                        alt={`preview-${idx}`}
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover"
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const updated = productForm.imageFiles.filter(
-                            (_, i) => i !== idx
-                          );
-                          setProductForm(p => ({
-                            ...p,
-                            imageFiles: updated
-                          }));
-                        }}
-                        style={{
-                          position: "absolute",
-                          top: "-2px",
-                          right: "-2px",
-                          background: "#ef4444",
-                          color: "white",
-                          border: "none",
-                          width: "24px",
-                          height: "24px",
-                          borderRadius: "50%",
-                          cursor: "pointer",
-                          fontSize: "14px",
-                          lineHeight: "1",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center"
-                        }}
-                        title="Remove image"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
             <div className="admin-form-actions admin-form-full">
               <button

@@ -8,6 +8,7 @@ import "./ProductDetails.css";
 import { useCart } from "../context/CartContext";
 import { saveRecentProduct } from "../utils/RecentlyViewed";
 import "../components/ProductCard.css";
+import useHomeContent from "../utils/useHomeContent";
 
 function formatReviewDate(d) {
   if (!d) return "";
@@ -69,6 +70,8 @@ export default function ProductDetail() {
   const [adding, setAdding] = useState(false);
   const [toast, setToast] = useState("");
   const [selectedImage, setSelectedImage] = useState(0);
+  const homeContent = useHomeContent();
+  const trustBadges = (homeContent.trustItems || []).filter(b => b.title || b.text);
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [wishlistIds, setWishlistIds] = useState(new Set());
@@ -380,6 +383,20 @@ export default function ProductDetail() {
         ]
       : [];
 
+  const imageCount = images.length;
+  const showImage = index =>
+    setSelectedImage(((index % imageCount) + imageCount) % imageCount);
+  const handleGalleryTouchStart = e => {
+    e.currentTarget.dataset.touchX = e.touches[0].clientX;
+  };
+  const handleGalleryTouchEnd = e => {
+    const startX = Number(e.currentTarget.dataset.touchX);
+    const deltaX = e.changedTouches[0].clientX - startX;
+    if (imageCount > 1 && Math.abs(deltaX) > 40) {
+      showImage(selectedImage + (deltaX < 0 ? 1 : -1));
+    }
+  };
+
   const isOutOfStock = product?.stock === 0;
   const isLowStock = product?.stock > 0 && product?.stock < 10;
   const catName = product?.category?.name || product?.category || "";
@@ -517,17 +534,44 @@ export default function ProductDetail() {
               )}
 
               {/* Main image */}
-              <div className="pd-main-image">
+              <div
+                className="pd-main-image"
+                onTouchStart={handleGalleryTouchStart}
+                onTouchEnd={handleGalleryTouchEnd}
+              >
                 {images.length > 0 ? (
                   <>
                     <img
-                      src={images[selectedImage]}
+                      src={images[selectedImage] ?? images[0]}
                       alt={product.name}
                       width="440"
                       height="440"
                       fetchPriority="high"
                       decoding="async"
                     />
+                    {imageCount > 1 && (
+                      <>
+                        <button
+                          type="button"
+                          className="pd-gallery-nav pd-gallery-prev"
+                          onClick={() => showImage(selectedImage - 1)}
+                          aria-label="Previous image"
+                        >
+                          ‹
+                        </button>
+                        <button
+                          type="button"
+                          className="pd-gallery-nav pd-gallery-next"
+                          onClick={() => showImage(selectedImage + 1)}
+                          aria-label="Next image"
+                        >
+                          ›
+                        </button>
+                        <span className="pd-gallery-count" aria-live="polite">
+                          {Math.min(selectedImage, imageCount - 1) + 1} / {imageCount}
+                        </span>
+                      </>
+                    )}
                     <button
                       className="pd-share-btn"
                       onClick={handleShare}
@@ -711,25 +755,20 @@ export default function ProductDetail() {
               </div>
             )}
 
-            {/* Trust Badges */}
-            <div className="pd-trust">
-              <div className="pd-trust-item">
-                <span>🌿</span>
-                <span>100% Organic</span>
+            {/* Trust Badges (same badges the admin edits for the home page) */}
+            {homeContent.trustVisible !== false && trustBadges.length > 0 && (
+              <div className="pd-trust">
+                {trustBadges.map((badge, i) => (
+                  <div className="pd-trust-item" key={i}>
+                    {badge.icon && <span className="pd-trust-icon">{badge.icon}</span>}
+                    <span className="pd-trust-copy">
+                      {badge.title && <span>{badge.title}</span>}
+                      {badge.text && <small>{badge.text}</small>}
+                    </span>
+                  </div>
+                ))}
               </div>
-              <div className="pd-trust-item">
-                <span>🚚</span>
-                <span>Free delivery over ₹499</span>
-              </div>
-              <div className="pd-trust-item">
-                <span>🔄</span>
-                <span>Easy returns</span>
-              </div>
-              <div className="pd-trust-item">
-                <span>🛡️</span>
-                <span>Secure checkout</span>
-              </div>
-            </div>
+            )}
 
             {/* Additional Product Info */}
             {(product.weight || product.unit || product.sku) && (

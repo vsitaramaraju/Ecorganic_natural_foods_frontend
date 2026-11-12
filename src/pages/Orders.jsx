@@ -13,6 +13,34 @@ const STATUS_MAP = {
   CANCELLED: { color: "danger", icon: "❌" }
 };
 
+const PAYMENT_METHOD_TEXT = {
+  COD: "Cash on Delivery",
+  RAZORPAY: "Online (Razorpay)",
+  UPI: "UPI"
+};
+
+const PAYMENT_STATUS_TEXT = {
+  UNPAID: "Pay on delivery",
+  PAID: "Paid",
+  REFUND_PENDING: "Refund in progress",
+  REFUNDED: "Refunded"
+};
+
+// e.g. "Paid online", "Refund of ₹40 in progress" - shown under each order.
+const paymentSummary = order => {
+  const refund = order.refundAmount != null ? `₹${order.refundAmount}` : "your payment";
+  switch (order.paymentStatus) {
+    case "PAID":
+      return "💳 Paid online";
+    case "REFUND_PENDING":
+      return `↩️ Refund of ${refund} in progress — usually 5–7 working days`;
+    case "REFUNDED":
+      return `↩️ ${refund} refunded to your original payment method`;
+    default:
+      return order.status === "CANCELLED" ? null : "💵 Cash on Delivery";
+  }
+};
+
 function generateInvoiceHTML(order) {
   const date = order.createdAt
     ? new Date(order.createdAt).toLocaleDateString("en-IN", {
@@ -43,7 +71,7 @@ function generateInvoiceHTML(order) {
 </div>
 <div class="meta">
   <div class="meta-block"><h4>Delivery Address</h4><p>${order.address ? `${order.address.street || ""}<br/>${order.address.city || ""}, ${order.address.state || ""}<br/>${order.address.pincode || ""}` : "N/A"}</p></div>
-  <div class="meta-block"><h4>Payment Info</h4><p>Method: ${order.paymentMethod || "Online"}<br/>Status: ${order.paymentStatus || "Paid"}<br/>GST: Inclusive</p></div>
+  <div class="meta-block"><h4>Payment Info</h4><p>Method: ${PAYMENT_METHOD_TEXT[order.paymentMethod] || order.paymentMethod || "-"}<br/>Status: ${PAYMENT_STATUS_TEXT[order.paymentStatus] || order.paymentStatus || "-"}<br/>GST: Inclusive</p></div>
 </div>
 <table><thead><tr><th>Product</th><th style="text-align:center">Qty</th><th style="text-align:right">Unit Price</th><th style="text-align:right">Amount</th></tr></thead>
 <tbody>${itemRows}</tbody></table>
@@ -214,6 +242,11 @@ export default function Orders() {
                 <div className="order-foot">
                   <span className="order-total">
                     Total: <strong>₹{order.totalAmount}</strong>
+                    {paymentSummary(order) && (
+                      <small className="order-payment-note">
+                        {paymentSummary(order)}
+                      </small>
+                    )}
                   </span>
                   {order.address && (
                     <span className="order-addr-mini">

@@ -18,6 +18,7 @@ export default function AdminPanel() {
     { to: "/admin/products", label: "📦 Products" },
     { to: "/admin/categories", label: "🗂 Categories" },
     { to: "/admin/coupons", label: "🎟 Coupons" },
+    { to: "/admin/home-banner", label: "🖼 Home Page" },
     { to: "/admin/users", label: "👥 Users" },
     { to: "/admin/reports", label: "📋 Reports" }
   ];
@@ -59,7 +60,7 @@ export default function AdminPanel() {
             Welcome, {user?.name || "Admin"} 👋
           </h1>
           <p>
-            Manage sales, orders, products, categories, and users from here.
+            Manage sales, orders, products, categories, users, and home page content from here.
           </p>
         </div>
       </div>

@@ -1,0 +1,449 @@
+import { useCallback, useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import {
+  ADMIN_ACTIVE_STATUSES,
+  PAYMENT_METHOD_LABELS,
+  PAYMENT_STATUS_LABELS,
+  fetchOrder,
+  formatCurrency,
+  getOrderAmount,
+  updateOrderStatus,
+} from "./adminShared";
+import {
+  downloadShippingLabel,
+  formatAddressLines,
+  getItemImage,
+  getItemName,
+  hasAddress,
+  loadShipFromAddress,
+  printShippingLabel,
+} from "./orderShared";
+
+const formatDateTime = (value) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+};
+
+export default function AdminOrderDetail() {
+  const { orderId } = useParams();
+  const [order, setOrder] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState({ type: "", text: "" });
+  const [confirmAction, setConfirmAction] = useState(null); // "cancel" | "reopen"
+
+  const load = useCallback(async () => {
+    const data = await fetchOrder(orderId);
+    setOrder(data);
+  }, [orderId]);
+
+  useEffect(() => {
+    setIsLoading(true);
+    load()
+      .catch((e) =>
+        setMessage({
+          type: "error",
+          text:
+            e?.response?.status === 404
+              ? `Order #${orderId} was not found.`
+              : e?.response?.data?.message ||
+                e?.message ||
+                "Failed to load order",
+        }),
+      )
+      .finally(() => setIsLoading(false));
+  }, [load, orderId]);
+
+  const changeStatus = async (status, successText) => {
+    try {
+      setIsSaving(true);
+      setMessage({ type: "", text: "" });
+      await updateOrderStatus(order.id, status);
+      await load();
+      setMessage({ type: "success", text: successText });
+    } catch (e) {
+      setMessage({
+        type: "error",
+        text:
+          e?.response?.data?.message || e?.message || "Failed to update order",
+      });
+    } finally {
+      setIsSaving(false);
+      setConfirmAction(null);
+    }
+  };
+
+  if (isLoading) return <p>Loading order...</p>;
+
+  if (!order) {
+    return (
+      <div className="admin-stack">
+        <Link to="/admin/orders" className="order-detail-back">
+          ← All orders
+        </Link>
+        {message.text && (
+          <div className="alert alert-error">{message.text}</div>
+        )}
+      </div>
+    );
+  }
+
+  const status = String(order.status || "PENDING").toUpperCase();
+  const isCancelled = status === "CANCELLED";
+  const items = Array.isArray(order.items) ? order.items : [];
+  const itemCount = items.reduce(
+    (sum, item) => sum + Number(item.quantity || 0),
+    0,
+  );
+  const subtotal = Number(
+    order.subtotalAmount ||
+      items.reduce(
+        (sum, item) =>
+          sum + Number(item.price || 0) * Number(item.quantity || 0),
+        0,
+      ),
+  );
+  const discount = Number(order.discountAmount || 0);
+  const shipFrom = loadShipFromAddress();
+  const isPaidOnline =
+    order.paymentStatus === "PAID" && Boolean(order.razorpayPaymentId);
+  const isRefunded = ["REFUND_PENDING", "REFUNDED"].includes(
+    order.paymentStatus,
+  );
+
+  return (
+    <div className="admin-stack">
+      <Link to="/admin/orders" className="order-detail-back">
+        ← All orders
+      </Link>
+
+      {/* Header */}
+      <section className="card admin-section order-detail-header">
+        <div>
+          <div className="order-detail-title">
+            <h3>Order #{order.id}</h3>
+            <span
+              className={`admin-status-pill status-${status.toLowerCase()}`}
+            >
+              {status}
+            </span>
+          </div>
+          <p className="order-detail-sub">
+            Placed {formatDateTime(order.createdAt)} · {itemCount} item
+            {itemCount === 1 ? "" : "s"} ·{" "}
+            {formatCurrency(getOrderAmount(order))}
+          </p>
+        </div>
+
+        <div className="order-detail-actions">
+          <button
+            type="button"
+            className="btn btn-secondary btn-small"
+            onClick={() => printShippingLabel(order, shipFrom)}
+            disabled={!hasAddress(order)}
+          >
+            🖨 Print label
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-small"
+            onClick={() => downloadShippingLabel(order, shipFrom)}
+            disabled={!hasAddress(order)}
+          >
+            ⬇ Shipping label
+          </button>
+
+          {!isCancelled && (
+            <label className="order-detail-status">
+              <span>Status</span>
+              <select
+                value={status}
+                disabled={isSaving}
+                onChange={(e) =>
+                  changeStatus(
+                    e.target.value,
+                    `Order marked ${e.target.value}.`,
+                  )
+                }
+              >
+                {!ADMIN_ACTIVE_STATUSES.includes(status) && (
+                  <option value={status} disabled>
+                    {status}
+                  </option>
+                )}
+                {ADMIN_ACTIVE_STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          {isCancelled ? (
+            !isRefunded && (
+              <button
+                type="button"
+                className="btn btn-primary btn-small"
+                onClick={() => setConfirmAction("reopen")}
+                disabled={isSaving}
+              >
+                Reopen order
+              </button>
+            )
+          ) : (
+            <button
+              type="button"
+              className="btn btn-small order-detail-cancel"
+              onClick={() => setConfirmAction("cancel")}
+              disabled={isSaving}
+            >
+              {isPaidOnline ? "Cancel & refund" : "Cancel order"}
+            </button>
+          )}
+        </div>
+      </section>
+
+      {message.text && (
+        <div
+          className={`alert ${message.type === "error" ? "alert-error" : "alert-success"}`}
+        >
+          {message.text}
+        </div>
+      )}
+
+      {/* Customer / address / payment */}
+      <div className="order-detail-grid">
+        <section className="card admin-section">
+          <h4 className="order-detail-label">Customer</h4>
+          <p className="order-detail-strong">{order.user?.name || "—"}</p>
+          {order.user?.email && (
+            <p>
+              <a href={`mailto:${order.user.email}`}>{order.user.email}</a>
+            </p>
+          )}
+          {order.user?.phone && (
+            <p>
+              <a href={`tel:${order.user.phone}`}>{order.user.phone}</a>
+            </p>
+          )}
+        </section>
+
+        <section className="card admin-section">
+          <h4 className="order-detail-label">Delivery address</h4>
+          {hasAddress(order) ? (
+            formatAddressLines(order.address).map((line, i) => (
+              <p key={i} className={i === 0 ? "order-detail-strong" : ""}>
+                {line}
+              </p>
+            ))
+          ) : (
+            <p className="order-detail-warn">⚠️ No address on file</p>
+          )}
+        </section>
+
+        <section className="card admin-section">
+          <h4 className="order-detail-label">Payment</h4>
+          <p className="order-detail-strong">
+            {PAYMENT_METHOD_LABELS[order.paymentMethod] ||
+              order.paymentMethod ||
+              "—"}
+          </p>
+          <p>
+            <span
+              className={`payment-pill payment-${String(order.paymentStatus || "UNPAID").toLowerCase()}`}
+            >
+              {PAYMENT_STATUS_LABELS[order.paymentStatus] ||
+                order.paymentStatus ||
+                "—"}
+            </span>
+          </p>
+          <p>Amount: {formatCurrency(getOrderAmount(order))}</p>
+          {order.couponCode && <p>Coupon: {order.couponCode}</p>}
+          {order.razorpayPaymentId && (
+            <p className="order-detail-mono">
+              Razorpay payment: {order.razorpayPaymentId}
+            </p>
+          )}
+          {order.refundId && (
+            <>
+              <p>
+                Refunded {formatCurrency(order.refundAmount)}
+                {order.refundedAt
+                  ? ` on ${formatDateTime(order.refundedAt)}`
+                  : ""}
+              </p>
+              <p className="order-detail-mono">Refund: {order.refundId}</p>
+              {order.paymentStatus === "REFUND_PENDING" && (
+                <p className="order-detail-hint">
+                  Razorpay is processing the refund; it usually reaches the
+                  customer in 5–7 working days. Reload this page to check for
+                  updates.
+                </p>
+              )}
+            </>
+          )}
+        </section>
+      </div>
+
+      {/* Items */}
+      <section className="card admin-section">
+        <h4 className="order-detail-label">Items</h4>
+        <div className="admin-table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Price</th>
+                <th>Qty</th>
+                <th style={{ textAlign: "right" }}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="admin-empty-row">
+                    No items found.
+                  </td>
+                </tr>
+              ) : (
+                items.map((item) => {
+                  const img = getItemImage(item);
+                  return (
+                    <tr key={item.id}>
+                      <td>
+                        <div className="order-detail-product">
+                          {img ? (
+                            <img src={img} alt="" width="48" height="48" />
+                          ) : (
+                            <span className="order-detail-noimg">🌿</span>
+                          )}
+                          {item.product ? (
+                            <Link
+                              to={`/products/${item.productId}`}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              {getItemName(item)}
+                            </Link>
+                          ) : (
+                            <span>{getItemName(item)}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td>{formatCurrency(item.price)}</td>
+                      <td>× {item.quantity}</td>
+                      <td style={{ textAlign: "right" }}>
+                        {formatCurrency(
+                          Number(item.price || 0) * Number(item.quantity || 0),
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <dl className="order-detail-totals">
+          <div>
+            <dt>Subtotal</dt>
+            <dd>{formatCurrency(subtotal)}</dd>
+          </div>
+          {discount > 0 && (
+            <div>
+              <dt>
+                Discount{order.couponCode ? ` (${order.couponCode})` : ""}
+              </dt>
+              <dd>− {formatCurrency(discount)}</dd>
+            </div>
+          )}
+          <div className="order-detail-grand">
+            <dt>Total</dt>
+            <dd>{formatCurrency(getOrderAmount(order))}</dd>
+          </div>
+        </dl>
+      </section>
+
+      {confirmAction && (
+        <div
+          className="modal-overlay"
+          onClick={() => !isSaving && setConfirmAction(null)}
+        >
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            {confirmAction === "cancel" ? (
+              <>
+                <h3>Cancel order #{order.id}?</h3>
+                {isPaidOnline ? (
+                  <p>
+                    <strong>{formatCurrency(getOrderAmount(order))}</strong>{" "}
+                    will be refunded through Razorpay to the customer&apos;s
+                    original payment method. If the refund fails, the order
+                    stays as it is. The items go back into stock and the
+                    customer is notified.
+                  </p>
+                ) : (
+                  <p>
+                    The items go back into stock and the customer is notified
+                    that the order was cancelled.
+                    {order.paymentMethod === "COD" &&
+                      " No refund is needed for Cash on Delivery."}
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                <h3>Reopen order #{order.id}?</h3>
+                <p>
+                  The order is marked CONFIRMED again, its items are taken out
+                  of stock, and the customer is notified.
+                </p>
+              </>
+            )}
+            <div className="admin-form-actions">
+              <button
+                className={`btn ${confirmAction === "cancel" ? "order-detail-cancel-solid" : "btn-primary"}`}
+                onClick={() =>
+                  confirmAction === "cancel"
+                    ? changeStatus(
+                        "CANCELLED",
+                        isPaidOnline
+                          ? "Order cancelled and refund issued through Razorpay. Stock was restored and the customer was notified."
+                          : "Order cancelled. Stock was restored and the customer was notified.",
+                      )
+                    : changeStatus("CONFIRMED", "Order reopened and confirmed.")
+                }
+                disabled={isSaving}
+              >
+                {isSaving
+                  ? confirmAction === "cancel" && isPaidOnline
+                    ? "Refunding…"
+                    : "Saving…"
+                  : confirmAction === "cancel"
+                    ? isPaidOnline
+                      ? "Yes, cancel & refund"
+                      : "Yes, cancel order"
+                    : "Yes, reopen order"}
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setConfirmAction(null)}
+                disabled={isSaving}
+              >
+                Keep as is
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

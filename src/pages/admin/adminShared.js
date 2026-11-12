@@ -188,3 +188,43 @@ export const deleteUser = async userId => {
   const res = await API.delete(`/admin/users/${userId}`);
   return res?.data;
 };
+
+/* ── Home page banner ── */
+export const fetchHomeBanner = async () => {
+  const res = await API.get("/home-banner");
+  return res?.data;
+};
+
+// payload is FormData (text fields + optional "image" file)
+export const saveHomeBanner = async payload => {
+  const res = await API.put("/admin/home-banner", payload);
+  return res?.data?.banner;
+};
+
+export const resetHomeBanner = async () => {
+  const res = await API.delete("/admin/home-banner");
+  return res?.data?.banner;
+};
+
+/* ── Single order (admin) ── */
+export const fetchOrder = async orderId => {
+  const res = await API.get(`/admin/orders/${orderId}`);
+  return res?.data;
+};
+
+export const PAYMENT_METHOD_LABELS = {
+  COD: "Cash on Delivery",
+  RAZORPAY: "Paid online (Razorpay)",
+  UPI: "UPI (before online payments)"
+};
+
+export const PAYMENT_STATUS_LABELS = {
+  UNPAID: "Not paid yet (collect on delivery)",
+  PAID: "Paid",
+  REFUND_PENDING: "Refund in progress",
+  REFUNDED: "Refunded"
+};
+
+// Statuses an admin can set: orders are confirmed automatically, so no PENDING,
+// and cancelling is done from the order details page.
+export const ADMIN_ACTIVE_STATUSES = ["CONFIRMED", "SHIPPED", "DELIVERED"];

@@ -14,21 +14,27 @@ const PAYMENT_METHODS = [
     desc: "Pay when your order arrives"
   },
   {
-    id: "UPI",
-    label: "📱 UPI / GPay / PhonePe",
-    desc: "Pay instantly via UPI"
-  },
-  {
-    id: "CARD",
-    label: "💳 Credit / Debit Card",
-    desc: "Visa, Mastercard, RuPay"
-  },
-  {
-    id: "NETBANKING",
-    label: "🏦 Net Banking",
-    desc: "All major banks supported"
+    id: "RAZORPAY",
+    label: "💳 Pay Online",
+    desc: "UPI, cards, net banking & wallets — secured by Razorpay"
   }
 ];
+
+const RAZORPAY_SCRIPT_URL = "https://checkout.razorpay.com/v1/checkout.js";
+
+// Loads Razorpay Checkout once; resolves false if it can't be loaded.
+const loadRazorpay = () =>
+  new Promise(resolve => {
+    if (window.Razorpay) return resolve(true);
+    const existing = document.querySelector(`script[src="${RAZORPAY_SCRIPT_URL}"]`);
+    const script = existing || document.createElement("script");
+    script.addEventListener("load", () => resolve(true));
+    script.addEventListener("error", () => resolve(false));
+    if (!existing) {
+      script.src = RAZORPAY_SCRIPT_URL;
+      document.body.appendChild(script);
+    }
+  });
 
 export default function Checkout() {
   const [cart, setCart] = useState([]);
@@ -197,6 +203,53 @@ export default function Checkout() {
   };
 
   /* ── Place order ── */
+  const finishOrder = async () => {
+    await removePurchasedItemsFromWishlist(cart);
+    setCart([]);
+    await refreshCart();
+    navigate("/orders");
+  };
+
+  const payOnline = async orderDetails => {
+    const loaded = await loadRazorpay();
+    if (!loaded) {
+      throw new Error("Couldn't load the payment window. Check your connection and try again.");
+    }
+
+    const { data: rzp } = await API.post("/orders/razorpay/create", orderDetails);
+
+    // Resolves when the payment is verified and the order placed; rejects if the
+    // customer closes the window or the payment fails.
+    await new Promise((resolve, reject) => {
+      const checkout = new window.Razorpay({
+        key: rzp.keyId,
+        order_id: rzp.razorpayOrderId,
+        amount: rzp.amount,
+        currency: rzp.currency,
+        name: "EchOrganics",
+        description: "Order payment",
+        prefill: rzp.prefill,
+        theme: { color: "#2d6a4f" },
+        handler: async response => {
+          try {
+            await API.post("/orders/razorpay/verify", response);
+            resolve();
+          } catch (err) {
+            reject(err);
+          }
+        },
+        modal: {
+          ondismiss: () => reject(new Error("Payment cancelled. Your order was not placed."))
+        }
+      });
+      checkout.on("payment.failed", res => {
+        // Razorpay keeps its window open so the customer can retry; just show why.
+        setError(res?.error?.description || "Payment failed. Please try again.");
+      });
+      checkout.open();
+    });
+  };
+
   const placeOrder = async () => {
     if (!selectedAddressId) {
       setError("Please select a delivery address");
@@ -204,22 +257,19 @@ export default function Checkout() {
     }
     setIsProcessing(true);
     setError("");
+    const orderDetails = {
+      addressId: selectedAddressId,
+      couponCode: couponApplied?.code || undefined
+    };
     try {
-      await API.post("/orders", {
-        addressId: selectedAddressId,
-        paymentMethod,
-        couponCode: couponApplied?.code || undefined,
-        status: "PENDING"
-      });
-
-      await removePurchasedItemsFromWishlist(cart);
-
-      setCart([]);
-      await refreshCart();
-
-      navigate("/orders");
+      if (paymentMethod === "RAZORPAY") {
+        await payOnline(orderDetails);
+      } else {
+        await API.post("/orders", { ...orderDetails, paymentMethod: "COD" });
+      }
+      await finishOrder();
     } catch (err) {
-      setError(err?.response?.data?.message || "Failed to place order");
+      setError(err?.response?.data?.message || err?.message || "Failed to place order");
     } finally {
       setIsProcessing(false);
     }
@@ -496,7 +546,13 @@ export default function Checkout() {
             disabled={isProcessing || !selectedAddressId}
             style={{ marginTop: "16px" }}
           >
-            {isProcessing ? "Placing Order…" : `🌿 Place Order · ₹${total}`}
+            {isProcessing
+              ? paymentMethod === "RAZORPAY"
+                ? "Waiting for payment…"
+                : "Placing Order…"
+              : paymentMethod === "RAZORPAY"
+                ? `🔒 Pay ₹${total} & Place Order`
+                : `🌿 Place Order · ₹${total}`}
           </button>
 
           <p className="secure-checkout-note">

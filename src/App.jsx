@@ -31,6 +31,8 @@ const AdminCoupons = lazy(() => import("./pages/admin/AdminCoupons"));
 const AdminSales = lazy(() => import("./pages/admin/AdminSales"));
 const AdminReports = lazy(() => import("./pages/admin/AdminReports"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
+const AdminHomeBanner = lazy(() => import("./pages/admin/AdminHomeBanner"));
+const AdminOrderDetail = lazy(() => import("./pages/admin/AdminOrderDetail"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
 const SearchResults = lazy(() => import("./pages/SearchResults"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
@@ -171,11 +173,13 @@ function App() {
               <Route path="overview" element={<AdminOverview />} />
               <Route path="sales" element={<AdminSales />} />
               <Route path="orders" element={<AdminOrders />} />
+              <Route path="orders/:orderId" element={<AdminOrderDetail />} />
               <Route path="products" element={<AdminProducts />} />
               <Route path="categories" element={<AdminCategories />} />
               <Route path="coupons" element={<AdminCoupons />} />
               <Route path="reports" element={<AdminReports />} />
               <Route path="users" element={<AdminUsers />} />
+              <Route path="home-banner" element={<AdminHomeBanner />} />
             </Route>
 
             {/* Catch-all → 404 */}

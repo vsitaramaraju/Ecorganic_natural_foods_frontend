@@ -152,7 +152,7 @@ export default function useAdminNotifications() {
         message: `${data?.customerName || "A customer"} placed an order for ${formatCurrency(data?.amount)}${
           itemCount ? ` (${itemCount} item${itemCount === 1 ? "" : "s"})` : ""
         }.`,
-        link: data?.orderId ? `/admin/orders?order=${data.orderId}` : "/admin/orders"
+        link: data?.orderId ? `/admin/orders/${data.orderId}` : "/admin/orders"
       });
     });
 

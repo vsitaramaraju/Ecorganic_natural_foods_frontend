@@ -34,6 +34,7 @@ const STATUS_COLORS = {
   PENDING: "#f59e0b",
   CONFIRMED: "#3b82f6",
   SHIPPED: "#8b5cf6",
+  OUT_FOR_DELIVERY: "#a855f7",
   DELIVERED: "#22c55e",
   CANCELLED: "#ef4444"
 };
@@ -175,6 +176,7 @@ export default function AdminSales() {
           "PENDING",
           "CONFIRMED",
           "SHIPPED",
+          "OUT_FOR_DELIVERY",
           "DELIVERED",
           "CANCELLED"
         ].map(s => (

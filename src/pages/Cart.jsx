@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import { IMAGE_BASE_URL } from "../api/api";
 import "./Cart.css";
@@ -17,6 +17,11 @@ export default function Cart() {
   const [availableCoupons, setAvailableCoupons] = useState([]);
   const [showCoupons, setShowCoupons] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  // Sent back here from checkout: items that ran out of stock (409), or a
+  // message about a refunded payment.
+  const [stockIssue] = useState(() => location.state?.stockIssue || null);
+  const [notice] = useState(() => location.state?.notice || "");
   const { refreshCart } = useCart();
 
   const fetchCart = async () => {
@@ -160,6 +165,26 @@ export default function Cart() {
     <div className="container cart-wrap">
       <h1 className="section-title">🛒 Shopping Cart</h1>
       {error && <div className="alert alert-error">{error}</div>}
+      {notice && <div className="alert alert-warning">{notice}</div>}
+      {stockIssue && (
+        <div className="alert alert-warning">
+          <strong>{stockIssue.message}</strong>
+          {stockIssue.items?.length > 0 && (
+            <ul style={{ margin: "8px 0 0 18px" }}>
+              {stockIssue.items.map(item => (
+                <li key={item.productId}>
+                  {item.name}: you asked for {item.requested}
+                  {item.unit ? ` ${item.unit}` : ""}, only {item.available}
+                  {item.unit ? ` ${item.unit}` : ""} available
+                </li>
+              ))}
+            </ul>
+          )}
+          <p style={{ marginTop: 8 }}>
+            Please update these quantities, then check out again.
+          </p>
+        </div>
+      )}
 
       {cart.length > 0 ? (
         <div className="cart-layout">

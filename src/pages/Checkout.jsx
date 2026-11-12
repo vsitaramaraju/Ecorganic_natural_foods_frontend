@@ -1,4 +1,4 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useRef, useState, useContext } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import API from "../api/axios";
 import { IMAGE_BASE_URL } from "../api/api";
@@ -6,6 +6,8 @@ import { AuthContext } from "../context/AuthContext";
 import { wishlistAPI } from "../api/wishlistAPI";
 import "./Checkout.css";
 import { useCart } from "../context/CartContext";
+import loadRazorpay from "../utils/loadRazorpay";
+import { getApiErrorMessage } from "../utils/apiError";
 
 const PAYMENT_METHODS = [
   {
@@ -15,40 +17,63 @@ const PAYMENT_METHODS = [
   },
   {
     id: "RAZORPAY",
-    label: "💳 Pay Online",
+    label: "💳 Pay Online (UPI / Card / Netbanking)",
     desc: "UPI, cards, net banking & wallets — secured by Razorpay"
   }
 ];
 
-const RAZORPAY_SCRIPT_URL = "https://checkout.razorpay.com/v1/checkout.js";
+// Shown in the Razorpay window; matches --color-primary in global.css.
+const BRAND_NAME = "EchOrganics";
+const BRAND_COLOR = "#2d6a4f";
 
-// Loads Razorpay Checkout once; resolves false if it can't be loaded.
-const loadRazorpay = () =>
-  new Promise(resolve => {
-    if (window.Razorpay) return resolve(true);
-    const existing = document.querySelector(`script[src="${RAZORPAY_SCRIPT_URL}"]`);
-    const script = existing || document.createElement("script");
-    script.addEventListener("load", () => resolve(true));
-    script.addEventListener("error", () => resolve(false));
-    if (!existing) {
-      script.src = RAZORPAY_SCRIPT_URL;
-      document.body.appendChild(script);
+// Delays before each retry of /razorpay/verify (it is idempotent).
+const VERIFY_RETRY_DELAYS = [1000, 2000, 4000];
+
+const PAYMENT_RECEIVED_TEXT =
+  "Payment received. Your order is being confirmed. Check My Orders in a minute.";
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+// Only a network error or a server-side failure is worth retrying; a 4xx is
+// the server's final answer.
+const isRetryable = err => !err?.response || err.response.status >= 500;
+
+// Status codes from verify that mean "this payment did not produce an order".
+// Anything else after a successful Razorpay payment means the money was taken
+// and the webhook will create the order.
+const VERIFY_FINAL_FAILURES = [400, 402, 409];
+
+const verifyPayment = async body => {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const { data } = await API.post("/orders/razorpay/verify", body);
+      return data;
+    } catch (err) {
+      if (!isRetryable(err) || attempt >= VERIFY_RETRY_DELAYS.length) throw err;
+      await sleep(VERIFY_RETRY_DELAYS[attempt]);
     }
-  });
+  }
+};
+
+const getOrderId = order => order?.id ?? order?.order?.id ?? order?.orderId;
 
 export default function Checkout() {
   const [cart, setCart] = useState([]);
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("COD");
+  const [onlinePaymentEnabled, setOnlinePaymentEnabled] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [couponApplied, setCouponApplied] = useState(null); // { code, discount }
   const [couponError, setCouponError] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
   const [isLoadingCart, setIsLoadingCart] = useState(true);
   const [isLoadingAddr, setIsLoadingAddr] = useState(true);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false); // saving an address
+  const [isPlacing, setIsPlacing] = useState(false); // placing / paying for the order
+  const [isConfirming, setIsConfirming] = useState(false); // verifying a Razorpay payment
   const [error, setError] = useState("");
+  const [toast, setToast] = useState(null); // { type: "error" | "info", text }
   const [showNewAddr, setShowNewAddr] = useState(false);
   const [newAddress, setNewAddress] = useState({
     name: "",
@@ -64,6 +89,9 @@ export default function Checkout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { refreshCart } = useCart();
+  // Set synchronously so a double click (or a click while the Razorpay window
+  // is open) can't start a second order before React re-renders.
+  const placingRef = useRef(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -76,7 +104,11 @@ export default function Checkout() {
       setCouponApplied(location.state.discount);
     }
     API.get("/cart")
-      .then(r => setCart(r.data || []))
+      .then(r => {
+        const items = r.data || [];
+        if (items.length === 0) navigate("/cart", { replace: true });
+        setCart(items);
+      })
       .catch(() => setError("Failed to load cart"))
       .finally(() => setIsLoadingCart(false));
     API.get("/address")
@@ -89,9 +121,37 @@ export default function Checkout() {
       .finally(() => setIsLoadingAddr(false));
   }, [isAuthenticated, navigate]);
 
+  // Which payment methods the store accepts right now (public endpoint).
   useEffect(() => {
-    if (!isLoadingCart && cart.length === 0) navigate("/cart");
-  }, [isLoadingCart, cart, navigate]);
+    let cancelled = false;
+    API.get("/orders/payment-config")
+      .then(({ data }) => {
+        if (cancelled) return;
+        const methods = Array.isArray(data?.methods) ? data.methods : null;
+        setOnlinePaymentEnabled(
+          Boolean(data?.razorpayEnabled) &&
+            (!methods || methods.includes("RAZORPAY"))
+        );
+      })
+      .catch(() => {
+        // Without the config, fall back to Cash on Delivery only.
+        if (!cancelled) setOnlinePaymentEnabled(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timer = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  const availableMethods = PAYMENT_METHODS.filter(
+    pm => pm.id === "COD" || onlinePaymentEnabled
+  );
+  const selectedMethod = onlinePaymentEnabled ? paymentMethod : "COD";
 
   const subtotal = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
   const deliveryFee = subtotal >= 499 ? 0 : 49;
@@ -121,7 +181,7 @@ export default function Checkout() {
         setCouponError(data?.message || "Invalid coupon code");
       }
     } catch (err) {
-      setCouponError(err?.response?.data?.message || "Invalid coupon code");
+      setCouponError(getApiErrorMessage(err, "Invalid coupon code"));
     } finally {
       setCouponLoading(false);
     }
@@ -166,7 +226,7 @@ export default function Checkout() {
         country: "India"
       });
     } catch (err) {
-      setError(err?.response?.data?.message || "Failed to add address");
+      setError(getApiErrorMessage(err, "Failed to add address"));
     } finally {
       setIsProcessing(false);
     }
@@ -203,51 +263,178 @@ export default function Checkout() {
   };
 
   /* ── Place order ── */
-  const finishOrder = async () => {
+  const startPlacing = () => {
+    if (placingRef.current) return false;
+    placingRef.current = true;
+    setIsPlacing(true);
+    return true;
+  };
+
+  const stopPlacing = () => {
+    placingRef.current = false;
+    setIsPlacing(false);
+  };
+
+  const showError = text => {
+    setError(text);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // The cart changed on the server (stock, a refund) - show the fresh one.
+  const reloadCart = async notice => {
+    try {
+      const { data } = await API.get("/cart");
+      const items = data || [];
+      refreshCart();
+      if (items.length === 0) {
+        navigate("/cart", { replace: true, state: { notice } });
+        return;
+      }
+      setCart(items);
+    } catch {
+      // Keep showing the old cart; the error message is already on screen.
+    }
+  };
+
+  const finishOrder = async order => {
     await removePurchasedItemsFromWishlist(cart);
-    setCart([]);
     await refreshCart();
-    navigate("/orders");
+    handleRemoveCoupon();
+    const orderId = getOrderId(order);
+    navigate("/orders", {
+      replace: true,
+      state: {
+        placedOrderId: orderId,
+        notice: {
+          type: "success",
+          text: orderId
+            ? `🎉 Order #${orderId} placed successfully!`
+            : "🎉 Your order was placed successfully!"
+        }
+      }
+    });
+  };
+
+  // Errors from POST /orders and POST /orders/razorpay/create.
+  const handleCreateError = err => {
+    const status = err?.response?.status;
+    const data = err?.response?.data || {};
+    const message = getApiErrorMessage(err, "Failed to place order");
+
+    if (status === 409 && Array.isArray(data.items)) {
+      refreshCart();
+      navigate("/cart", {
+        state: { stockIssue: { message, items: data.items } }
+      });
+      return;
+    }
+    if (status === 503) {
+      setOnlinePaymentEnabled(false);
+      setPaymentMethod("COD");
+      showError(
+        `${message} Online payment is unavailable right now. Please choose Cash on Delivery.`
+      );
+      return;
+    }
+    showError(message);
+  };
+
+  // Razorpay took the money: turn the payment into an order.
+  const confirmPayment = async response => {
+    setIsConfirming(true);
+    const body = {
+      razorpay_order_id: response.razorpay_order_id,
+      razorpay_payment_id: response.razorpay_payment_id,
+      razorpay_signature: response.razorpay_signature
+    };
+    try {
+      const order = await verifyPayment(body);
+      await finishOrder(order);
+    } catch (err) {
+      const status = err?.response?.status;
+      if (!VERIFY_FINAL_FAILURES.includes(status)) {
+        // Every retry failed, but the payment went through and the webhook
+        // creates the order - don't tell the customer it failed.
+        refreshCart();
+        navigate("/orders", {
+          replace: true,
+          state: { notice: { type: "info", text: PAYMENT_RECEIVED_TEXT } }
+        });
+        return;
+      }
+      const message = getApiErrorMessage(
+        err,
+        "Your payment couldn't be completed. Please try again."
+      );
+      showError(message);
+      if (status === 409) await reloadCart(message);
+    } finally {
+      setIsConfirming(false);
+      stopPlacing();
+    }
   };
 
   const payOnline = async orderDetails => {
     const loaded = await loadRazorpay();
     if (!loaded) {
-      throw new Error("Couldn't load the payment window. Check your connection and try again.");
+      setToast({
+        type: "error",
+        text: "Couldn't load payment gateway, check your connection"
+      });
+      stopPlacing();
+      return;
     }
 
-    const { data: rzp } = await API.post("/orders/razorpay/create", orderDetails);
+    let rzpOrder;
+    try {
+      // The server works out the amount from the cart; never send it from here.
+      ({ data: rzpOrder } = await API.post(
+        "/orders/razorpay/create",
+        orderDetails
+      ));
+    } catch (err) {
+      handleCreateError(err);
+      stopPlacing();
+      return;
+    }
 
-    // Resolves when the payment is verified and the order placed; rejects if the
-    // customer closes the window or the payment fails.
-    await new Promise((resolve, reject) => {
+    let paid = false;
+    try {
       const checkout = new window.Razorpay({
-        key: rzp.keyId,
-        order_id: rzp.razorpayOrderId,
-        amount: rzp.amount,
-        currency: rzp.currency,
-        name: "EchOrganics",
+        key: rzpOrder.keyId,
+        order_id: rzpOrder.razorpayOrderId,
+        amount: rzpOrder.amount,
+        currency: rzpOrder.currency,
+        name: BRAND_NAME,
         description: "Order payment",
-        prefill: rzp.prefill,
-        theme: { color: "#2d6a4f" },
-        handler: async response => {
-          try {
-            await API.post("/orders/razorpay/verify", response);
-            resolve();
-          } catch (err) {
-            reject(err);
-          }
+        prefill: rzpOrder.prefill,
+        theme: { color: BRAND_COLOR },
+        handler: response => {
+          paid = true;
+          confirmPayment(response);
         },
         modal: {
-          ondismiss: () => reject(new Error("Payment cancelled. Your order was not placed."))
+          confirm_close: true,
+          ondismiss: () => {
+            if (paid) return;
+            stopPlacing();
+            setToast({ type: "info", text: "Payment cancelled" });
+          }
         }
       });
       checkout.on("payment.failed", res => {
-        // Razorpay keeps its window open so the customer can retry; just show why.
-        setError(res?.error?.description || "Payment failed. Please try again.");
+        // Razorpay keeps its window open so the customer can try again.
+        setToast({
+          type: "error",
+          text: res?.error?.description || "Payment failed. Please try again."
+        });
       });
       checkout.open();
-    });
+    } catch (err) {
+      console.error("Failed to open Razorpay checkout:", err);
+      showError("Couldn't open the payment window. Please try again.");
+      stopPlacing();
+    }
   };
 
   const placeOrder = async () => {
@@ -255,25 +442,33 @@ export default function Checkout() {
       setError("Please select a delivery address");
       return;
     }
-    setIsProcessing(true);
+    if (!startPlacing()) return;
     setError("");
+    setToast(null);
     const orderDetails = {
       addressId: selectedAddressId,
-      couponCode: couponApplied?.code || undefined
+      ...(couponApplied?.code ? { couponCode: couponApplied.code } : {})
     };
+
+    if (selectedMethod === "RAZORPAY") {
+      // payOnline releases the lock itself once the payment window is done.
+      await payOnline(orderDetails);
+      return;
+    }
+
     try {
-      if (paymentMethod === "RAZORPAY") {
-        await payOnline(orderDetails);
-      } else {
-        await API.post("/orders", { ...orderDetails, paymentMethod: "COD" });
-      }
-      await finishOrder();
+      const { data } = await API.post("/orders", {
+        ...orderDetails,
+        paymentMethod: "COD"
+      });
+      await finishOrder(data);
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || "Failed to place order");
+      handleCreateError(err);
     } finally {
-      setIsProcessing(false);
+      stopPlacing();
     }
   };
+
 
   const field = (key, label, type = "text", placeholder = "") => (
     <div className="form-group">
@@ -519,17 +714,18 @@ export default function Checkout() {
           <div className="card" style={{ marginTop: "16px" }}>
             <h2 style={{ color: "black" }}>💳 Payment Method</h2>
             <div className="payment-methods">
-              {PAYMENT_METHODS.map(pm => (
+              {availableMethods.map(pm => (
                 <label
                   key={pm.id}
-                  className={`payment-option ${paymentMethod === pm.id ? "selected" : ""}`}
+                  className={`payment-option ${selectedMethod === pm.id ? "selected" : ""}`}
                 >
                   <input
                     type="radio"
                     name="payment"
                     value={pm.id}
-                    checked={paymentMethod === pm.id}
+                    checked={selectedMethod === pm.id}
                     onChange={() => setPaymentMethod(pm.id)}
+                    disabled={isPlacing}
                   />
                   <div className="payment-detail">
                     <strong>{pm.label}</strong>
@@ -543,14 +739,12 @@ export default function Checkout() {
           <button
             className="btn btn-primary btn-full place-order-btn"
             onClick={placeOrder}
-            disabled={isProcessing || !selectedAddressId}
+            disabled={isPlacing || isProcessing || !selectedAddressId}
             style={{ marginTop: "16px" }}
           >
-            {isProcessing
-              ? paymentMethod === "RAZORPAY"
-                ? "Waiting for payment…"
-                : "Placing Order…"
-              : paymentMethod === "RAZORPAY"
+            {isPlacing
+              ? "Processing…"
+              : selectedMethod === "RAZORPAY"
                 ? `🔒 Pay ₹${total} & Place Order`
                 : `🌿 Place Order · ₹${total}`}
           </button>
@@ -560,6 +754,34 @@ export default function Checkout() {
           </p>
         </div>
       </div>
+
+      {toast && (
+        <div
+          className={`co-toast co-toast-${toast.type}`}
+          role={toast.type === "error" ? "alert" : "status"}
+        >
+          <span>{toast.type === "error" ? "⚠️" : "ℹ️"}</span>
+          <span className="co-toast-text">{toast.text}</span>
+          <button
+            type="button"
+            className="co-toast-close"
+            onClick={() => setToast(null)}
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {isConfirming && (
+        <div className="co-confirm-overlay" role="alertdialog" aria-live="assertive">
+          <div className="co-confirm-box">
+            <div className="spinner" />
+            <h3>Confirming your payment…</h3>
+            <p>Please don&apos;t close or refresh this page.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -47,6 +47,7 @@ export default function AdminOverview() {
       PENDING: 0,
       CONFIRMED: 0,
       SHIPPED: 0,
+      OUT_FOR_DELIVERY: 0,
       DELIVERED: 0,
       CANCELLED: 0
     };

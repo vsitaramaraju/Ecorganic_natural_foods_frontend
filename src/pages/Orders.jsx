@@ -1,5 +1,5 @@
 import { useEffect, useState, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import { IMAGE_BASE_URL } from "../api/api";
 import { AuthContext } from "../context/AuthContext";
@@ -9,35 +9,68 @@ const STATUS_MAP = {
   PENDING: { color: "warning", icon: "⏳" },
   CONFIRMED: { color: "primary", icon: "✅" },
   SHIPPED: { color: "info", icon: "📦" },
+  OUT_FOR_DELIVERY: { color: "info", icon: "🚚" },
   DELIVERED: { color: "success", icon: "🎉" },
   CANCELLED: { color: "danger", icon: "❌" }
 };
 
+// Orders placed before Razorpay was added may say "UPI" - those were online too.
+const isOnlinePayment = order =>
+  ["RAZORPAY", "UPI"].includes(String(order.paymentMethod || "").toUpperCase());
+
 const PAYMENT_METHOD_TEXT = {
   COD: "Cash on Delivery",
-  RAZORPAY: "Online (Razorpay)",
-  UPI: "UPI"
+  RAZORPAY: "Online",
+  UPI: "Online"
 };
 
 const PAYMENT_STATUS_TEXT = {
   UNPAID: "Pay on delivery",
   PAID: "Paid",
-  REFUND_PENDING: "Refund in progress",
-  REFUNDED: "Refunded"
+  REFUND_PENDING: "Refund initiated",
+  REFUNDED: "Refunded",
+  REFUND_FAILED: "Refund issue"
 };
 
-// e.g. "Paid online", "Refund of ₹40 in progress" - shown under each order.
-const paymentSummary = order => {
-  const refund = order.refundAmount != null ? `₹${order.refundAmount}` : "your payment";
+const formatDate = value =>
+  value
+    ? new Date(value).toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+      })
+    : "";
+
+// The payment badge under each order: { tone, text, detail? }.
+const paymentBadge = order => {
+  const amount = `₹${order.refundAmount ?? order.totalAmount}`;
   switch (order.paymentStatus) {
     case "PAID":
-      return "💳 Paid online";
+      return {
+        tone: "success",
+        text: "💳 Paid online",
+        detail: order.razorpayPaymentId
+      };
     case "REFUND_PENDING":
-      return `↩️ Refund of ${refund} in progress — usually 5–7 working days`;
+      return {
+        tone: "warning",
+        text: `↩️ Refund of ${amount} initiated (5–7 working days)`
+      };
     case "REFUNDED":
-      return `↩️ ${refund} refunded to your original payment method`;
+      return {
+        tone: "info",
+        text: `↩️ Refunded ${amount}${order.refundedAt ? ` on ${formatDate(order.refundedAt)}` : ""}`
+      };
+    case "REFUND_FAILED":
+      return {
+        tone: "danger",
+        text: "⚠️ Refund issue: our team will contact you"
+      };
     default:
-      return order.status === "CANCELLED" ? null : "💵 Cash on Delivery";
+      if (isOnlinePayment(order)) return { tone: "default", text: "💳 Online" };
+      return order.status === "CANCELLED"
+        ? null
+        : { tone: "default", text: "💵 Cash on Delivery" };
   }
 };
 
@@ -114,6 +147,16 @@ export default function Orders() {
   const [error, setError] = useState("");
   const { isAuthenticated } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
+  // Set by checkout after an order is placed (or a payment is still being
+  // confirmed). Copied into state so it survives clearing the history entry.
+  const [notice] = useState(() => location.state?.notice || null);
+  const [placedOrderId] = useState(() => location.state?.placedOrderId ?? null);
+
+  useEffect(() => {
+    // Drop the router state so a refresh doesn't show the banner again.
+    if (location.state) navigate(location.pathname, { replace: true, state: null });
+  }, [location.state, location.pathname, navigate]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -142,6 +185,13 @@ export default function Orders() {
   return (
     <div className="container orders-wrap">
       <h1 className="section-title">My Orders</h1>
+      {notice && (
+        <div
+          className={`alert ${notice.type === "success" ? "alert-success" : "alert-info"}`}
+        >
+          {notice.text}
+        </div>
+      )}
       {error && <div className="alert alert-error">{error}</div>}
 
       {orders.length > 0 ? (
@@ -149,11 +199,20 @@ export default function Orders() {
           {orders.map(order => {
             const s =
               STATUS_MAP[order.status?.toUpperCase()] || STATUS_MAP.PENDING;
-            const canDownload = ["DELIVERED", "SHIPPED", "CONFIRMED"].includes(
-              order.status?.toUpperCase()
-            );
+            const canDownload = [
+              "DELIVERED",
+              "OUT_FOR_DELIVERY",
+              "SHIPPED",
+              "CONFIRMED"
+            ].includes(order.status?.toUpperCase());
+            const payment = paymentBadge(order);
+            const isJustPlaced =
+              placedOrderId != null && String(order.id) === String(placedOrderId);
             return (
-              <div key={order.id} className="order-card card">
+              <div
+                key={order.id}
+                className={`order-card card${isJustPlaced ? " order-card-new" : ""}`}
+              >
                 <div className="order-head">
                   <div>
                     <h3>Order #{order.id}</h3>
@@ -175,7 +234,7 @@ export default function Orders() {
                     }}
                   >
                     <span className={`badge badge-${s.color}`}>
-                      {s.icon} {order.status || "PENDING"}
+                      {s.icon} {String(order.status || "PENDING").replace(/_/g, " ")}
                     </span>
                     {canDownload && (
                       <div className="invoice-actions">
@@ -242,10 +301,17 @@ export default function Orders() {
                 <div className="order-foot">
                   <span className="order-total">
                     Total: <strong>₹{order.totalAmount}</strong>
-                    {paymentSummary(order) && (
-                      <small className="order-payment-note">
-                        {paymentSummary(order)}
-                      </small>
+                    {payment && (
+                      <span className="order-payment-note">
+                        <span className={`badge badge-${payment.tone}`}>
+                          {payment.text}
+                        </span>
+                        {payment.detail && (
+                          <small className="order-payment-id">
+                            {payment.detail}
+                          </small>
+                        )}
+                      </span>
                     )}
                   </span>
                   {order.address && (

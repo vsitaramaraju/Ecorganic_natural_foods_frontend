@@ -6,14 +6,15 @@ import { IMAGE_BASE_URL, adminNotificationAPI } from "../api/api";
 /**
  * Admin-facing notification system - the mirror of useNotifications.js, but
  * for events that come from the customer side that admins need to know
- * about (right now: new orders). Same architecture, same reasoning:
+ * about (new orders, failed refunds). Same architecture, same reasoning:
  *
  *  - On login/app load, GET /api/admin/notifications fetches everything
  *    this admin hasn't read yet - including anything that happened while
  *    every admin was logged out.
  *  - While the tab stays open and connected, a live Socket.IO connection
  *    pushes new events straight into memory the moment they happen
- *    ("order:new" - a customer placed an order).
+ *    ("order:new" - a customer placed an order; "order:refund_failed" -
+ *    Razorpay could not refund a cancelled order).
  *  - Opening the bell calls POST /api/admin/notifications/read, which
  *    moves this admin's "read" cursor forward on the server, and clears
  *    the in-memory list.
@@ -47,9 +48,14 @@ export default function useAdminNotifications() {
   const { token, isAdmin, isAuthenticated } = useContext(AuthContext);
 
   const [notifications, setNotifications] = useState([]);
+  // An urgent live event (refund failed) to show as a toast, not only in the bell.
+  const [alert, setAlert] = useState(null);
 
   useEffect(() => {
-    if (!isAuthenticated || !isAdmin) setNotifications([]);
+    if (!isAuthenticated || !isAdmin) {
+      setNotifications([]);
+      setAlert(null);
+    }
   }, [isAuthenticated, isAdmin]);
 
   // Fetch from the server on login/app load - the only place the list gets
@@ -156,6 +162,18 @@ export default function useAdminNotifications() {
       });
     });
 
+    // Razorpay reported that a refund for a cancelled order failed.
+    socket.on("order:refund_failed", data => {
+      const notif = {
+        type: "refund_failed",
+        title: `Refund failed for order #${data?.orderId ?? "?"}`,
+        message: `Razorpay couldn't complete refund${data?.refundId ? ` ${data.refundId}` : ""}. Check the payment and contact the customer.`,
+        link: data?.orderId ? `/admin/orders/${data.orderId}` : "/admin/orders"
+      };
+      pushNotification(notif);
+      setAlert({ ...notif, id: makeNotifId() });
+    });
+
     return () => {
       socket.disconnect();
     };
@@ -164,6 +182,8 @@ export default function useAdminNotifications() {
   return {
     notifications,
     count: notifications.length,
-    clearNotifications
+    clearNotifications,
+    alert,
+    dismissAlert: () => setAlert(null)
   };
 }

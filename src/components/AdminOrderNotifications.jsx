@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaBell, FaBoxOpen, FaRegBellSlash } from "react-icons/fa";
+import {
+  FaBell,
+  FaBoxOpen,
+  FaExclamationTriangle,
+  FaRegBellSlash
+} from "react-icons/fa";
 import useAdminNotifications from "../utils/useAdminNotifications";
 import "./AdminOrderNotifications.css";
 
@@ -19,7 +24,8 @@ const getTimeAgo = value => {
 };
 
 export default function AdminOrderNotifications() {
-  const { notifications, count, clearNotifications } = useAdminNotifications();
+  const { notifications, count, clearNotifications, alert, dismissAlert } =
+    useAdminNotifications();
   const [isOpen, setIsOpen] = useState(false);
   const [displayedNotifications, setDisplayedNotifications] = useState([]);
   const wrapperRef = useRef(null);
@@ -56,6 +62,33 @@ export default function AdminOrderNotifications() {
 
   return (
     <div className="admin-notification-wrapper" ref={wrapperRef}>
+      {/* Stays until dismissed: a failed refund needs someone to act on it. */}
+      {alert && (
+        <div className="admin-alert-toast" role="alert" key={alert.id}>
+          <FaExclamationTriangle className="admin-alert-toast-icon" />
+          <button
+            type="button"
+            className="admin-alert-toast-body"
+            onClick={() => {
+              dismissAlert();
+              navigate(alert.link);
+            }}
+          >
+            <strong>{alert.title}</strong>
+            <span>{alert.message}</span>
+            <small>Open order ›</small>
+          </button>
+          <button
+            type="button"
+            className="admin-alert-toast-close"
+            onClick={dismissAlert}
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <button
         type="button"
         className={`admin-notification-button ${count ? "has-pending" : ""}`}
@@ -95,12 +128,18 @@ export default function AdminOrderNotifications() {
               {displayedNotifications.map(notif => (
                 <button
                   type="button"
-                  className="admin-order-notification-item"
+                  className={`admin-order-notification-item${
+                    notif.type === "refund_failed" ? " is-urgent" : ""
+                  }`}
                   key={notif.id}
                   onClick={() => handleItemClick(notif.link)}
                 >
                   <span className="admin-order-notification-icon">
-                    <FaBoxOpen />
+                    {notif.type === "refund_failed" ? (
+                      <FaExclamationTriangle />
+                    ) : (
+                      <FaBoxOpen />
+                    )}
                   </span>
                   <span className="admin-order-notification-content">
                     <strong>{notif.title}</strong>

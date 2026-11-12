@@ -79,3 +79,16 @@
   font-weight: 500;
   color: var(--color-text-muted);
 }
+.order-payment-note .badge {
+  margin-right: 6px;
+}
+.order-payment-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  color: var(--color-text-light);
+  word-break: break-all;
+}
+.order-card-new {
+  outline: 2px solid var(--color-primary-light);
+  outline-offset: 2px;
+}

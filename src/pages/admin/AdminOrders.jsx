@@ -1,12 +1,17 @@
 import { useEffect, useState, useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  ADMIN_ACTIVE_STATUSES,
+  ADMIN_STATUS_OPTIONS,
   ORDER_STATUSES,
   fetchOrders,
   formatCurrency,
   formatDate,
+  formatStatus,
   getOrderAmount,
+  getPaymentMethodLabel,
+  getPaymentStatusLabel,
+  isPaidOnline,
+  isStatusLocked,
   updateOrderStatus
 } from "./adminShared";
 import {
@@ -19,6 +24,7 @@ import {
   downloadShippingLabel,
   printShippingLabel
 } from "./orderShared";
+import { getApiErrorMessage } from "../../utils/apiError";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 const VISIBLE_ITEM_COUNT = 2; // how many products show inline before "+N more"
@@ -38,6 +44,9 @@ export default function AdminOrders() {
   const [shipFrom, setShipFrom] = useState(loadShipFromAddress);
   const [editingShipFrom, setEditingShipFrom] = useState(false);
   const [shipFromDraft, setShipFromDraft] = useState(shipFrom);
+  // Status changes that need a confirmation first:
+  // { order, type: "cancel" } | { order, type: "reopen", status }
+  const [confirmChange, setConfirmChange] = useState(null);
 
   useEffect(() => {
     const requestedStatus = String(
@@ -129,19 +138,32 @@ export default function AdminOrders() {
 
       setMessage({
         type: "success",
-        text:
-          `Order #${orderId} marked ${status}.`
+        text: `Order #${orderId} marked ${formatStatus(status)}.`
       });
     } catch (error) {
+      // The list isn't reloaded, so the dropdown keeps the old status.
       setMessage({
         type: "error",
         text:
-          error?.response?.data?.message ||
-          error?.message ||
-          "Failed to update order status"
+          error?.response?.status === 502
+            ? `${getApiErrorMessage(error, "The refund failed.")} Order #${orderId} was not cancelled.`
+            : getApiErrorMessage(error, "Failed to update order status")
       });
     } finally {
       setIsSaving(false);
+      setConfirmChange(null);
+    }
+  };
+
+  const handleStatusSelect = (order, next) => {
+    const current = String(order.status || "PENDING").toUpperCase();
+    if (next === current) return;
+    if (next === "CANCELLED") {
+      setConfirmChange({ order, type: "cancel" });
+    } else if (current === "CANCELLED") {
+      setConfirmChange({ order, type: "reopen", status: next });
+    } else {
+      handleStatusUpdate(order.id, next);
     }
   };
 
@@ -210,7 +232,7 @@ export default function AdminOrders() {
 
           {ORDER_STATUSES.map(s => (
             <option key={s} value={s}>
-              {s}
+              {formatStatus(s)}
             </option>
           ))}
         </select>
@@ -252,6 +274,7 @@ export default function AdminOrders() {
               <th>Delivery Address</th>
               <th>Products</th>
               <th>Amount</th>
+              <th>Payment</th>
               <th>Status</th>
               <th>Shipping Label</th>
               <th>Action</th>
@@ -261,7 +284,7 @@ export default function AdminOrders() {
           <tbody>
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={9} className="admin-empty-row">
+                <td colSpan={10} className="admin-empty-row">
                   No orders found.
                 </td>
               </tr>
@@ -437,12 +460,27 @@ export default function AdminOrders() {
                     <td>{formatCurrency(getOrderAmount(order))}</td>
 
                     <td>
+                      <div className="admin-payment-cell">
+                        <span className="admin-payment-method">
+                          {getPaymentMethodLabel(order)}
+                        </span>
+                        <span
+                          className={`payment-pill payment-${String(
+                            order.paymentStatus || "UNPAID"
+                          ).toLowerCase()}`}
+                        >
+                          {getPaymentStatusLabel(order)}
+                        </span>
+                      </div>
+                    </td>
+
+                    <td>
                       <span
                         className={`admin-status-pill status-${String(
                           order.status || ""
                         ).toLowerCase()}`}
                       >
-                        {order.status || "PENDING"}
+                        {formatStatus(order.status || "PENDING")}
                       </span>
                     </td>
 
@@ -485,30 +523,33 @@ export default function AdminOrders() {
 
                     <td>
                       <div className="admin-order-actions">
-                        {currentStatus !== "CANCELLED" && (
-                          <select
-                            value={currentStatus}
-                            aria-label={`Status of order ${order.id}`}
-                            onChange={e => handleStatusUpdate(order.id, e.target.value)}
-                            disabled={isSaving}
-                          >
-                            {!ADMIN_ACTIVE_STATUSES.includes(currentStatus) && (
-                              <option value={currentStatus} disabled>
-                                {currentStatus}
-                              </option>
-                            )}
-                            {ADMIN_ACTIVE_STATUSES.map(st => (
-                              <option key={st} value={st}>
-                                {st}
-                              </option>
-                            ))}
-                          </select>
-                        )}
+                        <select
+                          value={currentStatus}
+                          aria-label={`Status of order ${order.id}`}
+                          title={
+                            isStatusLocked(order)
+                              ? "Cancelled and refunded orders can't be reopened"
+                              : undefined
+                          }
+                          onChange={e => handleStatusSelect(order, e.target.value)}
+                          disabled={isSaving || isStatusLocked(order)}
+                        >
+                          {!ADMIN_STATUS_OPTIONS.includes(currentStatus) && (
+                            <option value={currentStatus} disabled>
+                              {formatStatus(currentStatus)}
+                            </option>
+                          )}
+                          {ADMIN_STATUS_OPTIONS.map(st => (
+                            <option key={st} value={st}>
+                              {formatStatus(st)}
+                            </option>
+                          ))}
+                        </select>
                         <Link
                           to={`/admin/orders/${order.id}`}
                           className="btn btn-secondary btn-small"
                         >
-                          {currentStatus === "CANCELLED" ? "View" : "View / Cancel"}
+                          View
                         </Link>
                       </div>
                     </td>
@@ -668,6 +709,71 @@ export default function AdminOrders() {
                 onClick={() => setViewItemsOrder(null)}
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm cancelling (and refunding) or reopening an order */}
+      {confirmChange && (
+        <div
+          className="modal-overlay"
+          onClick={() => !isSaving && setConfirmChange(null)}
+        >
+          <div className="modal-box" onClick={e => e.stopPropagation()}>
+            {confirmChange.type === "cancel" ? (
+              <>
+                <h3>Cancel order #{confirmChange.order.id}?</h3>
+                <p>
+                  {isPaidOnline(confirmChange.order)
+                    ? `This will refund ${formatCurrency(
+                        getOrderAmount(confirmChange.order)
+                      )} to the customer via Razorpay. Continue?`
+                    : "The items go back into stock and the customer is notified that the order was cancelled."}
+                </p>
+              </>
+            ) : (
+              <>
+                <h3>Reopen order #{confirmChange.order.id}?</h3>
+                <p>
+                  The order is marked {formatStatus(confirmChange.status)} again,
+                  its items are taken out of stock, and the customer is notified.
+                </p>
+              </>
+            )}
+            <div className="admin-form-actions">
+              <button
+                type="button"
+                className={`btn ${confirmChange.type === "cancel" ? "order-detail-cancel-solid" : "btn-primary"}`}
+                disabled={isSaving}
+                onClick={() =>
+                  handleStatusUpdate(
+                    confirmChange.order.id,
+                    confirmChange.type === "cancel"
+                      ? "CANCELLED"
+                      : confirmChange.status
+                  )
+                }
+              >
+                {isSaving
+                  ? confirmChange.type === "cancel" &&
+                    isPaidOnline(confirmChange.order)
+                    ? "Refunding…"
+                    : "Saving…"
+                  : confirmChange.type === "cancel"
+                    ? isPaidOnline(confirmChange.order)
+                      ? "Yes, cancel & refund"
+                      : "Yes, cancel order"
+                    : "Yes, reopen order"}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setConfirmChange(null)}
+                disabled={isSaving}
+              >
+                Keep as is
               </button>
             </div>
           </div>

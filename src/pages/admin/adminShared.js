@@ -1,12 +1,17 @@
 import API from "../../api/axios";
 
+// Every status an order can be in (PENDING only on orders placed before
+// orders were confirmed automatically) - used for filters and reports.
 export const ORDER_STATUSES = [
   "PENDING",
   "CONFIRMED",
   "SHIPPED",
+  "OUT_FOR_DELIVERY",
   "DELIVERED",
   "CANCELLED"
 ];
+
+export const formatStatus = status => String(status || "").replace(/_/g, " ");
 
 export const toArray = payload => {
   if (Array.isArray(payload)) return payload;
@@ -115,11 +120,11 @@ export const fetchUsers = async () => {
   return toArray(res?.data);
 };
 
+// No fallback endpoint here: a 502 (refund failed, order NOT cancelled) or a
+// 400 must reach the caller as-is, not be retried somewhere else.
 export const updateOrderStatus = async (orderId, status) => {
-  await requestWithFallback([
-    () => API.put("/admin/orders/status", { orderId, id: orderId, status }),
-    () => API.put(`/admin/orders/${orderId}`, { status })
-  ]);
+  const res = await API.put("/admin/orders/status", { orderId, status });
+  return res?.data;
 };
 
 export const saveProduct = async (payload, editingProductId) => {
@@ -214,17 +219,39 @@ export const fetchOrder = async orderId => {
 
 export const PAYMENT_METHOD_LABELS = {
   COD: "Cash on Delivery",
-  RAZORPAY: "Paid online (Razorpay)",
-  UPI: "UPI (before online payments)"
+  RAZORPAY: "Online (Razorpay)",
+  UPI: "Online"
 };
 
 export const PAYMENT_STATUS_LABELS = {
-  UNPAID: "Not paid yet (collect on delivery)",
+  UNPAID: "Unpaid",
   PAID: "Paid",
-  REFUND_PENDING: "Refund in progress",
-  REFUNDED: "Refunded"
+  REFUND_PENDING: "Refund pending",
+  REFUNDED: "Refunded",
+  REFUND_FAILED: "Refund failed"
 };
 
-// Statuses an admin can set: orders are confirmed automatically, so no PENDING,
-// and cancelling is done from the order details page.
-export const ADMIN_ACTIVE_STATUSES = ["CONFIRMED", "SHIPPED", "DELIVERED"];
+export const getPaymentMethodLabel = order =>
+  PAYMENT_METHOD_LABELS[String(order?.paymentMethod || "").toUpperCase()] ||
+  order?.paymentMethod ||
+  "—";
+
+export const getPaymentStatusLabel = order =>
+  PAYMENT_STATUS_LABELS[order?.paymentStatus] || order?.paymentStatus || "—";
+
+// Statuses an admin can pick (PENDING is no longer allowed). Choosing
+// CANCELLED asks for confirmation first, and refunds a paid order.
+export const ADMIN_STATUS_OPTIONS = [
+  "CONFIRMED",
+  "SHIPPED",
+  "OUT_FOR_DELIVERY",
+  "DELIVERED",
+  "CANCELLED"
+];
+
+// A cancelled order whose money is being / has been returned can't be reopened.
+export const isStatusLocked = order =>
+  String(order?.status || "").toUpperCase() === "CANCELLED" &&
+  ["REFUND_PENDING", "REFUNDED"].includes(order?.paymentStatus);
+
+export const isPaidOnline = order => order?.paymentStatus === "PAID";

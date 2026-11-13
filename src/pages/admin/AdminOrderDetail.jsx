@@ -121,6 +121,7 @@ export default function AdminOrderDetail() {
       ),
   );
   const discount = Number(order.discountAmount || 0);
+  const deliveryFee = Number(order.deliveryFee || 0);
   const shipFrom = loadShipFromAddress();
   const isPaidOnline = isOrderPaidOnline(order);
   const paymentStatus = order.paymentStatus || "UNPAID";
@@ -373,6 +374,12 @@ export default function AdminOrderDetail() {
             <dt>Subtotal</dt>
             <dd>{formatCurrency(subtotal)}</dd>
           </div>
+          {deliveryFee > 0 && (
+            <div>
+              <dt>Delivery</dt>
+              <dd>{formatCurrency(deliveryFee)}</dd>
+            </div>
+          )}
           {discount > 0 && (
             <div>
               <dt>

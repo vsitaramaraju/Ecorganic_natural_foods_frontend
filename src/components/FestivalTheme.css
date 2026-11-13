@@ -1,0 +1,115 @@
+/* Festival theme: greeting strip + falling decorations (see FestivalTheme.jsx). */
+
+/* Fixed to the top of the window; the navbar sits right below it (--festival-nav-top). */
+.festival-ribbon {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1001; /* above the navbar (1000) */
+}
+
+.festival-ribbon-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 9px 48px;
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.festival-ribbon-emoji {
+  font-size: 1.15rem;
+  flex-shrink: 0;
+}
+
+.festival-ribbon-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.festival-ribbon-stripe {
+  height: 4px;
+}
+
+.festival-ribbon-close {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.festival-ribbon-close:hover,
+.festival-ribbon-close:focus-visible {
+  background: rgba(255, 255, 255, 0.3);
+  outline: none;
+}
+
+@media (max-width: 600px) {
+  .festival-ribbon-bar {
+    padding: 8px 44px 8px 14px;
+    font-size: 0.85rem;
+    justify-content: flex-start;
+    text-align: left;
+  }
+  .festival-ribbon-emoji:last-of-type {
+    display: none;
+  }
+}
+
+/* Decorations: drift down once over the page, never block clicks. */
+.festival-decor {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 900;
+}
+
+.festival-decor-piece {
+  position: absolute;
+  top: -3rem;
+  opacity: 0;
+  animation-name: festival-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: 1;
+  animation-fill-mode: forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes festival-fall {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.95;
+  }
+  85% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(var(--festival-drift, 30px), 110vh) rotate(200deg);
+    opacity: 0;
+  }
+}
+
+/* Respect "reduce motion": no falling decorations at all. */
+@media (prefers-reduced-motion: reduce) {
+  .festival-decor {
+    display: none;
+  }
+}

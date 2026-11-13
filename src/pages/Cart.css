@@ -8,32 +8,6 @@
   align-items: start;
 }
 
-/* Free shipping banner */
-.free-ship-banner {
-  background: var(--color-primary-xlight);
-  border-radius: var(--radius-sm);
-  padding: var(--space-md);
-  margin-bottom: var(--space-md);
-}
-.free-ship-banner span {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--color-primary-dark);
-  display: block;
-  margin-bottom: var(--space-sm);
-}
-.ship-progress-bar {
-  background: var(--color-border);
-  border-radius: var(--radius-full);
-  height: 6px;
-}
-.ship-progress-fill {
-  background: var(--color-primary);
-  height: 100%;
-  border-radius: var(--radius-full);
-  transition: width 0.4s ease;
-}
-
 /* Cart Item */
 .cart-item {
   display: flex;

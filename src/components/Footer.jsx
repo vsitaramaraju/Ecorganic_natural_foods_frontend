@@ -34,7 +34,7 @@ export default function Footer() {
           </p>
           <div className="footer-badges">
             <span>🌱 100% Organic</span>
-            <span>🚚 Free Delivery</span>
+            <span>🚚 Doorstep Delivery</span>
             <span>♻️ Eco Packaging</span>
           </div>
           <div className="footer-social">
@@ -104,7 +104,12 @@ export default function Footer() {
           <span>·</span>
           <Link to="/faq">Help</Link>
         </div>
-        <p>Made with 🌿 for a healthier planet</p>
+        <p className="footer-credit">
+          Designed &amp; developed by{" "}
+          <a href="https://dwetra.com" target="_blank" rel="noopener noreferrer">
+            Dwetra Technologies
+          </a>
+        </p>
       </div>
     </footer>
   );

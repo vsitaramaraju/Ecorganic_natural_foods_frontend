@@ -1,3 +1,5 @@
+import { notifySessionExpired } from "../utils/authEvents";
+
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 const IMAGE_BASE_URL =
@@ -16,6 +18,7 @@ const apiCall = async (endpoint, options = {}) => {
     headers
   });
   const data = await response.json();
+  if (response.status === 401 && token) notifySessionExpired();
   if (!response.ok)
     throw {
       status: response.status,

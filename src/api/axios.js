@@ -1,4 +1,5 @@
 import axios from "axios";
+import { notifySessionExpired } from "../utils/authEvents";
 
 
 const API_BASE_URL =
@@ -12,5 +13,17 @@ API.interceptors.request.use(config => {
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
+
+// The backend answers 401 only when the login token is missing, expired or invalid,
+// so a 401 on a request that sent a token means the session is over: log out.
+API.interceptors.response.use(
+  response => response,
+  error => {
+    if (error?.response?.status === 401 && error.config?.headers?.Authorization) {
+      notifySessionExpired();
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default API;

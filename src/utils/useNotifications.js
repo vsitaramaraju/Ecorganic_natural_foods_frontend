@@ -179,7 +179,7 @@ export default function useNotifications() {
         title: "New product added",
         message: `"${data?.name || "A new product"}" just landed in the store.`,
         image: resolveImage(data?.image),
-        link: data?.id ? `/product/${data.id}` : "/shop"
+        link: data?.id ? `/products/${data.id}` : "/shop"
       });
     });
 

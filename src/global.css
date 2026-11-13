@@ -353,5 +353,6 @@ body {
 
 /* ---- Page Content Offset (below navbar) ---- */
 .page-content {
-  padding-top: 72px;
+  /* Navbar height, plus the festival greeting strip when one is showing. */
+  padding-top: calc(72px + var(--festival-nav-top, 0px));
 }

@@ -211,6 +211,29 @@ export const resetHomeBanner = async () => {
   return res?.data?.banner;
 };
 
+/* ── Delivery fee ── */
+export const fetchDeliveryFee = async () => {
+  const res = await API.get("/settings/delivery");
+  return Number(res?.data?.deliveryFee);
+};
+
+export const saveDeliveryFee = async deliveryFee => {
+  const res = await API.put("/admin/settings/delivery", { deliveryFee });
+  return Number(res?.data?.deliveryFee);
+};
+
+/* ── Festival theme ── */
+export const fetchFestivalTheme = async () => {
+  const res = await API.get("/settings/theme");
+  return res?.data;
+};
+
+// payload: { theme, message, endsAt (ISO string or null), recolor, decorations }
+export const saveFestivalTheme = async payload => {
+  const res = await API.put("/admin/settings/theme", payload);
+  return res?.data?.theme;
+};
+
 /* ── Single order (admin) ── */
 export const fetchOrder = async orderId => {
   const res = await API.get(`/admin/orders/${orderId}`);

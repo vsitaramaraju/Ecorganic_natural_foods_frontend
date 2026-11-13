@@ -1,7 +1,8 @@
 import { Suspense, lazy, useContext } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useParams } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import FestivalTheme from "./components/FestivalTheme";
 import ScrollToTop from "./ScrollToTop";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthContext } from "./context/AuthContext";
@@ -32,6 +33,8 @@ const AdminSales = lazy(() => import("./pages/admin/AdminSales"));
 const AdminReports = lazy(() => import("./pages/admin/AdminReports"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminHomeBanner = lazy(() => import("./pages/admin/AdminHomeBanner"));
+const AdminDeliveryFee = lazy(() => import("./pages/admin/AdminDeliveryFee"));
+const AdminFestivalTheme = lazy(() => import("./pages/admin/AdminFestivalTheme"));
 const AdminOrderDetail = lazy(() => import("./pages/admin/AdminOrderDetail"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
 const SearchResults = lazy(() => import("./pages/SearchResults"));
@@ -74,10 +77,17 @@ function HomeRoute() {
   return <Home />;
 }
 
+// Notifications created before the fix linked to /product/:id; send them to the real page.
+function LegacyProductRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/products/${id}`} replace />;
+}
+
 function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
+      <FestivalTheme />
       <Navbar />
       <div className="page-content">
         <Suspense fallback={<PageFallback />}>
@@ -87,6 +97,8 @@ function App() {
             <Route path="/shop" element={<Shop />} />
             <Route path="/categories" element={<Categories />} />
             <Route path="/products/:id" element={<ProductDetail />} />
+            {/* Old notifications linked to /product/:id */}
+            <Route path="/product/:id" element={<LegacyProductRedirect />} />
             <Route path="/search" element={<SearchResults />} />
             <Route path="/contact-us" element={<ContactUs />} />
             <Route path="/about-us" element={<AboutUs />} />
@@ -180,6 +192,8 @@ function App() {
               <Route path="reports" element={<AdminReports />} />
               <Route path="users" element={<AdminUsers />} />
               <Route path="home-banner" element={<AdminHomeBanner />} />
+              <Route path="delivery" element={<AdminDeliveryFee />} />
+              <Route path="festival-theme" element={<AdminFestivalTheme />} />
             </Route>
 
             {/* Catch-all → 404 */}

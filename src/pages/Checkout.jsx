@@ -8,6 +8,8 @@ import "./Checkout.css";
 import { useCart } from "../context/CartContext";
 import loadRazorpay from "../utils/loadRazorpay";
 import { getApiErrorMessage } from "../utils/apiError";
+import { formatDeliveryFee } from "../constants/delivery";
+import useDeliveryFee from "../utils/useDeliveryFee";
 
 const PAYMENT_METHODS = [
   {
@@ -58,6 +60,7 @@ const verifyPayment = async body => {
 const getOrderId = order => order?.id ?? order?.order?.id ?? order?.orderId;
 
 export default function Checkout() {
+  const { deliveryFee } = useDeliveryFee();
   const [cart, setCart] = useState([]);
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
@@ -154,7 +157,6 @@ export default function Checkout() {
   const selectedMethod = onlinePaymentEnabled ? paymentMethod : "COD";
 
   const subtotal = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
-  const deliveryFee = subtotal >= 499 ? 0 : 49;
   const discountAmount = couponApplied?.discountAmount || 0;
   const total = subtotal + deliveryFee - discountAmount;
 
@@ -615,7 +617,7 @@ export default function Checkout() {
               <div className="summary-row">
                 <span>Delivery</span>
                 <span className={deliveryFee === 0 ? "free-label" : ""}>
-                  {deliveryFee === 0 ? "FREE" : `₹${deliveryFee}`}
+                  {formatDeliveryFee(deliveryFee)}
                 </span>
               </div>
               {couponApplied && (

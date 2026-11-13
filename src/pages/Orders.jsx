@@ -93,6 +93,14 @@ function generateInvoiceHTML(order) {
     )
     .join("");
 
+  // Older orders may predate the subtotal/delivery columns, so fall back to the items.
+  const money = n => `₹${Math.round(Number(n || 0) * 100) / 100}`;
+  const subtotal =
+    Number(order.subtotalAmount) ||
+    (order.items || []).reduce((s, i) => s + Number(i.price) * Number(i.quantity), 0);
+  const deliveryFee = Number(order.deliveryFee || 0);
+  const discount = Number(order.discountAmount || 0);
+
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Invoice - Order #${order.id}</title>
 <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;color:#1a2e1a;background:#fff;padding:40px}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:24px;border-bottom:3px solid #2d6a4f}.brand{font-size:1.6rem;font-weight:700;color:#1b4332}.brand-tag{font-size:.78rem;color:#5a7a5a;margin-top:4px}.invoice-title{text-align:right}.invoice-title h2{font-size:1.4rem;color:#2d6a4f}.invoice-title p{color:#5a7a5a;font-size:.85rem;margin-top:4px}.meta{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:32px}.meta-block h4{font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:#5a7a5a;margin-bottom:8px}.meta-block p{font-size:.9rem;line-height:1.7}table{width:100%;border-collapse:collapse;margin-bottom:24px}th{background:#1b4332;color:#fff;padding:10px 14px;font-size:.82rem;text-align:left}th:not(:first-child){text-align:center}th:last-child{text-align:right}td{padding:10px 14px;border-bottom:1px solid #d5e8d7;font-size:.88rem}tr:last-child td{border-bottom:none}.totals{display:flex;justify-content:flex-end}.totals-box{min-width:260px;background:#f0f4f0;border-radius:8px;padding:16px}.total-row{display:flex;justify-content:space-between;margin-bottom:6px;font-size:.88rem;color:#5a7a5a}.total-row.grand{font-weight:700;color:#1b4332;font-size:1rem;padding-top:8px;border-top:2px solid #2d6a4f;margin-top:6px}.footer{margin-top:40px;padding-top:20px;border-top:1px solid #d5e8d7;text-align:center;font-size:.78rem;color:#8fab8f}.status-badge{display:inline-block;padding:4px 12px;border-radius:999px;font-size:.78rem;font-weight:600;background:#d8f3dc;color:#40916c}</style>
 </head><body>
@@ -109,9 +117,9 @@ function generateInvoiceHTML(order) {
 <table><thead><tr><th>Product</th><th style="text-align:center">Qty</th><th style="text-align:right">Unit Price</th><th style="text-align:right">Amount</th></tr></thead>
 <tbody>${itemRows}</tbody></table>
 <div class="totals"><div class="totals-box">
-  <div class="total-row"><span>Subtotal</span><span>₹${order.totalAmount}</span></div>
-  <div class="total-row"><span>Delivery</span><span>Free</span></div>
-  <div class="total-row"><span>Discount</span><span>₹0</span></div>
+  <div class="total-row"><span>Subtotal</span><span>${money(subtotal)}</span></div>
+  ${deliveryFee > 0 ? `<div class="total-row"><span>Delivery</span><span>${money(deliveryFee)}</span></div>` : ""}
+  ${discount > 0 ? `<div class="total-row"><span>Discount${order.couponCode ? ` (${order.couponCode})` : ""}</span><span>−${money(discount)}</span></div>` : ""}
   <div class="total-row grand"><span>Total Paid</span><span>₹${order.totalAmount}</span></div>
 </div></div>
 <div class="footer"><p>Thank you for choosing EchOrganics! 🌿 Eat clean, live green.</p>

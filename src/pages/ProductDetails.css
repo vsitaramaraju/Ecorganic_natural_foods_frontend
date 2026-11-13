@@ -49,7 +49,7 @@
 /* ── Gallery ── */
 .pd-gallery {
   position: sticky;
-  top: 90px;
+  top: calc(90px + var(--festival-nav-top, 0px));
 }
 .pd-main-image {
   position: relative;

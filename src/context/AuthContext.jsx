@@ -5,6 +5,7 @@ import {
   useEffect,
   useMemo
 } from "react";
+import { SESSION_EXPIRED_EVENT } from "../utils/authEvents";
 
 export const AuthContext = createContext();
 
@@ -69,6 +70,16 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
   }, []);
+
+  // --------------------------------------------------
+  // Server rejected the saved token (expired/invalid)
+  // --------------------------------------------------
+  // Logging out makes ProtectedRoute send the user to /login on protected pages;
+  // on public pages they simply appear logged out.
+  useEffect(() => {
+    window.addEventListener(SESSION_EXPIRED_EVENT, logout);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, logout);
+  }, [logout]);
 
   // --------------------------------------------------
   // Authentication state

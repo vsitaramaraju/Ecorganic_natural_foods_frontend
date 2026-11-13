@@ -1,0 +1,181 @@
+/* Admin → Festival Theme */
+
+.ft-intro {
+  margin-bottom: 14px;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.ft-muted {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.ft-status {
+  padding: 12px 14px;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+.ft-status.is-live {
+  background: var(--color-primary-xlight);
+  border-color: var(--color-primary-light);
+}
+
+.ft-group-title {
+  margin: 4px 0 12px;
+  color: var(--color-text);
+}
+
+.ft-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.ft-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 10px;
+  border: 2px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ft-card:hover {
+  border-color: var(--color-primary-light);
+}
+
+.ft-card:focus-visible {
+  outline: 3px solid var(--color-primary-light);
+  outline-offset: 2px;
+}
+
+.ft-card.selected {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-xlight);
+}
+
+.ft-card-emoji {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.ft-card-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.ft-swatches {
+  display: flex;
+  gap: 4px;
+}
+
+.ft-swatches i {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.ft-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.ft-toggle input {
+  width: auto;
+}
+
+.ft-preview {
+  position: relative;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.ft-preview .festival-ribbon {
+  position: static;
+}
+
+/* Preview colours: festival palette when chosen, otherwise the store's green. */
+.ft-preview-body {
+  --ft-primary: #2d6a4f;
+  --ft-primary-xlight: #d8f3dc;
+  --ft-accent: #e76f51;
+  padding: 18px;
+  background: var(--color-bg);
+}
+
+.ft-preview-decor {
+  min-height: 1.6rem;
+  font-size: 1.3rem;
+  letter-spacing: 0.3em;
+  margin-bottom: 12px;
+}
+
+.ft-preview-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.ft-preview-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: var(--ft-primary);
+  border: 2px solid var(--ft-primary);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.ft-preview-btn.ft-outline {
+  background: transparent;
+  color: var(--ft-primary);
+}
+
+.ft-preview-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--ft-primary-xlight);
+  color: var(--ft-primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.ft-preview-price {
+  font-weight: 700;
+  color: var(--ft-accent);
+  font-size: 1.1rem;
+}
+
+.ft-actions {
+  margin-top: 4px;
+}
+
+@media (max-width: 600px) {
+  .ft-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ft-actions {
+    flex-direction: column;
+  }
+}

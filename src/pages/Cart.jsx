@@ -4,8 +4,12 @@ import API from "../api/axios";
 import { IMAGE_BASE_URL } from "../api/api";
 import "./Cart.css";
 import { useCart } from "../context/CartContext";
+import { getApiErrorMessage } from "../utils/apiError";
+import { formatDeliveryFee } from "../constants/delivery";
+import useDeliveryFee from "../utils/useDeliveryFee";
 
 export default function Cart() {
+  const { deliveryFee } = useDeliveryFee();
   const [cart, setCart] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -68,8 +72,8 @@ export default function Cart() {
 
       await fetchCart();
       await refreshCart();
-    } catch {
-      setError("Failed to update quantity");
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Failed to update quantity"));
     }
   };
 
@@ -81,8 +85,8 @@ export default function Cart() {
 
       await fetchCart();
       await refreshCart();
-    } catch {
-      setError("Failed to remove item");
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Failed to remove item"));
     }
   };
 
@@ -148,8 +152,7 @@ export default function Cart() {
     (sum, item) => sum + item.product.price * item.quantity,
     0
   );
-  const freeShipping = subtotal >= 499;
-  const shipping = freeShipping ? 0 : 49;
+  const shipping = deliveryFee;
   const totalBeforeDiscount = subtotal + shipping;
   const discountAmount = discount ? discount.discountAmount : 0;
   const total = totalBeforeDiscount - discountAmount;
@@ -190,24 +193,6 @@ export default function Cart() {
         <div className="cart-layout">
           {/* Items */}
           <div className="cart-items-col">
-            {!freeShipping && (
-              <div className="free-ship-banner">
-                <span>🚚 Add ₹{499 - subtotal} more for free delivery!</span>
-                <div className="ship-progress-bar">
-                  <div
-                    className="ship-progress-fill"
-                    style={{
-                      width: `${Math.min((subtotal / 499) * 100, 100)}%`
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-            {freeShipping && (
-              <div className="alert alert-success">
-                🎉 You've unlocked free delivery!
-              </div>
-            )}
 
             {cart.map(item => (
               <div key={item.id} className="cart-item">
@@ -252,6 +237,12 @@ export default function Cart() {
                   <button
                     className="qty-btn"
                     onClick={() => updateQty(item.id, item.quantity + 1)}
+                    disabled={item.quantity >= item.product.stock}
+                    title={
+                      item.quantity >= item.product.stock
+                        ? "No more stock available"
+                        : undefined
+                    }
                   >
                     +
                   </button>
@@ -297,8 +288,8 @@ export default function Cart() {
                 </div>
                 <div className="summary-row">
                   <span>Delivery</span>
-                  <span className={freeShipping ? "free-label" : ""}>
-                    {freeShipping ? "FREE" : `₹${shipping}`}
+                  <span className={shipping === 0 ? "free-label" : ""}>
+                    {formatDeliveryFee(shipping)}
                   </span>
                 </div>
                 {discountAmount > 0 && (

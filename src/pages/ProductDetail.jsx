@@ -492,7 +492,12 @@ export default function ProductDetail() {
           {catName && (
             <>
               <span>›</span>
-              <button onClick={() => navigate(`/shop?category=${catName}`)}>
+              <button
+                onClick={() => {
+                  const catId = product?.categoryId ?? product?.category?.id;
+                  navigate(catId ? `/shop?categoryId=${catId}` : "/shop");
+                }}
+              >
                 {catName}
               </button>
             </>

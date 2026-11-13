@@ -185,7 +185,7 @@
 @media (max-width: 600px) {
   .admin-notification-panel {
     position: fixed;
-    top: 74px;
+    top: calc(74px + var(--festival-nav-top, 0px));
     right: 15px;
     width: min(390px, calc(100vw - 30px));
   }

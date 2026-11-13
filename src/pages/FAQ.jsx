@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import "./FAQ.css";
+import useDeliveryFee from "../utils/useDeliveryFee";
+import { deliveryChargeText } from "../constants/delivery";
 
 const FAQS = [
   {
@@ -12,12 +14,12 @@ const FAQS = [
         a: "We deliver within 24–48 hours of placing your order. Same-day delivery is available in Vijayawada for orders placed before 12 PM."
       },
       {
-        q: "What is the minimum order value for free delivery?",
-        a: "Orders above ₹499 qualify for free home delivery. A flat delivery charge of ₹49 applies for orders below this amount."
+        q: "How much is the delivery charge?",
+        a: "{DELIVERY_CHARGE} It is shown in your cart and at checkout before you pay."
       },
       {
         q: "Can I track my order?",
-        a: "Yes! Once your order is shipped, you'll receive a tracking link via email and SMS. You can also check order status in the 'My Orders' section."
+        a: "Yes! You can see the latest status of every order in the 'My Orders' section, and you'll get updates in the notification bell (🔔) as your order moves along. We also email you when your order is confirmed and again when it's out for delivery."
       },
       {
         q: "Do you deliver on Sundays and holidays?",
@@ -116,9 +118,19 @@ export default function FAQ() {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
 
-  const categories = ["All", ...FAQS.map(f => f.category)];
+  const { deliveryFee } = useDeliveryFee();
+  // Answers can mention the admin-set delivery fee via {DELIVERY_CHARGE}.
+  const faqs = FAQS.map(section => ({
+    ...section,
+    items: section.items.map(item => ({
+      ...item,
+      a: item.a.replace("{DELIVERY_CHARGE}", deliveryChargeText(deliveryFee))
+    }))
+  }));
 
-  const filtered = FAQS.map(section => ({
+  const categories = ["All", ...faqs.map(f => f.category)];
+
+  const filtered = faqs.map(section => ({
     ...section,
     items: section.items.filter(
       item =>

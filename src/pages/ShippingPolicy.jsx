@@ -1,5 +1,7 @@
 import "./StaticPage.css";
 import { Link } from "react-router-dom";
+import useDeliveryFee from "../utils/useDeliveryFee";
+import { deliveryChargeText } from "../constants/delivery";
 
 const SECTIONS = [
   {
@@ -20,12 +22,14 @@ const SECTIONS = [
   },
   {
     title: "4. Shipping Charges",
-    content: `• Shipping charges, if applicable, will be displayed at checkout before payment.
-    • In some cases, free shipping may be offered during promotions.`
+    content: `• {DELIVERY_CHARGE}
+    • The delivery charge is shown in your cart and at checkout before payment.`
   },
   {
     title: "5. Tracking Orders",
-    content: `• Once shipped, you will receive a tracking ID and courier details via SMS/email.`
+    content: `• You can check the current status of your order at any time in the "My Orders" section.
+    • You will receive status updates in the notification bell (🔔) on our website.
+    • We will email you when your order is confirmed and again when it is out for delivery.`
   },
   {
     title: "6. Return Eligibility",
@@ -67,6 +71,9 @@ For urgent delivery issues, call us — we prioritize delivery complaints.`
 ];
 
 export default function ShippingPolicy() {
+  const { deliveryFee } = useDeliveryFee();
+  const chargeText = deliveryChargeText(deliveryFee);
+
   return (
     <div className="static-page container">
       <div className="static-hero">
@@ -86,11 +93,6 @@ export default function ShippingPolicy() {
           <p>Same-day available in Vijayawada</p>
         </div>
         <div className="shipping-highlight">
-          <span className="sh-icon">🆓</span>
-          <h3>Free Delivery</h3>
-          <p>On orders above ₹499</p>
-        </div>
-        <div className="shipping-highlight">
           <span className="sh-icon">🔄</span>
           <h3>Easy Returns</h3>
           <p>Report within 24 hours, refund in 5 days</p>
@@ -102,7 +104,7 @@ export default function ShippingPolicy() {
           <div key={section.title} className="static-section">
             <h2>{section.title}</h2>
             <div className="static-text">
-              {section.content.split("\n").map((line, i) => (
+              {section.content.replace("{DELIVERY_CHARGE}", chargeText).split("\n").map((line, i) => (
                 <p key={i}>{line}</p>
               ))}
             </div>

@@ -2,6 +2,18 @@
   background: var(--color-primary-dark);
   color: #c8e6c9;
   margin-top: var(--space-2xl);
+  /* The page body stays in its centred column (#root in index.css); only the footer
+     breaks out of it to span the full screen width, like the fixed header. */
+  width: 100vw;
+  max-width: none;
+  align-self: center;
+  box-sizing: border-box;
+}
+
+/* 100vw includes the scrollbar on Windows; clip the few extra pixels instead of
+   showing a horizontal scrollbar. (clip, unlike hidden, keeps sticky elements working.) */
+html {
+  overflow-x: clip;
 }
 
 .footer-inner {
@@ -138,6 +150,17 @@
 }
 .footer-bottom-links span {
   opacity: 0.5;
+}
+.footer-credit a {
+  color: #a5d6a7;
+  font-weight: 600;
+  text-decoration: none;
+  transition: var(--transition);
+}
+.footer-credit a:hover,
+.footer-credit a:focus-visible {
+  color: #fff;
+  text-decoration: underline;
 }
 
 /* Responsive */

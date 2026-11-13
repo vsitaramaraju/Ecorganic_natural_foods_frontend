@@ -89,7 +89,7 @@ export function Login() {
             </p>
             <div className="auth-visual-perks">
               <div>✅ Certified Organic Products</div>
-              <div>🚚 Free delivery above ₹499</div>
+              <div>🚚 Doorstep delivery</div>
               <div>🔄 Hassle-free returns</div>
               <div>💚 Supporting local farmers</div>
             </div>

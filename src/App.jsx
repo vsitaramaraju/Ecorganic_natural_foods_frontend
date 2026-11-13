@@ -17,6 +17,8 @@ const Categories = lazy(() => import("./pages/Categories"));
 const Cart = lazy(() => import("./pages/Cart"));
 const Checkout = lazy(() => import("./pages/Checkout"));
 const Orders = lazy(() => import("./pages/Orders"));
+const OrderSuccess = lazy(() => import("./pages/OrderSuccess"));
+const PaymentFailed = lazy(() => import("./pages/PaymentFailed"));
 const Wishlist = lazy(() => import("./pages/Wishlist"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Addresses = lazy(() => import("./pages/Addresses"));
@@ -127,6 +129,22 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Checkout />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/order-success/:orderId"
+              element={
+                <ProtectedRoute>
+                  <OrderSuccess />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payment-failed"
+              element={
+                <ProtectedRoute>
+                  <PaymentFailed />
                 </ProtectedRoute>
               }
             />

@@ -101,6 +101,10 @@ export default function Checkout() {
       navigate("/login");
       return;
     }
+    // "Try again" / "Pay with COD" on the payment-failed page preselects a method.
+    if (["COD", "RAZORPAY"].includes(location.state?.paymentMethod)) {
+      setPaymentMethod(location.state.paymentMethod);
+    }
     // Get coupon code from Cart navigation state
     if (location.state?.discount) {
       setCouponCode(location.state.discount.code);
@@ -282,27 +286,15 @@ export default function Checkout() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // The cart changed on the server (stock, a refund) - show the fresh one.
-  const reloadCart = async notice => {
-    try {
-      const { data } = await API.get("/cart");
-      const items = data || [];
-      refreshCart();
-      if (items.length === 0) {
-        navigate("/cart", { replace: true, state: { notice } });
-        return;
-      }
-      setCart(items);
-    } catch {
-      // Keep showing the old cart; the error message is already on screen.
-    }
-  };
-
   const finishOrder = async order => {
     await removePurchasedItemsFromWishlist(cart);
     await refreshCart();
     handleRemoveCoupon();
     const orderId = getOrderId(order);
+    if (orderId != null) {
+      navigate(`/order-success/${orderId}`, { replace: true });
+      return;
+    }
     navigate("/orders", {
       replace: true,
       state: {
@@ -341,6 +333,16 @@ export default function Checkout() {
     showError(message);
   };
 
+  const goToPaymentFailed = details =>
+    navigate("/payment-failed", {
+      replace: true,
+      state: {
+        ...details,
+        amount: details.amount ?? total,
+        ...(couponApplied ? { discount: couponApplied } : {})
+      }
+    });
+
   // Razorpay took the money: turn the payment into an order.
   const confirmPayment = async response => {
     setIsConfirming(true);
@@ -368,8 +370,12 @@ export default function Checkout() {
         err,
         "Your payment couldn't be completed. Please try again."
       );
-      showError(message);
-      if (status === 409) await reloadCart(message);
+      // The cart is reloaded when the customer comes back to checkout.
+      refreshCart();
+      goToPaymentFailed({
+        reason: message,
+        paymentId: response.razorpay_payment_id
+      });
     } finally {
       setIsConfirming(false);
       stopPlacing();
@@ -401,6 +407,7 @@ export default function Checkout() {
     }
 
     let paid = false;
+    let lastFailure = null; // set by payment.failed; shown if the customer gives up
     try {
       const checkout = new window.Razorpay({
         key: rzpOrder.keyId,
@@ -420,16 +427,26 @@ export default function Checkout() {
           ondismiss: () => {
             if (paid) return;
             stopPlacing();
+            if (lastFailure) {
+              // A payment attempt failed and the customer closed the window.
+              goToPaymentFailed(lastFailure);
+              return;
+            }
             setToast({ type: "info", text: "Payment cancelled" });
           }
         }
       });
       checkout.on("payment.failed", res => {
-        // Razorpay keeps its window open so the customer can try again.
-        setToast({
-          type: "error",
-          text: res?.error?.description || "Payment failed. Please try again."
-        });
+        // Razorpay keeps its window open so the customer can try again; the
+        // failure page is shown only if they close it without paying.
+        const reason =
+          res?.error?.description || "Payment failed. Please try again.";
+        lastFailure = {
+          reason,
+          paymentId: res?.error?.metadata?.payment_id,
+          amount: rzpOrder.amount != null ? rzpOrder.amount / 100 : undefined
+        };
+        setToast({ type: "error", text: reason });
       });
       checkout.open();
     } catch (err) {

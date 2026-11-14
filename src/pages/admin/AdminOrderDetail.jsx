@@ -145,77 +145,86 @@ export default function AdminOrderDetail() {
 
       {/* Header */}
       <section className="card admin-section order-detail-header">
-        <div>
-          <div className="order-detail-title">
-            <h3>Order #{order.id}</h3>
-            <span
-              className={`admin-status-pill status-${status.toLowerCase()}`}
-            >
-              {formatStatus(status)}
-            </span>
+        <div className="order-detail-head-row">
+          <div>
+            <div className="order-detail-title">
+              <h3>Order #{order.id}</h3>
+              <span
+                className={`admin-status-pill status-${status.toLowerCase()}`}
+              >
+                {formatStatus(status)}
+              </span>
+            </div>
+            <p className="order-detail-sub">
+              Placed {formatDateTime(order.createdAt)} · {itemCount} item
+              {itemCount === 1 ? "" : "s"}
+            </p>
           </div>
-          <p className="order-detail-sub">
-            Placed {formatDateTime(order.createdAt)} · {itemCount} item
-            {itemCount === 1 ? "" : "s"} ·{" "}
-            {formatCurrency(getOrderAmount(order))}
-          </p>
+          <div className="order-detail-amount">
+            <span>Order total</span>
+            <strong>{formatCurrency(getOrderAmount(order))}</strong>
+          </div>
         </div>
 
-        <div className="order-detail-actions">
-          <button
-            type="button"
-            className="btn btn-secondary btn-small"
-            onClick={() => printShippingLabel(order, shipFrom)}
-            disabled={!hasAddress(order)}
-          >
-            🖨 Print label
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary btn-small"
-            onClick={() => downloadShippingLabel(order, shipFrom)}
-            disabled={!hasAddress(order)}
-          >
-            ⬇ Shipping label
-          </button>
-
-          <label
-            className="order-detail-status"
-            title={
-              locked
-                ? "This order was cancelled and refunded, so it can't be reopened."
-                : undefined
-            }
-          >
-            <span>Status</span>
-            <select
-              value={status}
-              disabled={isSaving || locked}
-              onChange={(e) => handleStatusSelect(e.target.value)}
-            >
-              {!ADMIN_STATUS_OPTIONS.includes(status) && (
-                <option value={status} disabled>
-                  {formatStatus(status)}
-                </option>
-              )}
-              {ADMIN_STATUS_OPTIONS.map((s) => (
-                <option key={s} value={s}>
-                  {formatStatus(s)}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          {!isCancelled && (
+        <div className="order-detail-toolbar">
+          <div className="order-detail-toolbar-group">
             <button
               type="button"
-              className="btn btn-small order-detail-cancel"
-              onClick={() => setConfirmAction({ type: "cancel" })}
-              disabled={isSaving}
+              className="btn btn-secondary btn-small"
+              onClick={() => printShippingLabel(order, shipFrom)}
+              disabled={!hasAddress(order)}
             >
-              {isPaidOnline ? "Cancel & refund" : "Cancel order"}
+              🖨 Print label
             </button>
-          )}
+            <button
+              type="button"
+              className="btn btn-secondary btn-small"
+              onClick={() => downloadShippingLabel(order, shipFrom)}
+              disabled={!hasAddress(order)}
+            >
+              ⬇ Shipping label
+            </button>
+          </div>
+
+          <div className="order-detail-toolbar-group">
+            <label
+              className="order-detail-status"
+              title={
+                locked
+                  ? "This order was cancelled and refunded, so it can't be reopened."
+                  : undefined
+              }
+            >
+              <span>Status</span>
+              <select
+                value={status}
+                disabled={isSaving || locked}
+                onChange={(e) => handleStatusSelect(e.target.value)}
+              >
+                {!ADMIN_STATUS_OPTIONS.includes(status) && (
+                  <option value={status} disabled>
+                    {formatStatus(status)}
+                  </option>
+                )}
+                {ADMIN_STATUS_OPTIONS.map((s) => (
+                  <option key={s} value={s}>
+                    {formatStatus(s)}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {!isCancelled && (
+              <button
+                type="button"
+                className="btn btn-small order-detail-cancel"
+                onClick={() => setConfirmAction({ type: "cancel" })}
+                disabled={isSaving}
+              >
+                {isPaidOnline ? "Cancel & refund" : "Cancel order"}
+              </button>
+            )}
+          </div>
         </div>
       </section>
 
@@ -229,23 +238,29 @@ export default function AdminOrderDetail() {
 
       {/* Customer / address / payment */}
       <div className="order-detail-grid">
-        <section className="card admin-section">
-          <h4 className="order-detail-label">Customer</h4>
+        <section className="card admin-section order-detail-info">
+          <h4 className="order-detail-label">
+            <span aria-hidden="true">👤</span> Customer
+          </h4>
           <p className="order-detail-strong">{order.user?.name || "—"}</p>
           {order.user?.email && (
-            <p>
+            <p className="order-detail-line">
+              <span aria-hidden="true">✉️</span>
               <a href={`mailto:${order.user.email}`}>{order.user.email}</a>
             </p>
           )}
           {order.user?.phone && (
-            <p>
+            <p className="order-detail-line">
+              <span aria-hidden="true">📞</span>
               <a href={`tel:${order.user.phone}`}>{order.user.phone}</a>
             </p>
           )}
         </section>
 
-        <section className="card admin-section">
-          <h4 className="order-detail-label">Delivery address</h4>
+        <section className="card admin-section order-detail-info">
+          <h4 className="order-detail-label">
+            <span aria-hidden="true">📍</span> Delivery address
+          </h4>
           {hasAddress(order) ? (
             formatAddressLines(order.address).map((line, i) => (
               <p key={i} className={i === 0 ? "order-detail-strong" : ""}>
@@ -257,41 +272,67 @@ export default function AdminOrderDetail() {
           )}
         </section>
 
-        <section className="card admin-section">
-          <h4 className="order-detail-label">Payment</h4>
-          <p className="order-detail-strong">{getPaymentMethodLabel(order)}</p>
-          <p>
-            <span
-              className={`payment-pill payment-${paymentStatus.toLowerCase()}`}
-            >
-              {getPaymentStatusLabel(order)}
-            </span>
-          </p>
-          <p>Amount: {formatCurrency(getOrderAmount(order))}</p>
-          {order.couponCode && <p>Coupon: {order.couponCode}</p>}
-          {order.razorpayPaymentId && (
-            <p className="order-detail-mono">
-              Razorpay payment: {order.razorpayPaymentId}
-            </p>
-          )}
-          {["REFUND_PENDING", "REFUNDED", "REFUND_FAILED"].includes(
-            paymentStatus,
-          ) && (
-            <p>
-              {paymentStatus === "REFUNDED"
-                ? "Refunded"
-                : paymentStatus === "REFUND_PENDING"
-                  ? "Refund initiated:"
-                  : "Refund attempted:"}{" "}
-              {formatCurrency(order.refundAmount ?? getOrderAmount(order))}
-              {order.refundedAt
-                ? ` on ${formatDateTime(order.refundedAt)}`
-                : ""}
-            </p>
-          )}
-          {order.refundId && (
-            <p className="order-detail-mono">Refund: {order.refundId}</p>
-          )}
+        <section className="card admin-section order-detail-info">
+          <h4 className="order-detail-label">
+            <span aria-hidden="true">💳</span> Payment
+          </h4>
+          <dl className="order-detail-kv">
+            <div>
+              <dt>Method</dt>
+              <dd>{getPaymentMethodLabel(order)}</dd>
+            </div>
+            <div>
+              <dt>Status</dt>
+              <dd>
+                <span
+                  className={`payment-pill payment-${paymentStatus.toLowerCase()}`}
+                >
+                  {getPaymentStatusLabel(order)}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt>Amount</dt>
+              <dd>{formatCurrency(getOrderAmount(order))}</dd>
+            </div>
+            {order.couponCode && (
+              <div>
+                <dt>Coupon</dt>
+                <dd>{order.couponCode}</dd>
+              </div>
+            )}
+            {order.razorpayPaymentId && (
+              <div>
+                <dt>Payment ID</dt>
+                <dd className="order-detail-mono">{order.razorpayPaymentId}</dd>
+              </div>
+            )}
+            {["REFUND_PENDING", "REFUNDED", "REFUND_FAILED"].includes(
+              paymentStatus,
+            ) && (
+              <div>
+                <dt>
+                  {paymentStatus === "REFUNDED"
+                    ? "Refunded"
+                    : paymentStatus === "REFUND_PENDING"
+                      ? "Refund initiated"
+                      : "Refund attempted"}
+                </dt>
+                <dd>
+                  {formatCurrency(order.refundAmount ?? getOrderAmount(order))}
+                  {order.refundedAt && (
+                    <small>{formatDateTime(order.refundedAt)}</small>
+                  )}
+                </dd>
+              </div>
+            )}
+            {order.refundId && (
+              <div>
+                <dt>Refund ID</dt>
+                <dd className="order-detail-mono">{order.refundId}</dd>
+              </div>
+            )}
+          </dl>
           {paymentStatus === "REFUND_PENDING" && (
             <p className="order-detail-hint">
               Razorpay is processing the refund; it usually reaches the

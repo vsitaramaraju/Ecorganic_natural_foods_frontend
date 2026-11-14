@@ -182,7 +182,7 @@ export default function AdminOrders() {
   if (isLoading) return <p>Loading orders...</p>;
 
   return (
-    <section className="card admin-section">
+    <section className="card admin-section admin-orders">
       <h3>Order Management</h3>
 
       {message.text && (
@@ -196,40 +196,24 @@ export default function AdminOrders() {
       )}
 
       {/* Filters */}
-      <div
-        style={{
-          display: "flex",
-          gap: 12,
-          marginBottom: 16,
-          flexWrap: "wrap",
-          justifyContent: "space-between",
-          alignItems: "center"
-        }}
-      >
-        <input
-          style={{
-            flex: 1,
-            minWidth: 200,
-            padding: "8px 12px",
-            border: "1.5px solid #e5e7eb",
-            borderRadius: 8
-          }}
-          placeholder="Search by order ID, customer name or email…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
+      <div className="admin-orders-toolbar">
+        <div className="admin-orders-search">
+          <span aria-hidden="true">🔍</span>
+          <input
+            type="search"
+            placeholder="Search by order ID, customer name or email…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
 
         <select
+          className="admin-orders-select"
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
-          style={{
-            padding: "8px 12px",
-            border: "1.5px solid #e5e7eb",
-            borderRadius: 8
-          }}
+          aria-label="Filter by status"
         >
-          <option value="ALL">All Statuses</option>
-
+          <option value="ALL">All statuses</option>
           {ORDER_STATUSES.map(s => (
             <option key={s} value={s}>
               {formatStatus(s)}
@@ -238,14 +222,11 @@ export default function AdminOrders() {
         </select>
 
         <select
+          className="admin-orders-select"
           value={pageSize}
           onChange={e => setPageSize(Number(e.target.value))}
-          style={{
-            padding: "8px 12px",
-            border: "1.5px solid #e5e7eb",
-            borderRadius: 8
-          }}
           title="Rows per page"
+          aria-label="Rows per page"
         >
           {PAGE_SIZE_OPTIONS.map(n => (
             <option key={n} value={n}>
@@ -256,35 +237,32 @@ export default function AdminOrders() {
 
         <button
           type="button"
-          className="btn-action"
+          className="btn btn-secondary btn-small admin-orders-shipfrom"
           onClick={openShipFromEditor}
           title="Edit the 'Ship From' address printed on shipping labels"
         >
-          🏷️ Edit Ship-From Address
+          🏷️ Ship-from address
         </button>
       </div>
 
       <div className="admin-table-wrap">
-        <table className="admin-table">
+        <table className="admin-table admin-orders-table">
           <thead>
             <tr>
               <th>Order</th>
-              <th>Date</th>
               <th>Customer</th>
-              <th>Delivery Address</th>
+              <th>Deliver to</th>
               <th>Products</th>
-              <th>Amount</th>
               <th>Payment</th>
               <th>Status</th>
-              <th>Shipping Label</th>
-              <th>Action</th>
+              <th className="admin-orders-actions-col">Actions</th>
             </tr>
           </thead>
 
           <tbody>
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={10} className="admin-empty-row">
+                <td colSpan={7} className="admin-empty-row">
                   No orders found.
                 </td>
               </tr>
@@ -293,6 +271,14 @@ export default function AdminOrders() {
                 const currentStatus = String(
                   order.status || "PENDING"
                 ).toUpperCase();
+                const addr = order.address;
+                const addressLines = hasAddress(order)
+                  ? formatAddressLines(addr)
+                  : [];
+                const items = Array.isArray(order.items) ? order.items : [];
+                const visible = items.slice(0, VISIBLE_ITEM_COUNT);
+                const extraCount = items.length - visible.length;
+                const canLabel = hasAddress(order);
 
                 return (
                   <tr
@@ -309,159 +295,86 @@ export default function AdminOrders() {
                       <Link to={`/admin/orders/${order.id}`} className="admin-order-link">
                         #{order.id}
                       </Link>
+                      <div className="admin-orders-muted">
+                        {formatDate(order.createdAt || order.orderDate)}
+                      </div>
                     </td>
 
-                    <td>{formatDate(order.createdAt || order.orderDate)}</td>
-
-                    <td>
-                      <div>{order.user?.name || order.customerName || "—"}</div>
-
+                    <td className="admin-orders-customer">
+                      <div className="admin-orders-strong">
+                        {order.user?.name || order.customerName || "—"}
+                      </div>
                       {order.user?.email && (
-                        <div
-                          style={{
-                            fontSize: "0.75rem",
-                            color: "#9ca3af"
-                          }}
-                        >
-                          {order.user.email}
-                        </div>
+                        <div className="admin-orders-muted">{order.user.email}</div>
                       )}
                     </td>
 
-                    <td style={{ minWidth: 170 }}>
-                      {hasAddress(order) ? (
-                        <div style={{ fontSize: "0.78rem", lineHeight: 1.45 }}>
-                          {formatAddressLines(order.address).map((line, i) => (
-                            <div
-                              key={i}
-                              style={
-                                i === 0
-                                  ? { fontWeight: 600 }
-                                  : { color: "#5a7a5a" }
-                              }
-                            >
-                              {line}
-                            </div>
-                          ))}
-                        </div>
+                    <td
+                      className="admin-orders-address"
+                      title={addressLines.join("\n") || undefined}
+                    >
+                      {addressLines.length ? (
+                        <>
+                          <div className="admin-orders-strong">
+                            {[addr.city, addr.pincode].filter(Boolean).join(" · ") ||
+                              addressLines[1] ||
+                              addressLines[0]}
+                          </div>
+                          {addr.phone && (
+                            <div className="admin-orders-muted">📞 {addr.phone}</div>
+                          )}
+                        </>
                       ) : (
-                        <span
-                          style={{
-                            fontSize: "0.75rem",
-                            color: "#c53030",
-                            fontWeight: 600
-                          }}
-                        >
-                          ⚠️ No address on file
-                        </span>
+                        <span className="admin-orders-warn">⚠️ No address</span>
                       )}
                     </td>
 
                     <td>
-                      {(() => {
-                        const items = Array.isArray(order.items)
-                          ? order.items
-                          : [];
-                        if (items.length === 0) {
-                          return <span style={{ color: "#9ca3af" }}>—</span>;
-                        }
-                        const visible = items.slice(0, VISIBLE_ITEM_COUNT);
-                        const extraCount = items.length - visible.length;
-                        return (
-                          <div
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: 6
-                            }}
-                          >
-                            {visible.map((item, idx) => {
-                              const img = getItemImage(item);
-                              return (
-                                <div
-                                  key={item.id ?? idx}
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 8
-                                  }}
-                                >
-                                  {img ? (
-                                    <img
-                                      src={img}
-                                      alt=""
-                                      style={{
-                                        width: 30,
-                                        height: 30,
-                                        borderRadius: 6,
-                                        objectFit: "cover",
-                                        flexShrink: 0
-                                      }}
-                                      onError={e => {
-                                        e.currentTarget.style.display = "none";
-                                      }}
-                                    />
-                                  ) : (
-                                    <span
-                                      style={{
-                                        width: 30,
-                                        height: 30,
-                                        borderRadius: 6,
-                                        background: "#f0f4f0",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        fontSize: 12,
-                                        flexShrink: 0
-                                      }}
-                                    >
-                                      📦
-                                    </span>
-                                  )}
-                                  <span
-                                    style={{
-                                      fontSize: "0.8rem",
-                                      lineHeight: 1.25
+                      {items.length === 0 ? (
+                        <span className="admin-orders-muted">—</span>
+                      ) : (
+                        <div className="admin-orders-items">
+                          {visible.map((item, idx) => {
+                            const img = getItemImage(item);
+                            return (
+                              <div key={item.id ?? idx} className="admin-orders-item">
+                                {img ? (
+                                  <img
+                                    src={img}
+                                    alt=""
+                                    onError={e => {
+                                      e.currentTarget.style.display = "none";
                                     }}
-                                  >
-                                    {getItemName(item)}
-                                    <span style={{ color: "#9ca3af" }}>
-                                      {" "}
-                                      × {item.quantity}
-                                    </span>
-                                  </span>
-                                </div>
-                              );
-                            })}
-                            {extraCount > 0 && (
-                              <button
-                                type="button"
-                                onClick={() => setViewItemsOrder(order)}
-                                style={{
-                                  alignSelf: "flex-start",
-                                  border: "none",
-                                  background: "none",
-                                  color: "#2d6a4f",
-                                  fontSize: "0.75rem",
-                                  fontWeight: 600,
-                                  cursor: "pointer",
-                                  padding: 0,
-                                  textDecoration: "underline"
-                                }}
-                              >
-                                +{extraCount} more
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })()}
+                                  />
+                                ) : (
+                                  <span className="admin-orders-noimg">📦</span>
+                                )}
+                                <span>
+                                  {getItemName(item)}
+                                  <span className="admin-orders-muted"> × {item.quantity}</span>
+                                </span>
+                              </div>
+                            );
+                          })}
+                          {extraCount > 0 && (
+                            <button
+                              type="button"
+                              className="admin-orders-more"
+                              onClick={() => setViewItemsOrder(order)}
+                            >
+                              +{extraCount} more
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </td>
-
-                    <td>{formatCurrency(getOrderAmount(order))}</td>
 
                     <td>
                       <div className="admin-payment-cell">
-                        <span className="admin-payment-method">
+                        <span className="admin-orders-amount">
+                          {formatCurrency(getOrderAmount(order))}
+                        </span>
+                        <span className="admin-orders-muted">
                           {getPaymentMethodLabel(order)}
                         </span>
                         <span
@@ -476,75 +389,56 @@ export default function AdminOrders() {
 
                     <td>
                       <span
-                        className={`admin-status-pill status-${String(
-                          order.status || ""
-                        ).toLowerCase()}`}
+                        className={`admin-status-pill admin-orders-status-wrap status-${currentStatus.toLowerCase()}`}
                       >
-                        {formatStatus(order.status || "PENDING")}
+                      <select
+                        className="admin-orders-status-select"
+                        value={currentStatus}
+                        aria-label={`Status of order ${order.id}`}
+                        title={
+                          isStatusLocked(order)
+                            ? "Cancelled and refunded orders can't be reopened"
+                            : undefined
+                        }
+                        onChange={e => handleStatusSelect(order, e.target.value)}
+                        disabled={isSaving || isStatusLocked(order)}
+                      >
+                        {!ADMIN_STATUS_OPTIONS.includes(currentStatus) && (
+                          <option value={currentStatus} disabled>
+                            {formatStatus(currentStatus)}
+                          </option>
+                        )}
+                        {ADMIN_STATUS_OPTIONS.map(st => (
+                          <option key={st} value={st}>
+                            {formatStatus(st)}
+                          </option>
+                        ))}
+                      </select>
                       </span>
                     </td>
 
                     <td>
-                      <div
-                        style={{ display: "flex", gap: 6, flexWrap: "wrap" }}
-                      >
+                      <div className="admin-orders-actions">
                         <button
                           type="button"
-                          className="btn-action"
-                          title="Print shipping label"
-                          disabled={!hasAddress(order)}
+                          className="admin-orders-icon-btn"
+                          title={canLabel ? "Print shipping label" : "No address on file"}
+                          aria-label="Print shipping label"
+                          disabled={!canLabel}
                           onClick={() => printShippingLabel(order, shipFrom)}
-                          style={{
-                            opacity: hasAddress(order) ? 1 : 0.5,
-                            cursor: hasAddress(order)
-                              ? "pointer"
-                              : "not-allowed"
-                          }}
                         >
-                          🖨️ Print
+                          🖨️
                         </button>
                         <button
                           type="button"
-                          className="btn-action"
-                          title="Download shipping label"
-                          disabled={!hasAddress(order)}
+                          className="admin-orders-icon-btn"
+                          title={canLabel ? "Download shipping label" : "No address on file"}
+                          aria-label="Download shipping label"
+                          disabled={!canLabel}
                           onClick={() => downloadShippingLabel(order, shipFrom)}
-                          style={{
-                            opacity: hasAddress(order) ? 1 : 0.5,
-                            cursor: hasAddress(order)
-                              ? "pointer"
-                              : "not-allowed"
-                          }}
                         >
-                          ⬇️ Label
+                          ⬇️
                         </button>
-                      </div>
-                    </td>
-
-                    <td>
-                      <div className="admin-order-actions">
-                        <select
-                          value={currentStatus}
-                          aria-label={`Status of order ${order.id}`}
-                          title={
-                            isStatusLocked(order)
-                              ? "Cancelled and refunded orders can't be reopened"
-                              : undefined
-                          }
-                          onChange={e => handleStatusSelect(order, e.target.value)}
-                          disabled={isSaving || isStatusLocked(order)}
-                        >
-                          {!ADMIN_STATUS_OPTIONS.includes(currentStatus) && (
-                            <option value={currentStatus} disabled>
-                              {formatStatus(currentStatus)}
-                            </option>
-                          )}
-                          {ADMIN_STATUS_OPTIONS.map(st => (
-                            <option key={st} value={st}>
-                              {formatStatus(st)}
-                            </option>
-                          ))}
-                        </select>
                         <Link
                           to={`/admin/orders/${order.id}`}
                           className="btn btn-secondary btn-small"

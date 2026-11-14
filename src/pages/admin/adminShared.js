@@ -235,6 +235,17 @@ export const saveFestivalTheme = async payload => {
 };
 
 /* ── Single order (admin) ── */
+// Records the courier + tracking details; the backend marks the order SHIPPED
+// and emails the customer their tracking link.
+export const shipOrder = async (orderId, { courierName, trackingId, trackingUrl }) => {
+  const res = await API.post(`/admin/orders/${orderId}/ship`, {
+    courierName,
+    trackingId,
+    trackingUrl
+  });
+  return res?.data;
+};
+
 export const fetchOrder = async orderId => {
   const res = await API.get(`/admin/orders/${orderId}`);
   return res?.data;

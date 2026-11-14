@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
-  ADMIN_STATUS_OPTIONS,
   fetchOrder,
   formatCurrency,
   formatStatus,
@@ -9,9 +8,10 @@ import {
   getPaymentMethodLabel,
   getPaymentStatusLabel,
   isPaidOnline as isOrderPaidOnline,
-  isStatusLocked,
+  shipOrder,
   updateOrderStatus,
 } from "./adminShared";
+import FulfilmentCard from "./FulfilmentCard";
 import {
   downloadShippingLabel,
   formatAddressLines,
@@ -41,8 +41,7 @@ export default function AdminOrderDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
-  // { type: "cancel" } | { type: "reopen", status }
-  const [confirmAction, setConfirmAction] = useState(null);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   // The detail endpoint also refreshes a pending refund's status with
   // Razorpay, so it is fetched fresh every time the page opens.
@@ -85,7 +84,35 @@ export default function AdminOrderDetail() {
       });
     } finally {
       setIsSaving(false);
-      setConfirmAction(null);
+      setShowCancelConfirm(false);
+    }
+  };
+
+  // Resolves true when saved, so the fulfilment form knows to close.
+  const submitShipment = async (details) => {
+    try {
+      setIsSaving(true);
+      setMessage({ type: "", text: "" });
+      const wasNew = !["SHIPPED", "OUT_FOR_DELIVERY"].includes(
+        String(order.status || "").toUpperCase(),
+      );
+      await shipOrder(order.id, details);
+      await load();
+      setMessage({
+        type: "success",
+        text: wasNew
+          ? `Order marked as packed and shipped with ${details.courierName}. The customer was emailed the tracking details.`
+          : "Tracking details updated. The customer was emailed the new details.",
+      });
+      return true;
+    } catch (e) {
+      setMessage({
+        type: "error",
+        text: getApiErrorMessage(e, "Failed to save the tracking details"),
+      });
+      return false;
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -106,7 +133,6 @@ export default function AdminOrderDetail() {
 
   const status = String(order.status || "PENDING").toUpperCase();
   const isCancelled = status === "CANCELLED";
-  const locked = isStatusLocked(order);
   const items = Array.isArray(order.items) ? order.items : [];
   const itemCount = items.reduce(
     (sum, item) => sum + Number(item.quantity || 0),
@@ -125,17 +151,6 @@ export default function AdminOrderDetail() {
   const shipFrom = loadShipFromAddress();
   const isPaidOnline = isOrderPaidOnline(order);
   const paymentStatus = order.paymentStatus || "UNPAID";
-
-  const handleStatusSelect = (next) => {
-    if (next === status) return;
-    if (next === "CANCELLED") {
-      setConfirmAction({ type: "cancel" });
-    } else if (isCancelled) {
-      setConfirmAction({ type: "reopen", status: next });
-    } else {
-      changeStatus(next, `Order marked ${formatStatus(next)}.`);
-    }
-  };
 
   return (
     <div className="admin-stack">
@@ -187,38 +202,11 @@ export default function AdminOrderDetail() {
           </div>
 
           <div className="order-detail-toolbar-group">
-            <label
-              className="order-detail-status"
-              title={
-                locked
-                  ? "This order was cancelled and refunded, so it can't be reopened."
-                  : undefined
-              }
-            >
-              <span>Status</span>
-              <select
-                value={status}
-                disabled={isSaving || locked}
-                onChange={(e) => handleStatusSelect(e.target.value)}
-              >
-                {!ADMIN_STATUS_OPTIONS.includes(status) && (
-                  <option value={status} disabled>
-                    {formatStatus(status)}
-                  </option>
-                )}
-                {ADMIN_STATUS_OPTIONS.map((s) => (
-                  <option key={s} value={s}>
-                    {formatStatus(s)}
-                  </option>
-                ))}
-              </select>
-            </label>
-
             {!isCancelled && (
               <button
                 type="button"
                 className="btn btn-small order-detail-cancel"
-                onClick={() => setConfirmAction({ type: "cancel" })}
+                onClick={() => setShowCancelConfirm(true)}
                 disabled={isSaving}
               >
                 {isPaidOnline ? "Cancel & refund" : "Cancel order"}
@@ -235,6 +223,18 @@ export default function AdminOrderDetail() {
           {message.text}
         </div>
       )}
+
+      <FulfilmentCard
+        key={`${order.id}-${order.trackingId || ""}`}
+        order={order}
+        status={status}
+        itemCount={itemCount}
+        isSaving={isSaving}
+        onShip={submitShipment}
+        onMarkDelivered={() =>
+          changeStatus("DELIVERED", "Order marked as delivered.")
+        }
+      />
 
       {/* Customer / address / payment */}
       <div className="order-detail-grid">
@@ -436,72 +436,52 @@ export default function AdminOrderDetail() {
         </dl>
       </section>
 
-      {confirmAction && (
+      {showCancelConfirm && (
         <div
           className="modal-overlay"
-          onClick={() => !isSaving && setConfirmAction(null)}
+          onClick={() => !isSaving && setShowCancelConfirm(false)}
         >
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            {confirmAction.type === "cancel" ? (
-              <>
-                <h3>Cancel order #{order.id}?</h3>
-                {isPaidOnline ? (
-                  <p>
-                    This will refund{" "}
-                    <strong>{formatCurrency(getOrderAmount(order))}</strong> to
-                    the customer via Razorpay. Continue? If the refund fails,
-                    the order is not cancelled.
-                  </p>
-                ) : (
-                  <p>
-                    The items go back into stock and the customer is notified
-                    that the order was cancelled.
-                    {order.paymentMethod === "COD" &&
-                      " No refund is needed for Cash on Delivery."}
-                  </p>
-                )}
-              </>
+            <h3>Cancel order #{order.id}?</h3>
+            {isPaidOnline ? (
+              <p>
+                This will refund{" "}
+                <strong>{formatCurrency(getOrderAmount(order))}</strong> to the
+                customer via Razorpay. Continue? If the refund fails, the order
+                is not cancelled.
+              </p>
             ) : (
-              <>
-                <h3>Reopen order #{order.id}?</h3>
-                <p>
-                  The order is marked {formatStatus(confirmAction.status)}{" "}
-                  again, its items are taken out of stock, and the customer is
-                  notified.
-                </p>
-              </>
+              <p>
+                The items go back into stock and the customer is notified that
+                the order was cancelled.
+                {order.paymentMethod === "COD" &&
+                  " No refund is needed for Cash on Delivery."}
+              </p>
             )}
             <div className="admin-form-actions">
               <button
-                className={`btn ${confirmAction.type === "cancel" ? "order-detail-cancel-solid" : "btn-primary"}`}
+                className="btn order-detail-cancel-solid"
                 onClick={() =>
-                  confirmAction.type === "cancel"
-                    ? changeStatus(
-                        "CANCELLED",
-                        isPaidOnline
-                          ? "Order cancelled and refund initiated through Razorpay. Stock was restored and the customer was notified."
-                          : "Order cancelled. Stock was restored and the customer was notified.",
-                      )
-                    : changeStatus(
-                        confirmAction.status,
-                        `Order reopened as ${formatStatus(confirmAction.status)}.`,
-                      )
+                  changeStatus(
+                    "CANCELLED",
+                    isPaidOnline
+                      ? "Order cancelled and refund initiated through Razorpay. Stock was restored and the customer was notified."
+                      : "Order cancelled. Stock was restored and the customer was notified.",
+                  )
                 }
                 disabled={isSaving}
               >
                 {isSaving
-                  ? confirmAction.type === "cancel" && isPaidOnline
+                  ? isPaidOnline
                     ? "Refunding…"
                     : "Saving…"
-                  : confirmAction.type === "cancel"
-                    ? isPaidOnline
-                      ? "Yes, cancel & refund"
-                      : "Yes, cancel order"
-                    : "Yes, reopen order"}
+                  : isPaidOnline
+                    ? "Yes, cancel & refund"
+                    : "Yes, cancel order"}
               </button>
               <button
                 className="btn btn-secondary"
-                onClick={() => setConfirmAction(null)}
+                onClick={() => setShowCancelConfirm(false)}
                 disabled={isSaving}
               >
                 Keep as is

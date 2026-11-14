@@ -66,6 +66,8 @@ export default function Checkout() {
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("COD");
   const [onlinePaymentEnabled, setOnlinePaymentEnabled] = useState(false);
+  // The admin can switch Cash on Delivery off (Admin → Delivery & Payments).
+  const [codEnabled, setCodEnabled] = useState(true);
   const [couponCode, setCouponCode] = useState("");
   const [couponApplied, setCouponApplied] = useState(null); // { code, discount }
   const [couponError, setCouponError] = useState("");
@@ -139,10 +141,14 @@ export default function Checkout() {
           Boolean(data?.razorpayEnabled) &&
             (!methods || methods.includes("RAZORPAY"))
         );
+        setCodEnabled(methods ? methods.includes("COD") : data?.codEnabled !== false);
       })
       .catch(() => {
         // Without the config, fall back to Cash on Delivery only.
-        if (!cancelled) setOnlinePaymentEnabled(false);
+        if (!cancelled) {
+          setOnlinePaymentEnabled(false);
+          setCodEnabled(true);
+        }
       });
     return () => {
       cancelled = true;
@@ -155,10 +161,13 @@ export default function Checkout() {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  const availableMethods = PAYMENT_METHODS.filter(
-    pm => pm.id === "COD" || onlinePaymentEnabled
+  const availableMethods = PAYMENT_METHODS.filter(pm =>
+    pm.id === "COD" ? codEnabled : onlinePaymentEnabled
   );
-  const selectedMethod = onlinePaymentEnabled ? paymentMethod : "COD";
+  // Falls back to the first offered method if the chosen one isn't available.
+  const selectedMethod = availableMethods.some(pm => pm.id === paymentMethod)
+    ? paymentMethod
+    : availableMethods[0]?.id ?? null;
 
   const subtotal = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
   const discountAmount = couponApplied?.discountAmount || 0;
@@ -324,10 +333,16 @@ export default function Checkout() {
     }
     if (status === 503) {
       setOnlinePaymentEnabled(false);
-      setPaymentMethod("COD");
-      showError(
-        `${message} Online payment is unavailable right now. Please choose Cash on Delivery.`
-      );
+      if (codEnabled) {
+        setPaymentMethod("COD");
+        showError(
+          `${message} Online payment is unavailable right now. Please choose Cash on Delivery.`
+        );
+      } else {
+        showError(
+          `${message} Online payment is unavailable right now. Please try again in a few minutes.`
+        );
+      }
       return;
     }
     showError(message);
@@ -459,6 +474,10 @@ export default function Checkout() {
   const placeOrder = async () => {
     if (!selectedAddressId) {
       setError("Please select a delivery address");
+      return;
+    }
+    if (!selectedMethod) {
+      setError("No payment method is available right now. Please try again later.");
       return;
     }
     if (!startPlacing()) return;
@@ -752,13 +771,21 @@ export default function Checkout() {
                   </div>
                 </label>
               ))}
+              {availableMethods.length === 0 && (
+                <p className="payment-unavailable">
+                  Payments are unavailable right now. Please try again in a few
+                  minutes.
+                </p>
+              )}
             </div>
           </div>
 
           <button
             className="btn btn-primary btn-full place-order-btn"
             onClick={placeOrder}
-            disabled={isPlacing || isProcessing || !selectedAddressId}
+            disabled={
+              isPlacing || isProcessing || !selectedAddressId || !selectedMethod
+            }
             style={{ marginTop: "16px" }}
           >
             {isPlacing

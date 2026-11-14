@@ -366,3 +366,12 @@
   font-size: 0.88rem;
   color: var(--color-text-muted);
 }
+
+.payment-unavailable {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--color-warning-bg, #fff3e0);
+  color: #8a5d00;
+  font-size: 0.9rem;
+}

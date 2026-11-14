@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import API from "../api/axios";
 import "./PaymentResult.css";
 
 // Reached from Checkout when a Razorpay payment fails or can't be verified.
@@ -10,6 +12,22 @@ export default function PaymentFailed() {
   const paymentId = state?.paymentId;
   const amount = state?.amount;
   const discount = state?.discount;
+  // Only offer Cash on Delivery when the store has it switched on.
+  const [codEnabled, setCodEnabled] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    API.get("/orders/payment-config")
+      .then(({ data }) => {
+        if (cancelled) return;
+        const methods = Array.isArray(data?.methods) ? data.methods : null;
+        setCodEnabled(methods ? methods.includes("COD") : data?.codEnabled !== false);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const backToCheckout = paymentMethod =>
     navigate("/checkout", {
@@ -56,9 +74,11 @@ export default function PaymentFailed() {
           <button className="btn btn-primary" onClick={() => backToCheckout("RAZORPAY")}>
             🔄 Try Again
           </button>
-          <button className="btn btn-secondary" onClick={() => backToCheckout("COD")}>
-            💵 Pay with Cash on Delivery
-          </button>
+          {codEnabled && (
+            <button className="btn btn-secondary" onClick={() => backToCheckout("COD")}>
+              💵 Pay with Cash on Delivery
+            </button>
+          )}
         </div>
 
         <Link to="/contact-us" className="payresult-link">

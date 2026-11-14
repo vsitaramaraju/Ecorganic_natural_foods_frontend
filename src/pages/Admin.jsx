@@ -19,7 +19,7 @@ export default function AdminPanel() {
     { to: "/admin/categories", label: "🗂 Categories" },
     { to: "/admin/coupons", label: "🎟 Coupons" },
     { to: "/admin/home-banner", label: "🖼 Home Page" },
-    { to: "/admin/delivery", label: "🚚 Delivery Fee" },
+    { to: "/admin/delivery", label: "🚚 Delivery & Payments" },
     { to: "/admin/festival-theme", label: "🎉 Festival Theme" },
     { to: "/admin/users", label: "👥 Users" },
     { to: "/admin/reports", label: "📋 Reports" }

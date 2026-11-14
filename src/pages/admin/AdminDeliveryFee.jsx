@@ -3,6 +3,7 @@ import { MAX_DELIVERY_FEE, deliveryChargeText, formatDeliveryFee } from "../../c
 import { setCachedDeliveryFee } from "../../utils/useDeliveryFee";
 import { getApiErrorMessage } from "../../utils/apiError";
 import { fetchDeliveryFee, saveDeliveryFee } from "./adminShared";
+import PaymentMethodsCard from "./PaymentMethodsCard";
 
 // Admin → Delivery Fee: the flat charge added to every order (0 = free delivery).
 // The backend charges whatever is saved here; the cart, checkout, FAQ and
@@ -144,6 +145,8 @@ export default function AdminDeliveryFee() {
           </div>
         </form>
       </section>
+
+      <PaymentMethodsCard />
     </div>
   );
 }

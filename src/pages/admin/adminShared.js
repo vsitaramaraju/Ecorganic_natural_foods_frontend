@@ -216,6 +216,19 @@ export const saveDeliveryFee = async deliveryFee => {
   return Number(res?.data?.deliveryFee);
 };
 
+/* ── Payment methods ── */
+// { codEnabled, razorpayEnabled } - COD can only be turned off while online
+// payment (Razorpay) is configured.
+export const fetchPaymentSettings = async () => {
+  const res = await API.get("/admin/settings/payments");
+  return res?.data;
+};
+
+export const savePaymentSettings = async codEnabled => {
+  const res = await API.put("/admin/settings/payments", { codEnabled });
+  return res?.data;
+};
+
 /* ── Festival theme ── */
 export const fetchFestivalTheme = async () => {
   const res = await API.get("/settings/theme");

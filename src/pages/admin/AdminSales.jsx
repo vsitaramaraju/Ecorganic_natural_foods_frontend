@@ -5,7 +5,8 @@ import {
   formatDate,
   getOrderAmount,
   getOrderItemsCount,
-  exportToCSV as sharedExport
+  exportToCSV as sharedExport,
+  ORDER_STATUSES
 } from "./adminShared";
 
 function exportToCSV(data, filename) {
@@ -31,10 +32,8 @@ function exportToCSV(data, filename) {
 }
 
 const STATUS_COLORS = {
-  PENDING: "#f59e0b",
   CONFIRMED: "#3b82f6",
   SHIPPED: "#8b5cf6",
-  OUT_FOR_DELIVERY: "#a855f7",
   DELIVERED: "#22c55e",
   CANCELLED: "#ef4444"
 };
@@ -171,15 +170,7 @@ export default function AdminSales() {
 
       {/* Status Breakdown Pills */}
       <div className="sales-status-pills">
-        {[
-          "ALL",
-          "PENDING",
-          "CONFIRMED",
-          "SHIPPED",
-          "OUT_FOR_DELIVERY",
-          "DELIVERED",
-          "CANCELLED"
-        ].map(s => (
+        {["ALL", ...ORDER_STATUSES].map(s => (
           <button
             key={s}
             className={`sales-status-pill-btn ${statusFilter === s ? "active" : ""}`}

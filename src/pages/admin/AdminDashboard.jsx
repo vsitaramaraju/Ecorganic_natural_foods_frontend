@@ -54,14 +54,7 @@ export default function AdminDashboard() {
   }, [orders]);
 
   const statusBreakdown = useMemo(() => {
-    const map = {
-      PENDING: 0,
-      CONFIRMED: 0,
-      SHIPPED: 0,
-      OUT_FOR_DELIVERY: 0,
-      DELIVERED: 0,
-      CANCELLED: 0
-    };
+    const map = Object.fromEntries(ORDER_STATUSES.map(s => [s, 0]));
     orders.forEach(o => {
       const s = String(o?.status || "PENDING").toUpperCase();
       if (map[s] !== undefined) map[s]++;

@@ -43,14 +43,7 @@ export default function AdminOverview() {
   }, []);
 
   const statusBreakdown = useMemo(() => {
-    const result = {
-      PENDING: 0,
-      CONFIRMED: 0,
-      SHIPPED: 0,
-      OUT_FOR_DELIVERY: 0,
-      DELIVERED: 0,
-      CANCELLED: 0
-    };
+    const result = Object.fromEntries(ORDER_STATUSES.map(s => [s, 0]));
 
     orders.forEach(order => {
       const status = String(order?.status || "PENDING").toUpperCase();

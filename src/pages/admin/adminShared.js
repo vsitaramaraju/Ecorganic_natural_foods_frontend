@@ -1,15 +1,9 @@
 import API from "../../api/axios";
 
-// Every status an order can be in (PENDING only on orders placed before
-// orders were confirmed automatically) - used for filters and reports.
-export const ORDER_STATUSES = [
-  "PENDING",
-  "CONFIRMED",
-  "SHIPPED",
-  "OUT_FOR_DELIVERY",
-  "DELIVERED",
-  "CANCELLED"
-];
+// The order lifecycle: CONFIRMED (new) -> SHIPPED (packed and handed to the
+// courier) -> DELIVERED, or CANCELLED. Used for filters, reports and the admin
+// status dropdown. Orders are confirmed automatically, so there is no PENDING.
+export const ORDER_STATUSES = ["CONFIRMED", "SHIPPED", "DELIVERED", "CANCELLED"];
 
 export const formatStatus = status => String(status || "").replace(/_/g, " ");
 
@@ -273,15 +267,9 @@ export const getPaymentMethodLabel = order =>
 export const getPaymentStatusLabel = order =>
   PAYMENT_STATUS_LABELS[order?.paymentStatus] || order?.paymentStatus || "—";
 
-// Statuses an admin can pick (PENDING is no longer allowed). Choosing
-// CANCELLED asks for confirmation first, and refunds a paid order.
-export const ADMIN_STATUS_OPTIONS = [
-  "CONFIRMED",
-  "SHIPPED",
-  "OUT_FOR_DELIVERY",
-  "DELIVERED",
-  "CANCELLED"
-];
+// Statuses an admin can pick. Choosing CANCELLED asks for confirmation first,
+// and refunds a paid order.
+export const ADMIN_STATUS_OPTIONS = ORDER_STATUSES;
 
 // A cancelled order whose money is being / has been returned can't be reopened.
 export const isStatusLocked = order =>

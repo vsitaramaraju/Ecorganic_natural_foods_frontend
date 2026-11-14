@@ -32,25 +32,29 @@
 }
 
 .admin-nav-link {
-  border: 1px solid var(--border);
-  background: #fff;
-  color: black;
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
   padding: 12px 14px;
   border-radius: 10px;
   font-weight: 600;
+  text-align: left;
   text-decoration: none;
   transition: all 0.2s ease;
 }
 
 .admin-nav-link:hover {
   text-decoration: none;
-  border-color: #667eea;
+  border-color: var(--color-primary-light);
+  background: var(--color-primary-xlight);
+  color: var(--color-primary-dark);
 }
 
 .admin-nav-link.active {
   color: #fff;
-  border-color: #667eea;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: var(--color-primary);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  box-shadow: 0 4px 12px rgba(45, 106, 79, 0.25);
 }
 
 .admin-screen {
@@ -1905,4 +1909,229 @@
 }
 .admin-orders .admin-pagination-summary {
   text-align: left;
+}
+
+/* ========== PRODUCTS LIST (matches order list) ========== */
+.admin-products {
+  text-align: left;
+}
+.admin-products-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.admin-products-head h3 {
+  margin: 0;
+}
+.admin-products .admin-cat-filter {
+  position: relative;
+}
+.admin-products .admin-cat-filter-trigger {
+  min-width: 190px;
+  padding: 9px 14px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 600;
+  box-shadow: none;
+}
+.admin-products .admin-cat-filter-trigger:hover,
+.admin-products .admin-cat-filter-trigger[aria-expanded="true"] {
+  border-color: var(--color-primary);
+}
+.admin-products .admin-cat-filter-caret {
+  color: var(--color-primary);
+}
+.admin-products .admin-cat-filter-menu li {
+  color: var(--color-text);
+}
+.admin-products .admin-cat-filter-menu li:hover {
+  background: var(--color-surface-alt);
+}
+.admin-products .admin-cat-filter-menu li.active {
+  background: var(--color-primary);
+  color: #fff;
+}
+.admin-products-table {
+  min-width: 640px;
+}
+.admin-products-table td {
+  vertical-align: middle;
+}
+.admin-products .prod-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  border-color: var(--color-border);
+  flex-shrink: 0;
+}
+.prod-thumb-empty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+}
+.admin-products .prod-name {
+  color: var(--color-text);
+}
+.admin-products .prod-detail-toggle {
+  color: var(--color-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.admin-products .prod-row-expanded td,
+.admin-products .prod-detail-row td {
+  background: var(--color-surface-alt);
+}
+.admin-products .prod-detail-box p {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+.prod-detail-images {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.prod-detail-images a {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+.prod-detail-images img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.prod-cat-chip {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--color-primary-xlight);
+  color: var(--color-primary-dark);
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.admin-products .stock-badge {
+  white-space: nowrap;
+}
+.admin-products-delete:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+.admin-products .admin-pagination-summary {
+  text-align: left;
+}
+@media (max-width: 640px) {
+  .admin-products .admin-cat-filter,
+  .admin-products .admin-cat-filter-trigger,
+  .admin-products .admin-orders-select {
+    width: 100%;
+  }
+}
+
+/* ========== COUPONS ========== */
+.admin-coupons {
+  text-align: left;
+}
+.admin-coupons .admin-products-head h3 {
+  margin: 0;
+}
+.admin-segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+}
+.admin-segmented button {
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.admin-segmented button:hover {
+  color: var(--color-primary);
+}
+.admin-segmented button.active {
+  background: var(--color-primary);
+  color: #fff;
+}
+.coupon-code {
+  display: inline-block;
+  padding: 3px 10px;
+  border: 1.5px dashed var(--color-primary-light);
+  border-radius: 6px;
+  background: var(--color-primary-xlight);
+  color: var(--color-primary-dark);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.coupon-type {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.coupon-type-general {
+  background: #dff0ff;
+  color: #1d5d95;
+}
+.coupon-type-seasonal {
+  background: #fff4d5;
+  color: #8a5d00;
+}
+.coupon-type-new_user {
+  background: #dff8ea;
+  color: #146b3a;
+}
+.coupon-expired {
+  color: #c53030;
+  font-weight: 600;
+}
+.admin-coupons-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+.admin-coupons-empty p {
+  margin: 0;
+}
+.admin-coupons-empty .btn {
+  margin-top: 10px;
+}
+.admin-coupons-empty-icon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-primary-xlight);
+  font-size: 26px;
+  margin-bottom: 4px;
 }

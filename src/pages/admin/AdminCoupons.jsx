@@ -173,40 +173,36 @@ export default function AdminCoupons() {
     c.code.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const typeLabel = value =>
+    (COUPON_TYPES.find(t => t.value === value)?.label || value || "")
+      .split("(")[0]
+      .trim();
+
+  const getValidity = coupon => {
+    const end = coupon.endDate ? new Date(coupon.endDate) : null;
+    if (end && end < new Date()) {
+      return { text: `Ended ${formatDate(coupon.endDate)}`, expired: true };
+    }
+    if (coupon.startDate && coupon.endDate) {
+      return {
+        text: `${formatDate(coupon.startDate)} – ${formatDate(coupon.endDate)}`
+      };
+    }
+    if (end) return { text: `Until ${formatDate(coupon.endDate)}` };
+    return { text: "No expiry" };
+  };
+
+  const deleteTarget = coupons.find(c => c.id === deleteConfirm);
+
   return (
-    <div>
-      {/* Message Alert */}
-      {message.text && (
-        <div className={`alert alert-${message.type}`}>{message.text}</div>
-      )}
-
-      {/* Header and Form Toggle */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-around",
-          alignItems: "self-end",
-          marginBottom: "20px"
-        }}
-      >
-        <div>
-          <h2>Manage Coupons</h2>
-          <p style={{ margin: "8px 0 0 0", color: "#6b7280" }}>
-            Create, edit, and manage promotional coupon codes
-          </p>
-        </div>
-        <button
-          className="btn btn-primary"
-          onClick={() => (showForm ? resetForm() : setShowForm(true))}
-        >
-          {showForm ? "✕ Cancel" : "+ New Coupon"}
-        </button>
-      </div>
-
+    <div className="admin-stack admin-coupons">
       {/* Form Section */}
       {showForm && (
         <section className="card admin-section">
-          <h3>{editingId ? "Edit Coupon" : "Create New Coupon"}</h3>
+          <h3>{editingId ? "Edit coupon" : "Create new coupon"}</h3>
+          {message.text && (
+            <div className={`alert alert-${message.type}`}>{message.text}</div>
+          )}
           <form onSubmit={handleSubmit} className="admin-form-grid">
             <div className="form-group">
               <label>Coupon Code *</label>
@@ -394,201 +390,202 @@ export default function AdminCoupons() {
         </section>
       )}
 
-      {/* Search and Filters */}
-      <div
-        style={{
-          display: "flex",
-          gap: "12px",
-          marginBottom: "20px",
-          alignItems: "flex-end",
-          flexWrap: "wrap"
-        }}
-      >
-        <div style={{ flex: 1, minWidth: "200px" }}>
-          <input
-            type="text"
-            placeholder="Search coupons by code..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "10px 14px",
-              border: "1px solid #d1d5db",
-              borderRadius: "8px",
-              fontSize: "14px"
-            }}
-          />
-        </div>
-        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-          <button
-            style={{
-              padding: "8px 12px",
-              border:
-                filterType === "all"
-                  ? "2px solid #667eea"
-                  : "1px solid #d1d5db",
-              background: filterType === "all" ? "#f0f4ff" : "#fff",
-              color: filterType === "all" ? "#667eea" : "#6b7280",
-              borderRadius: "6px",
-              cursor: "pointer",
-              fontSize: "13px",
-              fontWeight: "500"
-            }}
-            onClick={() => setFilterType("all")}
-          >
-            All
-          </button>
-          {COUPON_TYPES.map(t => (
+      <section className="card admin-section">
+        <div className="admin-products-head">
+          <div>
+            <h3>Coupons</h3>
+            <p className="admin-orders-muted">
+              Create, edit and manage promotional coupon codes
+            </p>
+          </div>
+          {!showForm && (
             <button
-              key={t.value}
-              style={{
-                padding: "8px 12px",
-                border:
-                  filterType === t.value
-                    ? "2px solid #667eea"
-                    : "1px solid #d1d5db",
-                background: filterType === t.value ? "#f0f4ff" : "#fff",
-                color: filterType === t.value ? "#667eea" : "#6b7280",
-                borderRadius: "6px",
-                cursor: "pointer",
-                fontSize: "13px",
-                fontWeight: "500"
-              }}
-              onClick={() => setFilterType(t.value)}
+              className="btn btn-primary btn-small"
+              onClick={() => setShowForm(true)}
             >
-              {t.label.split("(")[0].trim()}
+              + New coupon
             </button>
-          ))}
+          )}
         </div>
-      </div>
 
-      {/* Coupons Table */}
-      {isLoading ? (
-        <div style={{ textAlign: "center", padding: "40px", color: "#6b7280" }}>
-          Loading coupons...
+        <div className="admin-orders-toolbar">
+          <div className="admin-orders-search">
+            <span aria-hidden="true">🔍</span>
+            <input
+              type="search"
+              placeholder="Search coupons by code…"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className="admin-segmented" role="group" aria-label="Filter by type">
+            {[{ value: "all", label: "All" }, ...COUPON_TYPES].map(t => (
+              <button
+                key={t.value}
+                type="button"
+                className={filterType === t.value ? "active" : ""}
+                aria-pressed={filterType === t.value}
+                onClick={() => setFilterType(t.value)}
+              >
+                {t.value === "all" ? "All" : typeLabel(t.value)}
+              </button>
+            ))}
+          </div>
         </div>
-      ) : filteredCoupons.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "40px", color: "#6b7280" }}>
-          {coupons.length === 0
-            ? "No coupons yet. Create your first coupon!"
-            : "No coupons match your search."}
-        </div>
-      ) : (
-        <div className="admin-table-wrap">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Code</th>
-                <th>Type</th>
-                <th>Discount</th>
-                <th>Min Order</th>
-                <th>Usage Limit</th>
-                <th>Valid Until</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredCoupons.map(coupon => (
-                <tr key={coupon.id}>
-                  <td>
-                    <strong>{coupon.code}</strong>
-                  </td>
-                  <td>
-                    <span
-                      style={{
-                        display: "inline-block",
-                        padding: "4px 8px",
-                        borderRadius: "4px",
-                        fontSize: "12px",
-                        fontWeight: "600",
-                        background:
-                          coupon.type === "GENERAL"
-                            ? "#dbeafe"
-                            : coupon.type === "NEW_USER"
-                              ? "#dcfce7"
-                              : "#fef3c7",
-                        color:
-                          coupon.type === "GENERAL"
-                            ? "#1d4ed8"
-                            : coupon.type === "NEW_USER"
-                              ? "#166534"
-                              : "#92400e"
-                      }}
-                    >
-                      {coupon.type}
-                    </span>
-                  </td>
-                  <td>{coupon.discountPercent}%</td>
-                  <td>
-                    {coupon.minOrderAmount
-                      ? formatCurrency(coupon.minOrderAmount)
-                      : "None"}
-                  </td>
-                  <td>
-                    {coupon.usageLimit
-                      ? `${coupon.usageLimit} uses`
-                      : "Unlimited"}
-                  </td>
-                  <td>{formatDate(coupon.endDate) || "N/A"}</td>
-                  <td style={{ display: "flex", gap: "6px" }}>
-                    <button
-                      className="btn btn-small btn-edit"
-                      onClick={() => startEdit(coupon)}
-                      disabled={isSaving}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className="btn btn-small btn-delete"
-                      onClick={() => setDeleteConfirm(coupon.id)}
-                      disabled={isSaving}
-                    >
-                      Delete
-                    </button>
-                    {deleteConfirm === coupon.id && (
-                      <div
-                        style={{
-                          position: "absolute",
-                          background: "#fff",
-                          border: "1px solid #d1d5db",
-                          borderRadius: "6px",
-                          padding: "10px",
-                          marginTop: "28px",
-                          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                          zIndex: 10
-                        }}
-                      >
-                        <p style={{ margin: "0 0 8px 0", fontSize: "13px" }}>
-                          Delete this coupon?
-                        </p>
-                        <div style={{ display: "flex", gap: "6px" }}>
+
+        {message.text && !showForm && (
+          <div className={`alert alert-${message.type}`}>{message.text}</div>
+        )}
+
+        {isLoading ? (
+          <p className="admin-coupons-empty">Loading coupons…</p>
+        ) : filteredCoupons.length === 0 ? (
+          <div className="admin-coupons-empty">
+            <div className="admin-coupons-empty-icon" aria-hidden="true">🎟️</div>
+            {coupons.length === 0 ? (
+              <>
+                <p className="admin-orders-strong">No coupons yet</p>
+                <p className="admin-orders-muted">
+                  Create a code customers can use at checkout.
+                </p>
+                {!showForm && (
+                  <button
+                    className="btn btn-secondary btn-small"
+                    onClick={() => setShowForm(true)}
+                  >
+                    + Create your first coupon
+                  </button>
+                )}
+              </>
+            ) : (
+              <p className="admin-orders-muted">No coupons match your search.</p>
+            )}
+          </div>
+        ) : (
+          <div className="admin-table-wrap">
+            <table className="admin-table admin-orders-table admin-products-table">
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Type</th>
+                  <th>Discount</th>
+                  <th>Min order</th>
+                  <th>Usage</th>
+                  <th>Validity</th>
+                  <th className="admin-orders-actions-col">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredCoupons.map(coupon => {
+                  const validity = getValidity(coupon);
+                  return (
+                    <tr key={coupon.id}>
+                      <td>
+                        <span className="coupon-code">{coupon.code}</span>
+                        {coupon.description && (
+                          <div className="admin-orders-muted">
+                            {coupon.description}
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        <span
+                          className={`coupon-type coupon-type-${String(
+                            coupon.type || ""
+                          ).toLowerCase()}`}
+                        >
+                          {typeLabel(coupon.type)}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="admin-orders-amount">
+                          {coupon.discountPercent}% off
+                        </span>
+                        {coupon.maxDiscountAmount && (
+                          <div className="admin-orders-muted">
+                            up to {formatCurrency(coupon.maxDiscountAmount)}
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        {coupon.minOrderAmount
+                          ? formatCurrency(coupon.minOrderAmount)
+                          : <span className="admin-orders-muted">None</span>}
+                      </td>
+                      <td>
+                        {coupon.usageLimit
+                          ? `${coupon.usageLimit} total`
+                          : "Unlimited"}
+                        {coupon.usageLimitPerUser && (
+                          <div className="admin-orders-muted">
+                            {coupon.usageLimitPerUser} per customer
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        <span className={validity.expired ? "coupon-expired" : ""}>
+                          {validity.text}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="admin-orders-actions">
                           <button
-                            className="btn btn-small"
-                            style={{
-                              background: "#fee2e2",
-                              color: "#dc2626",
-                              border: "1px solid #fecaca"
-                            }}
-                            onClick={() => handleDelete(coupon.id)}
+                            type="button"
+                            className="admin-orders-icon-btn"
+                            onClick={() => startEdit(coupon)}
                             disabled={isSaving}
+                            title="Edit coupon"
+                            aria-label={`Edit ${coupon.code}`}
                           >
-                            Delete
+                            ✏️
                           </button>
                           <button
-                            className="btn btn-small btn-secondary"
-                            onClick={() => setDeleteConfirm(null)}
+                            type="button"
+                            className="admin-orders-icon-btn admin-products-delete"
+                            onClick={() => setDeleteConfirm(coupon.id)}
                             disabled={isSaving}
+                            title="Delete coupon"
+                            aria-label={`Delete ${coupon.code}`}
                           >
-                            Cancel
+                            🗑
                           </button>
                         </div>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {/* Delete Confirm Modal */}
+      {deleteConfirm && (
+        <div
+          className="modal-overlay"
+          onClick={() => !isSaving && setDeleteConfirm(null)}
+        >
+          <div className="modal-box" onClick={e => e.stopPropagation()}>
+            <h3>Delete coupon {deleteTarget?.code}?</h3>
+            <p>Customers will no longer be able to use this code.</p>
+            <div className="admin-form-actions">
+              <button
+                className="btn order-detail-cancel-solid"
+                onClick={() => handleDelete(deleteConfirm)}
+                disabled={isSaving}
+              >
+                {isSaving ? "Deleting…" : "Yes, delete"}
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setDeleteConfirm(null)}
+                disabled={isSaving}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { Fragment, useEffect, useState, useRef } from "react";
 import {
   fetchCategories,
   fetchProducts,
@@ -327,18 +327,10 @@ export default function AdminProducts() {
 
   return (
     <div className="admin-stack">
-      {/* Form Toggle */}
-      {!showForm && (
-        <div style={{ display: "flex", justifyContent: "center" }}>
-          <button className="btn btn-primary" onClick={() => setShowForm(true)}>
-            + Add Product
-          </button>
-        </div>
-      )}
 
       {/* Form */}
       {showForm && (
-        <section className="card admin-section">
+        <section className="card admin-section admin-products">
           <h3>{editingId ? "Edit Product" : "Add New Product"}</h3>
           {message.text && (
             <div
@@ -523,75 +515,47 @@ export default function AdminProducts() {
       )}
 
       {/* Products Table */}
-      <section className="card admin-section">
-        <div className="prod-table-header">
-          <h3 style={{ margin: 0 }}>Products ({filtered.length})</h3>
-          <div className="prod-table-controls">
+      <section className="card admin-section admin-products">
+        <div className="admin-products-head">
+          <div>
+            <h3>Products</h3>
+            <p className="admin-orders-muted">
+              {filtered.length} product{filtered.length === 1 ? "" : "s"}
+              {activeCategory !== "all" ? " in this category" : ""}
+            </p>
+          </div>
+          {!showForm && (
+            <button className="btn btn-primary btn-small" onClick={() => setShowForm(true)}>
+              + Add product
+            </button>
+          )}
+        </div>
+
+        <div className="admin-orders-toolbar">
+          <div className="admin-orders-search">
+            <span aria-hidden="true">🔍</span>
             <input
-              className="prod-search"
+              type="search"
               placeholder="Search products…"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
             />
-            <select
-              value={pageSize}
-              onChange={e => setPageSize(Number(e.target.value))}
-              style={{
-                padding: "8px 12px",
-                border: "1.5px solid #e5e7eb",
-                borderRadius: 8
-              }}
-              title="Rows per page"
-            >
-              {PAGE_SIZE_OPTIONS.map(n => (
-                <option key={n} value={n}>
-                  {n} / page
-                </option>
-              ))}
-            </select>
           </div>
-        </div>
 
-        {/* Category Filter Dropdown */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-start",
-            margin: "16px 0 24px"
-          }}
-        >
-          <div
-            className="admin-cat-filter"
-            ref={categoryMenuRef}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "6px",
-              position: "relative"
-            }}
-          >
-            <label
-              style={{
-                fontSize: "13px",
-                fontWeight: "600",
-                color: "#6b7280"
-              }}
-            >
-              Filter by Category
-            </label>
-
+          <div className="admin-cat-filter" ref={categoryMenuRef}>
             <button
               type="button"
               className="admin-cat-filter-trigger"
               onClick={() => setShowCategoryMenu(o => !o)}
               aria-haspopup="listbox"
               aria-expanded={showCategoryMenu}
+              aria-label="Filter by category"
             >
               <span>
                 {activeCategory === "all"
-                  ? "📦 All Categories"
+                  ? "All categories"
                   : categories.find(c => String(c.id) === activeCategory)
-                      ?.name || "All Categories"}
+                      ?.name || "All categories"}
               </span>
               <span
                 className={`admin-cat-filter-caret ${showCategoryMenu ? "open" : ""}`}
@@ -611,7 +575,7 @@ export default function AdminProducts() {
                     setShowCategoryMenu(false);
                   }}
                 >
-                  📦 All Categories
+                  All categories
                 </li>
                 {categories.map(c => (
                   <li
@@ -630,6 +594,20 @@ export default function AdminProducts() {
               </ul>
             )}
           </div>
+
+          <select
+            className="admin-orders-select"
+            value={pageSize}
+            onChange={e => setPageSize(Number(e.target.value))}
+            title="Rows per page"
+            aria-label="Rows per page"
+          >
+            {PAGE_SIZE_OPTIONS.map(n => (
+              <option key={n} value={n}>
+                {n} / page
+              </option>
+            ))}
+          </select>
         </div>
 
         {message.text && !showForm && (
@@ -641,196 +619,144 @@ export default function AdminProducts() {
         )}
 
         <div className="admin-table-wrap">
-          <table className="admin-table">
+          <table className="admin-table admin-orders-table admin-products-table">
             <thead>
               <tr>
                 <th>Product</th>
                 <th>Category</th>
                 <th>Price</th>
                 <th>Stock</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th className="admin-orders-actions-col">Actions</th>
               </tr>
             </thead>
             <tbody>
               {paginated.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="admin-empty-row">
+                  <td colSpan={5} className="admin-empty-row">
                     No products found.
                   </td>
                 </tr>
               ) : (
-                paginated.map(product => (
-                  <>
-                    <tr
-                      key={product.id}
-                      className={
-                        expandedProduct === product.id
-                          ? "prod-row-expanded"
-                          : ""
-                      }
-                    >
+                paginated.map(product => {
+                  const stock = Number(product.stock ?? 0);
+                  const isExpanded = expandedProduct === product.id;
+                  return (
+                  <Fragment key={product.id}>
+                    <tr className={isExpanded ? "prod-row-expanded" : ""}>
                       <td>
                         <div className="prod-name-cell">
-                          {product.imageUrl && (
+                          {product.imageUrl ? (
                             <img
                               src={IMAGE_BASE_URL + product.imageUrl}
                               alt=""
                               className="prod-thumb"
-                              width="38"
-                              height="38"
+                              width="44"
+                              height="44"
                               loading="lazy"
                               decoding="async"
                               onError={e => (e.target.style.display = "none")}
                             />
+                          ) : (
+                            <span className="prod-thumb prod-thumb-empty">🌿</span>
                           )}
                           <div>
                             <div className="prod-name">{product.name}</div>
                             {product.description && (
                               <button
+                                type="button"
                                 className="prod-detail-toggle"
                                 onClick={() =>
-                                  setExpandedProduct(
-                                    expandedProduct === product.id
-                                      ? null
-                                      : product.id
-                                  )
+                                  setExpandedProduct(isExpanded ? null : product.id)
                                 }
                               >
-                                {expandedProduct === product.id
-                                  ? "▲ less"
-                                  : "▼ details"}
+                                {isExpanded ? "Hide details ▲" : "Show details ▼"}
                               </button>
                             )}
                           </div>
                         </div>
                       </td>
-                      <td>{getCategoryName(product)}</td>
                       <td>
-                        <strong>{formatCurrency(product.price)}</strong>
+                        <span className="prod-cat-chip">{getCategoryName(product)}</span>
+                      </td>
+                      <td>
+                        <span className="admin-orders-amount">
+                          {formatCurrency(product.price)}
+                        </span>
                         {product.priceUnit && product.priceUnit !== "fixed" && (
-                          <span
-                            style={{
-                              fontSize: "11px",
-                              color: "#6b7280",
-                              display: "block",
-                              marginTop: "2px"
-                            }}
-                          >
-                            /{" "}
+                          <div className="admin-orders-muted">
+                            per{" "}
                             {product.priceUnit
                               .replace("per_", "")
                               .replace("kg", "KG")}
-                          </span>
+                          </div>
                         )}
                       </td>
                       <td>
                         <span
-                          className={`stock-badge ${Number(product.stock ?? 0) === 0 ? "stock-out" : Number(product.stock ?? 0) < 10 ? "stock-low" : "stock-ok"}`}
+                          className={`stock-badge ${stock === 0 ? "stock-out" : stock < 10 ? "stock-low" : "stock-ok"}`}
                         >
-                          {product.stock ?? 0}
+                          {stock === 0
+                            ? "Out of stock"
+                            : stock < 10
+                              ? `Low · ${stock} left`
+                              : `${stock} in stock`}
                         </span>
                       </td>
                       <td>
-                        <span
-                          className={`admin-status-pill ${Number(product.stock ?? 0) === 0 ? "status-cancelled" : "status-delivered"}`}
-                        >
-                          {Number(product.stock ?? 0) === 0
-                            ? "Out of Stock"
-                            : "In Stock"}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="admin-action-row">
+                        <div className="admin-orders-actions">
                           <button
-                            className="btn-action btn-edit"
+                            type="button"
+                            className="admin-orders-icon-btn"
                             onClick={() => startEdit(product)}
-                            title="Edit"
+                            title="Edit product"
+                            aria-label={`Edit ${product.name}`}
                           >
-                            ✏️ Edit
+                            ✏️
                           </button>
                           <button
-                            className="btn-action btn-delete"
+                            type="button"
+                            className="admin-orders-icon-btn admin-products-delete"
                             onClick={() => setDeleteConfirm(product.id)}
-                            title="Delete"
+                            title="Delete product"
+                            aria-label={`Delete ${product.name}`}
                             disabled={isSaving}
                           >
-                            🗑 Delete
+                            🗑
                           </button>
                         </div>
                       </td>
                     </tr>
-                    {expandedProduct === product.id && (
-                      <tr
-                        key={`${product.id}-detail`}
-                        className="prod-detail-row"
-                      >
-                        <td colSpan={6}>
+                    {isExpanded && (
+                      <tr className="prod-detail-row">
+                        <td colSpan={5}>
                           <div className="prod-detail-box">
-                            <strong>Description:</strong>{" "}
-                            {product.description || "No description provided."}
-                            {product.imageUrl && (
-                              <div style={{ marginTop: 8 }}>
-                                <strong>Main Image:</strong>{" "}
-                                <a
-                                  href={product.imageUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  {product.imageUrl}
-                                </a>
-                              </div>
-                            )}
+                            <p>{product.description || "No description provided."}</p>
                             {product.images && product.images.length > 0 && (
-                              <div style={{ marginTop: 12 }}>
-                                <strong>Product Images ({product.images.length}):</strong>
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    gap: "8px",
-                                    flexWrap: "wrap",
-                                    marginTop: "8px"
-                                  }}
-                                >
-                                  {product.images.map((img, idx) => (
-                                    <a
-                                      key={idx}
-                                      href={img.imageUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      title={img.imageUrl}
-                                      style={{
-                                        display: "inline-block",
-                                        width: "60px",
-                                        height: "60px",
-                                        borderRadius: "6px",
-                                        overflow: "hidden",
-                                        border: "1px solid #e5e7eb"
-                                      }}
-                                    >
-                                      <img
-                                        src={IMAGE_BASE_URL + img.imageUrl}
-                                        alt={`Image ${idx + 1}`}
-                                        style={{
-                                          width: "100%",
-                                          height: "100%",
-                                          objectFit: "cover"
-                                        }}
-                                        onError={e =>
-                                          (e.target.style.display = "none")
-                                        }
-                                      />
-                                    </a>
-                                  ))}
-                                </div>
+                              <div className="prod-detail-images">
+                                {product.images.map((img, idx) => (
+                                  <a
+                                    key={idx}
+                                    href={IMAGE_BASE_URL + img.imageUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title={`Open image ${idx + 1}`}
+                                  >
+                                    <img
+                                      src={IMAGE_BASE_URL + img.imageUrl}
+                                      alt={`Image ${idx + 1}`}
+                                      onError={e => (e.target.style.display = "none")}
+                                    />
+                                  </a>
+                                ))}
                               </div>
                             )}
                           </div>
                         </td>
                       </tr>
                     )}
-                  </>
-                ))
+                  </Fragment>
+                  );
+                })
               )}
             </tbody>
           </table>
